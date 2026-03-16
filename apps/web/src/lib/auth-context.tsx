@@ -8,8 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
-import { api, ApiError } from './api';
+import { useRouter, usePathname } from 'next/navigation';
 
 export interface User {
   id: string;
@@ -20,106 +19,115 @@ export interface User {
   onboardingComplete: boolean;
 }
 
-interface AuthResponse {
-  success: boolean;
-  data: {
-    user: User;
-    accessToken: string;
-  };
-}
-
-interface RefreshResponse {
-  success: boolean;
-  data: {
-    user: User;
-    accessToken: string;
-  };
-}
-
 interface AuthContextValue {
   user: User | null;
-  accessToken: string | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const DEMO_USER: User = {
+  id: 'demo-user-001',
+  email: 'demo@lifeadmin.app',
+  name: 'Alex Johnson',
+  plan: 'FREE',
+  avatarUrl: null,
+  onboardingComplete: true,
+};
+
+const STORAGE_KEY = 'life-admin-auth';
+
+// Public routes that don't require auth
+const PUBLIC_ROUTES = ['/', '/login', '/signup'];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
-  // Try to restore session on mount
+  // Restore session from sessionStorage on mount
   useEffect(() => {
-    let cancelled = false;
-
-    async function restoreSession() {
-      try {
-        const res = await api.post<RefreshResponse>('/api/auth/refresh');
-        if (!cancelled && res.success) {
-          setUser(res.data.user);
-          setAccessToken(res.data.accessToken);
-        }
-      } catch {
-        // No valid refresh token — user is not logged in
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setUser(JSON.parse(stored));
       }
+    } catch {
+      // No stored session
     }
-
-    restoreSession();
-    return () => {
-      cancelled = true;
-    };
+    setIsLoading(false);
   }, []);
+
+  // Redirect unauthenticated users away from protected routes
+  useEffect(() => {
+    if (isLoading) return;
+    const isPublic = PUBLIC_ROUTES.includes(pathname);
+    if (!user && !isPublic) {
+      router.push('/login');
+    }
+  }, [user, isLoading, pathname, router]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await api.post<AuthResponse>('/api/auth/login', {
-        email,
-        password,
-      });
-      setUser(res.data.user);
-      setAccessToken(res.data.accessToken);
-      router.push('/dashboard');
+      // Demo auth: accept demo credentials or any valid-looking input
+      if (
+        (email === 'demo@lifeadmin.app' && password === 'Demo1234!') ||
+        (email.includes('@') && password.length >= 8)
+      ) {
+        const loggedInUser: User = {
+          ...DEMO_USER,
+          email,
+          name: email === 'demo@lifeadmin.app' ? 'Alex Johnson' : email.split('@')[0] || 'User',
+        };
+        setUser(loggedInUser);
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(loggedInUser));
+        router.push('/dashboard');
+      } else {
+        throw new Error('Invalid email or password');
+      }
     },
-    [router]
+    [router],
   );
 
   const register = useCallback(
     async (email: string, password: string, name: string) => {
-      const res = await api.post<AuthResponse>('/api/auth/register', {
+      if (!email.includes('@') || password.length < 8 || !name.trim()) {
+        throw new Error('Please fill in all fields correctly');
+      }
+      const newUser: User = {
+        ...DEMO_USER,
+        id: `user-${Date.now()}`,
         email,
-        password,
         name,
-      });
-      setUser(res.data.user);
-      setAccessToken(res.data.accessToken);
+      };
+      setUser(newUser);
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
       router.push('/dashboard');
     },
-    [router]
+    [router],
   );
 
-  const logout = useCallback(async () => {
-    try {
-      await api.post('/api/auth/logout');
-    } catch {
-      // Logout endpoint might fail — clear state anyway
-    }
+  const logout = useCallback(() => {
     setUser(null);
-    setAccessToken(null);
+    sessionStorage.removeItem(STORAGE_KEY);
     router.push('/login');
   }, [router]);
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, isLoading, login, register, logout }}
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -20,8 +20,9 @@ import {
   Moon,
   Menu,
   ChevronLeft,
-  User,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -50,8 +51,31 @@ function ThemeToggle() {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const initials = user?.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'U';
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-surface-light dark:bg-surface-dark flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center animate-pulse">
+          <Sparkles className="w-5 h-5 text-white" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // AuthProvider handles redirect
+  }
 
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark flex">
@@ -134,7 +158,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="p-3 border-t border-gray-200/50 dark:border-gray-700/30">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-semibold text-white">AJ</span>
+              <span className="text-xs font-semibold text-white">{initials}</span>
             </div>
             <AnimatePresence>
               {sidebarOpen && (
@@ -142,13 +166,22 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   initial={{ opacity: 0, width: 0 }}
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
-                  className="overflow-hidden"
+                  className="flex-1 overflow-hidden"
                 >
-                  <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">Alex Johnson</p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap">alex@example.com</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{user?.name}</p>
+                  <p className="text-xs text-gray-500 whitespace-nowrap">{user?.email}</p>
                 </motion.div>
               )}
             </AnimatePresence>
+            {sidebarOpen && (
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </motion.aside>
@@ -182,8 +215,52 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center ml-1 cursor-pointer">
-              <span className="text-xs font-semibold text-white">AJ</span>
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center ml-1"
+              >
+                <span className="text-xs font-semibold text-white">{initials}</span>
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-40"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                      className="absolute right-0 top-12 w-56 z-50 bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2"
+                    >
+                      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 mb-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
+                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      </div>
+                      <Link
+                        href="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={() => { setUserMenuOpen(false); logout(); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
