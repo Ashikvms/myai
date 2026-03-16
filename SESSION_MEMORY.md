@@ -22,7 +22,7 @@
 | 8  | Web: Landing page                     | 🚀 PUSHED TO GITHUB (PR #8)        |
 | 9  | Web: Auth pages (login/signup)        | 🚀 PUSHED TO GITHUB (PR #9)        |
 | 10 | Web: Dashboard                        | 🚀 PUSHED TO GITHUB (PR #10)       |
-| 11 | Web: Tasks, Bills, Subscriptions      | ⬜ NOT STARTED                      |
+| 11 | Web: Tasks, Bills, Subscriptions      | 🔨 IN PROGRESS                     |
 | 12 | Web: Documents, Appointments, Reminders | ⬜ NOT STARTED                    |
 | 13 | Web: AI Assistant chat                | ⬜ NOT STARTED                      |
 | 14 | Web: Settings                         | ⬜ NOT STARTED                      |
