@@ -7,19 +7,28 @@
     @apply bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-gray-100;
   }
 
-  /* Theme transition overlay */
-  .theme-transition-overlay {
+  /* Smooth theme transition — fade with gradient wash */
+  .theme-fade-overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
     pointer-events: none;
-    clip-path: circle(0% at var(--tx, 50%) var(--ty, 50%));
-    animation: theme-reveal 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    animation: theme-fade 0.7s ease-in-out forwards;
   }
 
-  @keyframes theme-reveal {
-    to {
-      clip-path: circle(150% at var(--tx, 50%) var(--ty, 50%));
+  @keyframes theme-fade {
+    0% {
+      opacity: 0;
+    }
+    40% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
     }
   }
 
