@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ──────────────────────────────
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum BillFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+enum BillStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum DocumentCategory {
+  INSURANCE
+  LEASE
+  CAR
+  TAX
+  MEDICAL
+  WARRANTY
+  IDENTITY
+  OTHER
+}
+
+enum ReminderLinkedType {
+  TASK
+  BILL
+  SUBSCRIPTION
+  APPOINTMENT
+  DOCUMENT
+  NONE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  DISMISSED
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+}
+
+// ── Models ─────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String?
+  name              String
+  avatarUrl         String?
+  googleId          String?   @unique
+  plan              Plan      @default(FREE)
+  onboardingComplete Boolean  @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tasks             Task[]
+  bills             Bill[]
+  subscriptions     Subscription[]
+  documents         Document[]
+  appointments      Appointment[]
+  reminders         Reminder[]
+  aiConversations   AiConversation[]
+  notificationPref  NotificationPreference?
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String
+  expiresAt    DateTime
+  revoked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model Task {
+  id             String      @id @default(cuid())
+  userId         String
+  title          String      @db.VarChar(200)
+  notes          String?     @db.Text
+  dueDate        DateTime?
+  category       String?     @db.VarChar(50)
+  priority       Priority    @default(MEDIUM)
+  status         TaskStatus  @default(PENDING)
+  isRecurring    Boolean     @default(false)
+  recurrenceRule String?
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dueDate])
+  @@index([userId, deletedAt])
+  @@map("tasks")
+}
+
+model Bill {
+  id          String        @id @default(cuid())
+  userId      String
+  name        String        @db.VarChar(200)
+  category    String        @db.VarChar(50)
+  amount      Decimal       @db.Decimal(10, 2)
+  frequency   BillFrequency
+  nextDueDate DateTime
+  isAutopay   Boolean       @default(false)
+  notes       String?       @db.Text
+  status      BillStatus    @default(ACTIVE)
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([nextDueDate])
+  @@index([userId, deletedAt])
+  @@map("bills")
+}
+
+model Subscription {
+  id               String        @id @default(cuid())
+  userId           String
+  name             String        @db.VarChar(200)
+  category         String        @db.VarChar(50)
+  amount           Decimal       @db.Decimal(10, 2)
+  frequency        BillFrequency
+  nextRenewalDate  DateTime
+  isAutopay        Boolean       @default(false)
+  notes            String?       @db.Text
+  status           BillStatus    @default(ACTIVE)
+  cancellationDate DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([nextRenewalDate])
+  @@index([userId, deletedAt])
+  @@map("subscriptions")
+}
+
+model Document {
+  id             String           @id @default(cuid())
+  userId         String
+  title          String           @db.VarChar(200)
+  category       DocumentCategory
+  issueDate      DateTime?
+  expirationDate DateTime?
+  notes          String?          @db.Text
+  fileUrl        String?
+  fileName       String?
+  fileSize       Int?
+  mimeType       String?
+  summary        String?          @db.Text
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expirationDate])
+  @@index([userId, deletedAt])
+  @@map("documents")
+}
+
+model Appointment {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String   @db.VarChar(200)
+  dateTime        DateTime
+  endTime         DateTime?
+  location        String?  @db.VarChar(500)
+  notes           String?  @db.Text
+  category        String?  @db.VarChar(50)
+  reminderMinutes Int      @default(30)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dateTime])
+  @@map("appointments")
+}
+
+model Reminder {
+  id             String            @id @default(cuid())
+  userId         String
+  title          String            @db.VarChar(200)
+  dateTime       DateTime
+  isRecurring    Boolean           @default(false)
+  recurrenceRule String?
+  linkedType     ReminderLinkedType @default(NONE)
+  linkedId       String?
+  status         ReminderStatus    @default(PENDING)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dateTime])
+  @@index([status])
+  @@map("reminders")
+}
+
+model AiConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  title     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AiMessage[]
+
+  @@index([userId])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  role           AiMessageRole
+  content        String         @db.Text
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("ai_messages")
+}
+
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  emailNotifications    Boolean  @default(true)
+  pushNotifications     Boolean  @default(true)
+  billReminders         Boolean  @default(true)
+  appointmentReminders  Boolean  @default(true)
+  documentExpiry        Boolean  @default(true)
+  taskReminders         Boolean  @default(true)
+  reminderLeadDays      Int      @default(3)
+  pushToken             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
