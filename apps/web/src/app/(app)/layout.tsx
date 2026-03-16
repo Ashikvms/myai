@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
+import { useThemeTransition } from '@/lib/use-theme-transition';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -36,15 +36,15 @@ const NAV_ITEMS = [
 ];
 
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { isDark, mounted, toggleTheme } = useThemeTransition();
+  if (!mounted) return <div className="w-9 h-9" />;
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={toggleTheme}
       className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       aria-label="Toggle theme"
     >
-      <Sun className="w-5 h-5 hidden dark:block text-gray-400" />
-      <Moon className="w-5 h-5 block dark:hidden text-gray-500" />
+      {isDark ? <Sun className="w-5 h-5 text-gray-400" /> : <Moon className="w-5 h-5 text-gray-500" />}
     </button>
   );
 }
