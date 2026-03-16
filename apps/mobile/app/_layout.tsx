@@ -1,6 +1,28 @@
-// Mobile app layout — placeholder. Full implementation in Section 15–21.
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from '../src/context/auth';
 
 export default function RootLayout() {
-  return <Slot />;
+  return (
+    <AuthProvider>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="bills" options={{ headerShown: false }} />
+        <Stack.Screen name="appointments" options={{ headerShown: false }} />
+        <Stack.Screen name="reminders" options={{ headerShown: false }} />
+      </Stack>
+    </AuthProvider>
+  );
 }
