@@ -24,6 +24,7 @@ function makeService(): AiService {
 
 function makeUserContext() {
   return {
+    userId: 'test-user-001',
     name: 'Test User',
     plan: 'FREE' as const,
     tasks: [],
@@ -170,7 +171,7 @@ describe('AI Service', () => {
         date: '2025-01-15',
         confidence: 'high',
       });
-      expect(result.dates[2].confidence).toBe('medium');
+      expect(result.dates[2]!.confidence).toBe('medium');
     });
 
     it('returns empty dates array when no dates found', async () => {
@@ -409,8 +410,8 @@ describe('AI Service', () => {
         message: 'You have 3 overdue tasks that need attention.',
         actionable: true,
       });
-      expect(result.insights[1].type).toBe('SPENDING');
-      expect(result.insights[2].actionable).toBe(true);
+      expect(result.insights[1]!.type).toBe('SPENDING');
+      expect(result.insights[2]!.actionable).toBe(true);
     });
 
     it('returns empty insights when no data available', async () => {
