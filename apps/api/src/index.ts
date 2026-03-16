@@ -16,6 +16,7 @@ import remindersRouter from './routes/reminders';
 import dashboardRouter from './routes/dashboard';
 import settingsRouter from './routes/settings';
 import aiRouter from './routes/ai';
+import { startJobQueue } from './jobs/queue';
 
 const app = express();
 
@@ -76,6 +77,13 @@ app.listen(env.PORT, () => {
   logger.info(`Life Admin API running on port ${env.PORT}`, {
     environment: env.NODE_ENV,
     port: env.PORT,
+  });
+
+  // Start job queue (non-blocking — Redis is optional)
+  startJobQueue().catch((err) => {
+    logger.warn('Job queue failed to start — running without background jobs', {
+      error: (err as Error).message,
+    });
   });
 });
 
