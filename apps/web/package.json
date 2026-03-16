@@ -10,20 +10,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.4.0",
     "@life-admin/shared": "*",
     "@life-admin/ui": "*",
     "@tanstack/react-query": "^5.40.0",
     "@trpc/client": "^11.0.0-rc.0",
     "@trpc/react-query": "^11.0.0-rc.0",
+    "date-fns": "^3.6.0",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.370.0",
-    "next": "^14.2.0",
+    "next": "^14.2.35",
     "next-themes": "^0.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-hook-form": "^7.51.0",
-    "@hookform/resolvers": "^3.4.0",
-    "date-fns": "^3.6.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
