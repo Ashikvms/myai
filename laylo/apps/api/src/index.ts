@@ -16,6 +16,7 @@ import remindersRouter from './routes/reminders';
 import dashboardRouter from './routes/dashboard';
 import settingsRouter from './routes/settings';
 import aiRouter from './routes/ai';
+import { healthRouter } from './routes/health';
 import { startJobQueue } from './jobs/queue';
 
 const app = express();
@@ -50,9 +51,7 @@ app.use(globalLimiter);
 
 // ── Health check ───────────────────────
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+app.use('/health', healthRouter);
 
 // ── Routes ─────────────────────────────
 
