@@ -141,6 +141,17 @@ Act as the following elite startup product team:
 8. Always scope queries by userId
 9. Always validate inputs with Zod
 10. Always use conventional commits
+11. **Infrastructure locks (11–21 below are FINAL — no alternatives):**
+12. NEVER use AWS — no S3, RDS, ElastiCache, Lambda, or any AWS service
+13. NEVER use Firebase — use Expo Push for notifications
+14. NEVER use SendGrid or Mailgun — use Resend
+15. NEVER use AWS S3 — use Cloudflare R2
+16. NEVER use AWS RDS — use Railway PostgreSQL
+17. NEVER use AWS ElastiCache — use Upstash Redis
+18. NEVER use SendGrid or Mailgun — use Resend
+19. NEVER use Firebase — use Expo Push for notifications
+20. NEVER suggest paid tiers unless free tier limit is actually hit
+21. ALWAYS add a GET /health endpoint to the API that returns `{ status: "ok", timestamp: Date.now() }`
 
 ## Step 9: SESSION_MEMORY.md Template
 See SESSION_MEMORY.md for the initialised template.
@@ -157,3 +168,96 @@ See SESSION_MEMORY.md for the initialised template.
 - **Font:** Inter (web), System (mobile)
 - **Radius:** sm=6px, md=10px, lg=16px, xl=24px
 - **Spacing:** 4px grid
+
+## Step 12: Infrastructure (LOCKED)
+
+These are final decisions. Do not suggest alternatives or ask about them.
+
+### Web hosting: Vercel (free hobby tier)
+- Auto-deploys from GitHub main branch
+- Set `NEXT_PUBLIC_API_URL` env var in Vercel dashboard
+
+### API hosting: Railway (Starter ~$5/mo)
+- Deploy from `/apps/api` using the Dockerfile
+- Set all API env vars in Railway dashboard
+
+### Database: Railway PostgreSQL (~$5/mo)
+- Same Railway project as the API
+- `DATABASE_URL` provided automatically by Railway
+
+### Cache + Queue: Upstash Redis (free tier)
+- Used for BullMQ jobs and rate limiting
+- `REDIS_URL` from Upstash dashboard
+
+### File storage: Cloudflare R2 (free tier)
+- Bucket name: `lifeadmin-documents`
+- Presigned URL upload flow (client uploads directly)
+- Variables: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+
+### AI: Anthropic API (pay as you go)
+- Model: `claude-3-5-sonnet-20241022`
+- $20/mo spend cap set in Anthropic console
+- Variables: `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`
+
+### Auth: Custom JWT RS256 + Google OAuth
+- Google Cloud Console OAuth 2.0 credentials
+- Variables: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`
+
+### Email: Resend (free tier — 3,000 emails/mo)
+- Domain verified via Cloudflare DNS
+- Variable: `RESEND_API_KEY`
+
+### Push notifications: Expo Push Notification Service (free)
+- No Firebase or APNs setup required
+- Variable: `EXPO_ACCESS_TOKEN`
+
+### Mobile builds: EAS Build (free tier — 30 builds/mo)
+- Internal distribution (no App Store needed yet)
+- `eas build --profile development` for local testing
+- `eas build --profile preview` for sharing
+
+### Domain: Cloudflare Registrar (~$10/yr)
+- `yourdomain.com` → CNAME to Vercel (web)
+- `api.yourdomain.com` → CNAME to Railway (API)
+
+### Error tracking: Sentry (free tier)
+- Three projects: web, api, mobile
+- Variable: `SENTRY_DSN`
+
+### Uptime: BetterUptime (free tier)
+- Monitor: `https://api.yourdomain.com/health`
+- Alert via email if API goes down
+
+## Step 13: Deployment Checklist
+
+Before writing any deployment config, verify:
+1. Dockerfile exists in `/apps/api` (multi-stage build)
+2. `.env.example` is complete and committed
+3. All secrets are in environment variables — nothing hardcoded
+4. Database migrations run via: `npx prisma migrate deploy`
+5. Seed data runs via: `npx prisma db seed`
+
+### Vercel deployment (web)
+- `vercel.json` in `/apps/web` if custom config needed
+- Set `NEXT_PUBLIC_API_URL` in Vercel dashboard
+- Connect GitHub repo — auto-deploys on push to main
+
+### Railway deployment (API)
+- Dockerfile in `/apps/api`
+- `railway.json` or nixpacks config if needed
+- All env vars added in Railway dashboard before first deploy
+- Health check endpoint: `GET /health` → returns `{ status: "ok" }`
+
+### Cloudflare R2 (storage)
+- Use `@aws-sdk/client-s3` with custom endpoint for R2
+- Presigned URL generation in `/apps/api/src/services/storage.ts`
+- Never proxy file uploads through the API — client uploads direct
+
+### Upstash Redis (queue)
+- Use ioredis with `REDIS_URL` from Upstash
+- BullMQ workers run inside the Railway API container
+
+### EAS Mobile builds
+- `eas.json` already configured with development + preview profiles
+- `eas build --profile development --platform all` (first time)
+- `eas update` for JS-only changes (no rebuild needed)

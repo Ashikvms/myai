@@ -174,6 +174,23 @@ Node.js 20 LTS, Express, Prisma + PostgreSQL, Zod,
 BullMQ + Redis, Winston, Helmet, cors, express-rate-limit,
 jose (JWT RS256), Passport.js (Google OAuth), bcryptjs
 
+### Infrastructure (LOCKED — do not change)
+| Service | Provider | Tier |
+|---------|----------|------|
+| Web hosting | Vercel | Free hobby |
+| API hosting | Railway | Starter ~$5/mo |
+| Database | Railway PostgreSQL | ~$5/mo |
+| Cache + Queue | Upstash Redis | Free |
+| File storage | Cloudflare R2 | Free |
+| AI | Anthropic API | Pay-as-you-go ($20/mo cap) |
+| Auth | Custom JWT RS256 + Google OAuth | — |
+| Email | Resend | Free (3,000/mo) |
+| Push | Expo Push Notification Service | Free |
+| Mobile builds | EAS Build | Free (30 builds/mo) |
+| Domain | Cloudflare Registrar | ~$10/yr |
+| Error tracking | Sentry | Free |
+| Uptime | BetterUptime | Free |
+
 ---
 
 ## Section 3: Testing & QA Strategy
