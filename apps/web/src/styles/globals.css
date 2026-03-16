@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+  }
+
   body {
     @apply bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-gray-100;
   }
