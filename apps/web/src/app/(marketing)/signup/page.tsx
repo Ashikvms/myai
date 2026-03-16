@@ -1,44 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Sparkles, Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Sparkles,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Loader2,
+  AlertCircle,
+  Check,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { ApiError } from '../../../lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+const signupSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters'),
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 
-export default function LoginPage() {
-  const { login } = useAuth();
+function getPasswordStrength(password: string): {
+  label: string;
+  color: string;
+  width: string;
+} {
+  if (!password) return { label: '', color: '', width: 'w-0' };
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 2)
+    return {
+      label: 'Weak',
+      color: 'bg-red-500',
+      width: 'w-1/3',
+    };
+  if (score <= 3)
+    return {
+      label: 'Medium',
+      color: 'bg-yellow-500',
+      width: 'w-2/3',
+    };
+  return {
+    label: 'Strong',
+    color: 'bg-green-500',
+    width: 'w-full',
+  };
+}
+
+export default function SignupPage() {
+  const { register: authRegister } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
   });
 
-  async function onSubmit(data: LoginFormData) {
+  const watchedPassword = watch('password', '');
+
+  const passwordStrength = useMemo(
+    () => getPasswordStrength(watchedPassword),
+    [watchedPassword]
+  );
+
+  const passwordChecks = useMemo(
+    () => [
+      { label: 'At least 8 characters', met: watchedPassword.length >= 8 },
+      { label: 'One uppercase letter', met: /[A-Z]/.test(watchedPassword) },
+      { label: 'One number', met: /[0-9]/.test(watchedPassword) },
+    ],
+    [watchedPassword]
+  );
+
+  async function onSubmit(data: SignupFormData) {
     setApiError(null);
     try {
-      await login(data.email, data.password);
+      await authRegister(data.email, data.password, data.name);
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError(err.message);
@@ -69,10 +143,10 @@ export default function LoginPage() {
               <Sparkles className="h-7 w-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Welcome back
+              Create your account
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Sign in to your Life Admin AI account
+              Get started with Life Admin AI
             </p>
           </div>
 
@@ -92,6 +166,36 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Name */}
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >
+                Full name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  {...register('name')}
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="John Doe"
+                  className={`w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50 focus:border-[#6366F1] ${
+                    errors.name
+                      ? 'border-red-300 dark:border-red-500/50'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                />
+              </div>
+              {errors.name && (
+                <p className="mt-1.5 text-xs text-red-500">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+
             {/* Email */}
             <div>
               <label
@@ -124,28 +228,20 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-medium text-[#6366F1] hover:text-indigo-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   {...register('password')}
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
+                  autoComplete="new-password"
+                  placeholder="Create a password"
                   className={`w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-12 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50 focus:border-[#6366F1] ${
                     errors.password
                       ? 'border-red-300 dark:border-red-500/50'
@@ -165,9 +261,99 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
-              {errors.password && (
+
+              {/* Password strength indicator */}
+              {watchedPassword && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color} ${passwordStrength.width}`}
+                      />
+                    </div>
+                    <span
+                      className={`text-xs font-medium ${
+                        passwordStrength.label === 'Weak'
+                          ? 'text-red-500'
+                          : passwordStrength.label === 'Medium'
+                            ? 'text-yellow-500'
+                            : 'text-green-500'
+                      }`}
+                    >
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {passwordChecks.map((check) => (
+                      <li
+                        key={check.label}
+                        className="flex items-center gap-2 text-xs"
+                      >
+                        {check.met ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <X className="h-3 w-3 text-gray-300 dark:text-gray-600" />
+                        )}
+                        <span
+                          className={
+                            check.met
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }
+                        >
+                          {check.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {errors.password && !watchedPassword && (
                 <p className="mt-1.5 text-xs text-red-500">
                   {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >
+                Confirm password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  {...register('confirmPassword')}
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="Confirm your password"
+                  className={`w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-12 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50 focus:border-[#6366F1] ${
+                    errors.confirmPassword
+                      ? 'border-red-300 dark:border-red-500/50'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1.5 text-xs text-red-500">
+                  {errors.confirmPassword.message}
                 </p>
               )}
             </div>
@@ -181,10 +367,10 @@ export default function LoginPage() {
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
+                  Creating account...
                 </span>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </button>
           </form>
@@ -219,17 +405,17 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            Sign up with Google
           </a>
 
-          {/* Sign up link */}
+          {/* Login link */}
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Don&apos;t have an account?{' '}
+            Already have an account?{' '}
             <Link
-              href="/signup"
+              href="/login"
               className="font-semibold text-[#6366F1] hover:text-indigo-500 transition-colors"
             >
-              Sign up
+              Sign in
             </Link>
           </p>
         </div>

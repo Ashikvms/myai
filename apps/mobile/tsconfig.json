@@ -3,10 +3,23 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/*"],
-      "@life-admin/shared": ["../../packages/shared/src"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@life-admin/shared": [
+        "../../packages/shared/src"
+      ]
     }
   },
-  "include": ["src", "app", "*.ts", "*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src",
+    "app",
+    "*.ts",
+    "*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
