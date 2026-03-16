@@ -50,6 +50,9 @@
 - [Session 1 — 2026-03-15] DECISION: Next.js dev script uses `./node_modules/.bin/next` to fix monorepo binary resolution
 - [Session 1 — 2026-03-15] DECISION: React hoisted to root package.json with overrides to prevent duplicate React in monorepo
 - [Session 1 — 2026-03-15] NOTE: expo-dev-client added to mobile app for development builds (no Expo Go)
+- [Session 1 — 2026-03-15] DECISION: Auth uses sessionStorage demo mode — accepts demo@lifeadmin.app/Demo1234! or any valid email/8+ char password
+- [Session 1 — 2026-03-15] DECISION: ThemeProvider in root layout so theme persists across sign-in/sign-out
+- [Session 1 — 2026-03-15] DECISION: Dark/light toggle uses gradient fade overlay transition
 
 ## Open Items
 - Mobile dev build needs `expo-dev-client` — installed but not tested
