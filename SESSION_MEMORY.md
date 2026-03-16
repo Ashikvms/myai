@@ -3,9 +3,9 @@
 ## Current State
 - **Session number:** 1
 - **Last session ended:** 2026-03-15
-- **Last completed:** Item 8 — Web: Landing page
-- **Last approved:** Item 8 — Web: Landing page
-- **Next item:** Item 9 — Web: Auth pages (login/signup)
+- **Last completed:** Item 10 — Web: Dashboard
+- **Last approved:** Item 10 — Web: Dashboard
+- **Next item:** Item 11 — Web: Tasks, Bills, Subscriptions
 - **Current branch:** main
 
 ## Item Tracker
@@ -20,8 +20,8 @@
 | 6  | AI service layer (6 functions)        | 🚀 PUSHED TO GITHUB (PR #6)        |
 | 7  | Job queue + notifications             | 🚀 PUSHED TO GITHUB (PR #7)        |
 | 8  | Web: Landing page                     | 🚀 PUSHED TO GITHUB (PR #8)        |
-| 9  | Web: Auth pages (login/signup)        | ✅ APPROVED — CODE WRITTEN          |
-| 10 | Web: Dashboard                        | ⬜ NOT STARTED                      |
+| 9  | Web: Auth pages (login/signup)        | 🚀 PUSHED TO GITHUB (PR #9)        |
+| 10 | Web: Dashboard                        | 🚀 PUSHED TO GITHUB (PR #10)       |
 | 11 | Web: Tasks, Bills, Subscriptions      | ⬜ NOT STARTED                      |
 | 12 | Web: Documents, Appointments, Reminders | ⬜ NOT STARTED                    |
 | 13 | Web: AI Assistant chat                | ⬜ NOT STARTED                      |
@@ -40,7 +40,7 @@
 
 ## Progress Summary
 ```
-████████████████░░░░░░░░░░░░░░░░░░░░░░░░ 8/25 (32%)
+████████████████████░░░░░░░░░░░░░░░░░░░░ 10/25 (40%)
 ```
 
 ## Decisions Log
@@ -52,9 +52,9 @@
 - [Session 1 — 2026-03-15] NOTE: expo-dev-client added to mobile app for development builds (no Expo Go)
 
 ## Open Items
-- Item 9 code is written and approved but not yet pushed to GitHub
 - Mobile dev build needs `expo-dev-client` — installed but not tested
 - Next.js SWC lockfile patching warning is cosmetic — does not affect builds
+- Dev server must be started via `./node_modules/.bin/next dev -p 3000` from apps/web dir
 
 ## Session History
 
@@ -63,6 +63,7 @@
 - **Approved:** Items 1–9 (auth pages approved, code written)
 - **Pushed:** PRs #1–#8 merged to main
 - **Ended at:** Item 9 approved, code written, not yet pushed. User requested CLAUDE.md/SESSION_MEMORY.md/PROMPT.md setup.
+- Items 9-10 pushed after CLAUDE.md setup. Dashboard iterated: mobile layout improved — all sections now full-width card-based instead of cramped 2-column grid.
 
 ## How To Use
 
