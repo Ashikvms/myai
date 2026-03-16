@@ -1,0 +1,56 @@
+name: CI
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate --schema=apps/api/prisma/schema.prisma
+      - run: npx tsc --noEmit -p packages/shared/tsconfig.json
+      - run: npx tsc --noEmit -p packages/ui/tsconfig.json
+      - run: npx tsc --noEmit -p packages/ai/tsconfig.json
+      - run: npx tsc --noEmit -p apps/api/tsconfig.json
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate --schema=apps/api/prisma/schema.prisma
+      - run: npx vitest run --config packages/ai/vitest.config.ts
+      - run: npx vitest run --config apps/api/vitest.config.ts
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: cd apps/web && ./node_modules/.bin/next build
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm audit --audit-level=high || true

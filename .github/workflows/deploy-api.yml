@@ -1,0 +1,12 @@
+name: Deploy API
+on:
+  push:
+    branches: [main]
+    paths: ['apps/api/**', 'packages/**']
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        run: echo "Deploy to Railway — configure RAILWAY_TOKEN secret"

@@ -3,9 +3,9 @@
 ## Current State
 - **Session number:** 1
 - **Last session ended:** 2026-03-15
-- **Last completed:** Item 14 — Web: Settings
-- **Last approved:** Items 12-14 (autonomous mode)
-- **Next item:** Items 15-21 (mobile) building in parallel
+- **Last completed:** Item 21 — Mobile: Settings
+- **Last approved:** Items 15-21 (autonomous mode)
+- **Next item:** Items 22-25 (tests, CI/CD, README) building in parallel
 - **Current branch:** main
 
 ## Item Tracker
@@ -26,21 +26,21 @@
 | 12 | Web: Documents, Appointments, Reminders | 🚀 PUSHED TO GITHUB (PR #12)     |
 | 13 | Web: AI Assistant chat                | 🚀 PUSHED TO GITHUB (PR #12)       |
 | 14 | Web: Settings                         | 🚀 PUSHED TO GITHUB (PR #12)       |
-| 15 | Mobile: Onboarding flow               | 🔨 IN PROGRESS                     |
-| 16 | Mobile: Auth flow                     | 🔨 IN PROGRESS                     |
-| 17 | Mobile: Tab navigation + Home         | 🔨 IN PROGRESS                     |
-| 18 | Mobile: Tasks + Bills + Subs          | 🔨 IN PROGRESS                     |
-| 19 | Mobile: Docs + Appts + Reminders      | ⬜ NOT STARTED                      |
-| 20 | Mobile: AI Assistant                  | 🔨 IN PROGRESS                     |
-| 21 | Mobile: Settings                      | 🔨 IN PROGRESS                     |
-| 22 | Tests: Unit + Integration             | ⬜ NOT STARTED                      |
-| 23 | Tests: E2E (Playwright)               | ⬜ NOT STARTED                      |
-| 24 | CI/CD: GitHub Actions workflows       | ⬜ NOT STARTED                      |
-| 25 | README + EAS preview setup guide      | ⬜ NOT STARTED                      |
+| 15 | Mobile: Onboarding flow               | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 16 | Mobile: Auth flow                     | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 17 | Mobile: Tab navigation + Home         | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 18 | Mobile: Tasks + Bills + Subs          | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 19 | Mobile: Docs + Appts + Reminders      | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 20 | Mobile: AI Assistant                  | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 21 | Mobile: Settings                      | 🚀 PUSHED TO GITHUB (PR #13)       |
+| 22 | Tests: Unit + Integration             | 🔨 IN PROGRESS                     |
+| 23 | Tests: E2E (Playwright)               | 🔨 IN PROGRESS                     |
+| 24 | CI/CD: GitHub Actions workflows       | 🔨 IN PROGRESS                     |
+| 25 | README + EAS preview setup guide      | 🔨 IN PROGRESS                     |
 
 ## Progress Summary
 ```
-████████████████████████████░░░░░░░░░░░░ 14/25 (56%)
+██████████████████████████████████████░░ 21/25 (84%)
 ```
 
 ## Decisions Log
