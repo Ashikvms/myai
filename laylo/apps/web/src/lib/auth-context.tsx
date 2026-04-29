@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { api, setAuthToken, clearAuthToken, getAuthToken, ApiError } from './api';
 
 export interface User {
   id: string;
@@ -28,18 +29,17 @@ interface AuthContextValue {
   logout: () => void;
 }
 
+interface AuthApiResponse {
+  success: boolean;
+  data: { user: User; accessToken: string };
+}
+
+interface MeApiResponse {
+  success: boolean;
+  data: { user: User };
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const DEMO_USER: User = {
-  id: 'demo-user-001',
-  email: 'demo@lifeadmin.app',
-  name: 'Alex Johnson',
-  plan: 'FREE',
-  avatarUrl: null,
-  onboardingComplete: true,
-};
-
-const STORAGE_KEY = 'life-admin-auth';
 
 // Public routes that don't require auth
 const PUBLIC_ROUTES = ['/', '/login', '/signup'];
@@ -50,17 +50,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Restore session from sessionStorage on mount
+  // On mount: if a JWT is in sessionStorage, validate it via /api/auth/me
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setUser(JSON.parse(stored));
+    let cancelled = false;
+    (async () => {
+      const token = getAuthToken();
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      // No stored session
-    }
-    setIsLoading(false);
+      try {
+        const res = await api.get<MeApiResponse>('/api/auth/me');
+        if (!cancelled) setUser(res.data.user);
+      } catch {
+        // Token invalid/expired — clear it
+        clearAuthToken();
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Redirect unauthenticated users away from protected routes
@@ -74,21 +85,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      // Demo auth: accept demo credentials or any valid-looking input
-      if (
-        (email === 'demo@lifeadmin.app' && password === 'Demo1234!') ||
-        (email.includes('@') && password.length >= 8)
-      ) {
-        const loggedInUser: User = {
-          ...DEMO_USER,
-          email,
-          name: email === 'demo@lifeadmin.app' ? 'Alex Johnson' : email.split('@')[0] || 'User',
-        };
-        setUser(loggedInUser);
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(loggedInUser));
+      try {
+        const res = await api.post<AuthApiResponse>('/api/auth/login', { email, password });
+        setAuthToken(res.data.accessToken);
+        setUser(res.data.user);
         router.push('/dashboard');
-      } else {
-        throw new Error('Invalid email or password');
+      } catch (err) {
+        if (err instanceof ApiError) {
+          throw new Error(err.message);
+        }
+        throw err;
       }
     },
     [router],
@@ -96,25 +102,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (email: string, password: string, name: string) => {
-      if (!email.includes('@') || password.length < 8 || !name.trim()) {
-        throw new Error('Please fill in all fields correctly');
+      try {
+        const res = await api.post<AuthApiResponse>('/api/auth/register', {
+          email,
+          password,
+          name,
+        });
+        setAuthToken(res.data.accessToken);
+        setUser(res.data.user);
+        router.push('/dashboard');
+      } catch (err) {
+        if (err instanceof ApiError) {
+          throw new Error(err.message);
+        }
+        throw err;
       }
-      const newUser: User = {
-        ...DEMO_USER,
-        id: `user-${Date.now()}`,
-        email,
-        name,
-      };
-      setUser(newUser);
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-      router.push('/dashboard');
     },
     [router],
   );
 
   const logout = useCallback(() => {
+    // Best-effort server-side revoke; never block UI on it
+    api.post('/api/auth/logout').catch(() => {});
+    clearAuthToken();
     setUser(null);
-    sessionStorage.removeItem(STORAGE_KEY);
     router.push('/login');
   }, [router]);
 
