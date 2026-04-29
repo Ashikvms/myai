@@ -1,5 +1,37 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// Auth token storage helpers. Per CLAUDE.md rule #6 we never use
+// localStorage for tokens; sessionStorage is the existing pattern used
+// by the auth context. SSR-safe (returns null on the server).
+const AUTH_TOKEN_KEY = 'life-admin-access-token';
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    // sessionStorage may be unavailable (private mode etc.)
+  }
+}
+
+export function clearAuthToken(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;
@@ -18,8 +50,10 @@ async function apiClient<T>(
 ): Promise<T> {
   const url = `${API_URL}${endpoint}`;
 
+  const token = getAuthToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options?.headers || {}),
   };
 

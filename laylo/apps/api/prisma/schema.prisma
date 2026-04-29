@@ -72,6 +72,54 @@ enum AiMessageRole {
   ASSISTANT
 }
 
+enum PlaidItemStatus {
+  ACTIVE
+  LOGIN_REQUIRED
+  ERROR
+  DISCONNECTED
+}
+
+enum BankAccountType {
+  DEPOSITORY
+  CREDIT
+  LOAN
+  INVESTMENT
+  OTHER
+}
+
+enum BankAccountSubtype {
+  CHECKING
+  SAVINGS
+  HSA
+  CD
+  MONEY_MARKET
+  PAYPAL
+  PREPAID
+  CREDIT_CARD
+  AUTO
+  MORTGAGE
+  STUDENT
+  PERSONAL
+  OTHER
+}
+
+enum PlaidWebhookStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+enum BankDataAccessAction {
+  READ
+  WRITE
+  SYNC
+  EXPORT
+  DELETE
+  LINK
+  UNLINK
+}
+
 // ── Models ─────────────────────────────
 
 model User {
@@ -95,6 +143,11 @@ model User {
   aiConversations   AiConversation[]
   notificationPref  NotificationPreference?
   refreshTokens     RefreshToken[]
+
+  plaidItems         PlaidItem[]
+  bankAccounts       BankAccount[]
+  transactions       Transaction[]
+  bankDataAccessLogs BankDataAccessLog[]
 
   @@map("users")
 }
@@ -153,7 +206,11 @@ model Bill {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detectedFromTxnId String?  @db.VarChar(80)
+  autoDetected      Boolean  @default(false)
+
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detectedTransactions Transaction[]
 
   @@index([userId])
   @@index([nextDueDate])
@@ -177,7 +234,11 @@ model Subscription {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detectedFromTxnId String?  @db.VarChar(80)
+  autoDetected      Boolean  @default(false)
+
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detectedTransactions Transaction[]
 
   @@index([userId])
   @@index([nextRenewalDate])
@@ -296,4 +357,149 @@ model NotificationPreference {
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+// ── Plaid integration models ──────────────
+
+model PlaidItem {
+  id                    String           @id @default(cuid())
+  userId                String
+  plaidItemId           String           @unique
+  accessTokenCiphertext String           @db.Text
+  accessTokenKeyVersion Int              @default(1)
+  institutionId         String
+  institutionName       String           @db.VarChar(200)
+  institutionLogo       String?
+  status                PlaidItemStatus  @default(ACTIVE)
+  errorCode             String?
+  errorMessage          String?          @db.Text
+  cursor                String?          @db.Text
+  consentExpiresAt      DateTime?
+  lastSyncAt            DateTime?
+  lastWebhookAt         DateTime?
+  deletedAt             DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts      BankAccount[]
+  webhookEvents PlaidWebhookEvent[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([plaidItemId])
+  @@map("plaid_items")
+}
+
+model BankAccount {
+  id                String              @id @default(cuid())
+  userId            String
+  plaidItemId       String
+  plaidAccountId    String              @unique
+  name              String              @db.VarChar(200)
+  officialName      String?             @db.VarChar(200)
+  mask              String?             @db.VarChar(8)
+  type              BankAccountType
+  subtype           BankAccountSubtype?
+  isoCurrencyCode   String              @default("USD") @db.VarChar(3)
+  currentBalance    Decimal?            @db.Decimal(14, 2)
+  availableBalance  Decimal?            @db.Decimal(14, 2)
+  creditLimit       Decimal?            @db.Decimal(14, 2)
+  isHidden          Boolean             @default(false)
+  lastBalanceUpdate DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plaidItem    PlaidItem     @relation(fields: [plaidItemId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([plaidItemId])
+  @@map("bank_accounts")
+}
+
+model Transaction {
+  id                 String    @id @default(cuid())
+  userId             String
+  bankAccountId      String
+  plaidTransactionId String    @unique
+  plaidPendingId     String?
+  amount             Decimal   @db.Decimal(14, 2)
+  isoCurrencyCode    String    @default("USD") @db.VarChar(3)
+  date               DateTime  @db.Date
+  authorizedDate     DateTime? @db.Date
+  name               String    @db.VarChar(500)
+  merchantName       String?   @db.VarChar(200)
+  merchantLogoUrl    String?
+  category           String?   @db.VarChar(80)
+  categoryDetailed   String?   @db.VarChar(120)
+  paymentChannel     String?   @db.VarChar(40)
+  pending            Boolean   @default(false)
+  isoLocationCity    String?   @db.VarChar(100)
+  isoLocationRegion  String?   @db.VarChar(100)
+  isoLocationCountry String?   @db.VarChar(2)
+  billId             String?
+  subscriptionId     String?
+  matchConfidence    Decimal?  @db.Decimal(4, 3)
+  userVerifiedMatch  Boolean   @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount  BankAccount   @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  bill         Bill?         @relation(fields: [billId], references: [id], onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date(sort: Desc)])
+  @@index([userId, bankAccountId, date(sort: Desc)])
+  @@index([userId, category])
+  @@index([userId, merchantName])
+  @@index([billId])
+  @@index([subscriptionId])
+  @@map("transactions")
+}
+
+model PlaidWebhookEvent {
+  id              String             @id @default(cuid())
+  plaidItemId     String?
+  webhookType     String             @db.VarChar(60)
+  webhookCode     String             @db.VarChar(60)
+  externalEventId String?            @unique
+  rawPayload      Json
+  status          PlaidWebhookStatus @default(PENDING)
+  processingError String?            @db.Text
+  receivedAt      DateTime           @default(now())
+  processedAt     DateTime?
+
+  plaidItem PlaidItem? @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+
+  @@index([plaidItemId])
+  @@index([status, receivedAt])
+  @@index([webhookType, webhookCode])
+  @@map("plaid_webhook_events")
+}
+
+model BankDataAccessLog {
+  id          String               @id @default(cuid())
+  userId      String?
+  actorUserId String
+  action      BankDataAccessAction
+  resource    String               @db.VarChar(80)
+  resourceId  String?              @db.VarChar(80)
+  ipAddress   String?              @db.VarChar(64)
+  userAgent   String?              @db.VarChar(400)
+  context     Json?
+  createdAt   DateTime             @default(now())
+
+  // SetNull on user delete preserves audit history for compliance even after
+  // the user is purged. Postgres allows multiple NULLs in a non-unique index.
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("bank_data_access_logs")
 }
