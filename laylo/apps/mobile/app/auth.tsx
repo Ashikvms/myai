@@ -149,7 +149,7 @@ export default function AuthScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Full Name</Text>
                 <TextInput
-                  style={[styles.input, errors.name && styles.inputError]}
+                  style={[styles.input, errors.name ? styles.inputError : null]}
                   placeholder="John Doe"
                   placeholderTextColor="#9CA3AF"
                   value={name}
@@ -166,7 +166,7 @@ export default function AuthScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email</Text>
               <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
+                style={[styles.input, errors.email ? styles.inputError : null]}
                 placeholder="you@example.com"
                 placeholderTextColor="#9CA3AF"
                 value={email}
@@ -187,7 +187,7 @@ export default function AuthScreen() {
                   style={[
                     styles.input,
                     styles.passwordInput,
-                    errors.password && styles.inputError,
+                    errors.password ? styles.inputError : null,
                   ]}
                   placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
                   placeholderTextColor="#9CA3AF"

@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await new Promise((resolve) => setTimeout(resolve, 800));
       setUser({
         id: '1',
-        name: email.split('@')[0],
+        name: email.split('@')[0] ?? email,
         email,
         plan: 'free',
       });

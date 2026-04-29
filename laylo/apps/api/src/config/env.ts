@@ -38,6 +38,21 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().default(10),
+
+  // ── Plaid integration ─────────────────────
+  PLAID_CLIENT_ID: z.string().min(1, 'PLAID_CLIENT_ID is required'),
+  PLAID_SECRET: z.string().min(1, 'PLAID_SECRET is required'),
+  PLAID_ENV: z.enum(['sandbox', 'development', 'production']).default('sandbox'),
+  PLAID_PRODUCTS: z.string().default('transactions'),
+  PLAID_COUNTRY_CODES: z.string().default('US'),
+  PLAID_WEBHOOK_URL: z.string().url().optional(),
+  PLAID_REDIRECT_URI: z.string().url().optional(),
+
+  // ── Encryption (REQUIRED for Plaid) ───────
+  ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes)'),
+  ENCRYPTION_KEY_VERSION: z.coerce.number().int().min(1).default(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

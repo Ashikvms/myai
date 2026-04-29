@@ -12,13 +12,29 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lifeadminai.app"
+      "bundleIdentifier": "com.lifeadminai.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["plaid"]
+      }
     },
     "android": {
       "package": "com.lifeadminai.app",
       "adaptiveIcon": {
         "backgroundColor": "#6366F1"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "lifeadminai",
+              "host": "plaid-oauth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-dev-client",

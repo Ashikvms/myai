@@ -22,6 +22,8 @@ export default function RootLayout() {
         <Stack.Screen name="bills" options={{ headerShown: false }} />
         <Stack.Screen name="appointments" options={{ headerShown: false }} />
         <Stack.Screen name="reminders" options={{ headerShown: false }} />
+        <Stack.Screen name="banks" options={{ headerShown: false }} />
+        <Stack.Screen name="transactions" options={{ headerShown: false }} />
       </Stack>
     </AuthProvider>
   );

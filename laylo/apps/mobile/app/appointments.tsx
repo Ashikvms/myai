@@ -85,7 +85,7 @@ function getReminderLabel(minutes: number): string {
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-const APPOINTMENTS: Appointment[] = [
+const APPOINTMENTS: Appointment[] = ([
   {
     id: 'a1',
     title: 'Tax Consultation',
@@ -126,7 +126,7 @@ const APPOINTMENTS: Appointment[] = [
     reminderMinutes: 60,
     notes: 'Oil change + tire rotation. 30k mile service.',
   },
-].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+] as Appointment[]).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
 // ─── Component ──────────────────────────────────────────────────────────────
 

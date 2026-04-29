@@ -28,6 +28,10 @@ import {
   Moon,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  ConnectedAccountsCard,
+  RecentTransactionsCard,
+} from '@/components/banking/dashboard-widgets';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type ViewState = 'default' | 'dark' | 'mobile' | 'loading' | 'empty';
@@ -375,6 +379,16 @@ export default function DashboardPage() {
             <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{action.label}</span>
           </motion.button>
         ))}
+      </motion.div>
+
+      {/* ── Banking Widgets (live data) ──────────────────────── */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1">
+          <ConnectedAccountsCard />
+        </div>
+        <div className="lg:col-span-2">
+          <RecentTransactionsCard />
+        </div>
       </motion.div>
 
       {/* ── AI Insights ──────────────────────────────────────── */}

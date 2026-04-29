@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/prisma';
 import { requireAuth } from '../middleware/auth';
+import { writeAccessLog, extractRequestMeta } from '../services/audit-log';
 
 const router = Router();
 
@@ -20,6 +21,21 @@ function toMonthly(amount: number, frequency: string): number {
     case 'ANNUALLY': return amount / 12;
     default: return amount;
   }
+}
+
+// Cash-equivalent account types — counted toward `totalBalance` (positive equity).
+// CREDIT and LOAN are debt and counted toward `totalDebt` instead.
+const CASH_TYPES = new Set(['DEPOSITORY']);
+const DEBT_TYPES = new Set(['CREDIT', 'LOAN']);
+
+function toNumberOrNull(v: unknown): number | null {
+  if (v == null) return null;
+  // Prisma.Decimal exposes toNumber(); plain numbers also work via Number().
+  // Fall back to Number(String(v)) to handle Decimal serialised as string.
+  const n = Number(typeof (v as { toNumber?: () => number })?.toNumber === 'function'
+    ? (v as { toNumber: () => number }).toNumber()
+    : v);
+  return Number.isFinite(n) ? n : null;
 }
 
 // ── Routes ────────────────────────────
@@ -49,6 +65,8 @@ router.get(
       pendingReminders,
       expiringDocuments,
       recentDocuments,
+      bankAccounts,
+      recentTxns,
     ] = await Promise.all([
       // pendingTasks: count of non-completed, non-deleted tasks
       prisma.task.count({
@@ -114,6 +132,24 @@ router.get(
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
+
+      // bankAccounts: non-deleted, non-hidden, joined to PlaidItem for institution name
+      prisma.bankAccount.findMany({
+        where: { userId, deletedAt: null, isHidden: false },
+        include: {
+          plaidItem: { select: { institutionName: true } },
+        },
+      }),
+
+      // recentTransactions: last 10 across all accounts
+      prisma.transaction.findMany({
+        where: { userId, deletedAt: null },
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+        take: 10,
+        include: {
+          bankAccount: { select: { name: true } },
+        },
+      }),
     ]);
 
     const totalMonthlyBills = activeBills.reduce((sum, bill) => {
@@ -123,6 +159,71 @@ router.get(
     const totalMonthlySubs = activeSubscriptions.reduce((sum, sub) => {
       return sum + toMonthly(Number(sub.amount), sub.frequency);
     }, 0);
+
+    // ── Connected accounts payload ────
+    let totalBalance = 0;
+    let totalDebt = 0;
+    const accountSummaries = bankAccounts.map((a) => {
+      const bal = toNumberOrNull(a.currentBalance);
+      if (bal != null) {
+        if (CASH_TYPES.has(a.type)) totalBalance += bal;
+        else if (DEBT_TYPES.has(a.type)) totalDebt += Math.abs(bal);
+      }
+      return {
+        id: a.id,
+        institutionName: a.plaidItem?.institutionName ?? '',
+        name: a.name,
+        mask: a.mask ?? null,
+        type: a.type as string,
+        subtype: (a.subtype as string | null) ?? null,
+        currentBalance: bal,
+        isoCurrencyCode: a.isoCurrencyCode,
+      };
+    });
+
+    // Top 5 accounts by balance for dashboard tile
+    const topAccounts = [...accountSummaries]
+      .sort((a, b) => (b.currentBalance ?? -Infinity) - (a.currentBalance ?? -Infinity))
+      .slice(0, 5);
+
+    const recentTransactions = recentTxns.map((t) => ({
+      id: t.id,
+      date: t.date.toISOString().slice(0, 10),
+      name: t.name,
+      merchantName: t.merchantName ?? null,
+      amount: Number(t.amount),
+      isoCurrencyCode: t.isoCurrencyCode,
+      category: t.category ?? null,
+      accountId: t.bankAccountId,
+      accountName: t.bankAccount?.name ?? '',
+      pending: t.pending,
+    }));
+
+    // ── Audit-log the bank-data reads (best-effort, never throws) ────
+    if (bankAccounts.length > 0 || recentTxns.length > 0) {
+      const meta = extractRequestMeta(req);
+      // Two log entries: one for BankAccount, one for Transaction
+      await Promise.all([
+        writeAccessLog({
+          userId,
+          actorUserId: userId,
+          action: 'READ',
+          resource: 'BankAccount',
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          context: { route: 'GET /api/dashboard', count: bankAccounts.length },
+        }),
+        writeAccessLog({
+          userId,
+          actorUserId: userId,
+          action: 'READ',
+          resource: 'Transaction',
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          context: { route: 'GET /api/dashboard', count: recentTxns.length },
+        }),
+      ]);
+    }
 
     res.json({
       success: true,
@@ -137,6 +238,13 @@ router.get(
         pendingReminders,
         expiringDocuments,
         recentDocuments,
+        connectedAccounts: {
+          count: bankAccounts.length,
+          totalBalance: Math.round(totalBalance * 100) / 100,
+          totalDebt: Math.round(totalDebt * 100) / 100,
+          accounts: topAccounts,
+        },
+        recentTransactions,
       },
     });
   }),

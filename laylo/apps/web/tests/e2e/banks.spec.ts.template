@@ -1,0 +1,117 @@
+/**
+ * E2E SCAFFOLDING — banks.spec.ts (TEMPLATE — NOT YET RUNNABLE)
+ * ===============================================================
+ *
+ * STATUS: scaffolded only.
+ *
+ * Playwright is REFERENCED in `apps/web/playwright.config.ts` but
+ * `@playwright/test` is NOT yet installed in `apps/web/package.json`
+ * (verified 2026-04-28). Installing it requires:
+ *
+ *   cd apps/web
+ *   npm install -D @playwright/test
+ *   npx playwright install
+ *
+ * Once installed, rename this file to `banks.spec.ts` and uncomment
+ * the test code below.
+ *
+ * Pre-requisites for the test to actually pass:
+ *   - API running on localhost:3000 (or via the configured baseURL)
+ *   - Web app running on localhost:3001 (`playwright.config.ts` already
+ *     auto-starts `next dev -p 3001`)
+ *   - PLAID_ENV=sandbox in API env
+ *   - Test user `qa@laylo.test` / `Password1` seeded
+ *   - Plaid sandbox sandbox creds: user_good / pass_good
+ *
+ * The spec follows the journey:
+ *   1. Login as the test user
+ *   2. Navigate to /settings/banks
+ *   3. Click "Connect a bank"
+ *   4. Inside the Plaid Link iframe, choose any sandbox institution
+ *      (e.g. "First Platypus Bank")
+ *   5. Enter sandbox creds (user_good / pass_good)
+ *   6. Confirm account selection
+ *   7. Assert the new account row appears on /settings/banks
+ *   8. Navigate to /transactions and assert at least one transaction row
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * INTENDED TEST CODE (uncomment after installing @playwright/test):
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * import { test, expect } from '@playwright/test';
+ *
+ * const TEST_USER = { email: 'qa@laylo.test', password: 'Password1' };
+ * const PLAID_SANDBOX = { user: 'user_good', pass: 'pass_good' };
+ *
+ * test.describe('Plaid bank-linking flow (sandbox)', () => {
+ *   test.beforeEach(async ({ page }) => {
+ *     // 1) Login
+ *     await page.goto('/login');
+ *     await page.getByLabel(/email/i).fill(TEST_USER.email);
+ *     await page.getByLabel(/password/i).fill(TEST_USER.password);
+ *     await page.getByRole('button', { name: /sign in/i }).click();
+ *     await page.waitForURL('**​/dashboard');
+ *   });
+ *
+ *   test('connect a bank and see at least one transaction', async ({ page }) => {
+ *     // 2) Open the banks settings page
+ *     await page.goto('/settings/banks');
+ *     await expect(page.getByRole('heading', { name: /banks/i })).toBeVisible();
+ *
+ *     // 3) Click "Connect a bank" — react-plaid-link injects an iframe
+ *     await page.getByRole('button', { name: /connect a bank/i }).click();
+ *
+ *     // 4) The Plaid Link UI runs in a same-origin iframe in sandbox mode.
+ *     //    Use frameLocator to target it.
+ *     const plaidFrame = page.frameLocator('iframe[id^="plaid-link-iframe"]');
+ *
+ *     // 5) Choose the first sandbox institution
+ *     await plaidFrame.getByRole('textbox', { name: /search/i }).fill('Platypus');
+ *     await plaidFrame.getByText(/First Platypus Bank/i).click();
+ *
+ *     // 6) Sandbox creds
+ *     await plaidFrame.getByLabel(/username/i).fill(PLAID_SANDBOX.user);
+ *     await plaidFrame.getByLabel(/password/i).fill(PLAID_SANDBOX.pass);
+ *     await plaidFrame.getByRole('button', { name: /submit/i }).click();
+ *
+ *     // 7) Click through any consent / select-account screens
+ *     await plaidFrame.getByRole('button', { name: /continue|allow|connect/i }).click();
+ *
+ *     // 8) After Plaid closes, /settings/banks should show the new institution
+ *     await expect(
+ *       page.getByText(/First Platypus Bank/i),
+ *     ).toBeVisible({ timeout: 30_000 });
+ *
+ *     // 9) Transactions page should have rows after the initial sync completes.
+ *     //    Allow up to 60s for the BullMQ job to finish.
+ *     await page.goto('/transactions');
+ *     await expect(
+ *       page.getByRole('row').nth(1), // header is row 0
+ *     ).toBeVisible({ timeout: 60_000 });
+ *   });
+ *
+ *   test.afterEach(async ({ page }) => {
+ *     // Clean-up: disconnect the linked bank so the test is idempotent.
+ *     await page.goto('/settings/banks');
+ *     const disconnect = page.getByRole('button', { name: /disconnect/i }).first();
+ *     if (await disconnect.isVisible({ timeout: 1000 }).catch(() => false)) {
+ *       await disconnect.click();
+ *       await page.getByRole('button', { name: /confirm/i }).click();
+ *     }
+ *   });
+ * });
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * TODO before this spec can run:
+ *  [ ] cd apps/web && npm install -D @playwright/test
+ *  [ ] npx playwright install
+ *  [ ] Seed `qa@laylo.test` test user (script: apps/api/prisma/seed-qa.ts)
+ *  [ ] Confirm `PLAID_ENV=sandbox` and webhook URL are set in API env
+ *  [ ] Rename this file: banks.spec.ts.template -> banks.spec.ts
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
+// Empty named export so a future `tsc` over the directory doesn't choke on
+// the file having no statements. The `.template` extension already prevents
+// Playwright from picking this up as a spec.
+export const TEMPLATE = true;

@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/prisma';
 import { requireAuth } from '../middleware/auth';
+import { writeAccessLog, extractRequestMeta } from '../services/audit-log';
 
 const router = Router();
 
@@ -24,20 +25,37 @@ function toMonthly(amount: number, frequency: string): number {
 }
 
 // ── Validation schemas ────────────────
+//
+// SECURITY: `autoDetected` and `detectedFromTxnId` are server-managed.
+// Use `.strict()` so any unknown fields (incl. these) trigger a 400 — this
+// blocks mass-assignment via the create/update routes.
 
-const createBillSchema = z.object({
-  name: z.string().min(1).max(200),
-  category: z.string().min(1).max(50),
-  amount: z.number().positive(),
-  frequency: z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY']),
-  nextDueDate: z.string().datetime(),
-  isAutopay: z.boolean().default(false),
-  notes: z.string().optional(),
-});
+const createBillSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    category: z.string().min(1).max(50),
+    amount: z.number().positive(),
+    frequency: z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY']),
+    nextDueDate: z.string().datetime(),
+    isAutopay: z.boolean().default(false),
+    notes: z.string().optional(),
+  })
+  .strict();
 
-const updateBillSchema = createBillSchema.partial().extend({
-  status: z.enum(['ACTIVE', 'PAUSED', 'CANCELLED']).optional(),
-});
+const updateBillSchema = createBillSchema
+  .partial()
+  .extend({
+    status: z.enum(['ACTIVE', 'PAUSED', 'CANCELLED']).optional(),
+  })
+  .strict();
+
+// Six months of detected-transaction history is enough for the auto-match UI
+// without bloating responses.
+function sixMonthsAgo(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  return d;
+}
 
 // ── Routes ────────────────────────────
 
@@ -47,10 +65,12 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response) => {
-    const { status } = req.query;
+    const userId = req.user!.userId;
+    const { status, includeTransactions } = req.query;
+    const includeTxns = includeTransactions === 'true' || includeTransactions === '1';
 
     const where: Record<string, unknown> = {
-      userId: req.user!.userId,
+      userId,
       deletedAt: null,
     };
 
@@ -59,7 +79,33 @@ router.get(
     const bills = await prisma.bill.findMany({
       where,
       orderBy: { nextDueDate: 'asc' },
+      include: includeTxns
+        ? {
+            detectedTransactions: {
+              where: { deletedAt: null, date: { gte: sixMonthsAgo() } },
+              orderBy: { date: 'desc' },
+            },
+          }
+        : undefined,
     });
+
+    if (includeTxns) {
+      // Audit: the response contains transaction data.
+      const txnCount = bills.reduce(
+        (n, b) => n + ((b as unknown as { detectedTransactions?: unknown[] }).detectedTransactions?.length ?? 0),
+        0,
+      );
+      const meta = extractRequestMeta(req);
+      await writeAccessLog({
+        userId,
+        actorUserId: userId,
+        action: 'READ',
+        resource: 'Transaction',
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+        context: { route: 'GET /api/bills?includeTransactions=true', count: txnCount, billCount: bills.length },
+      });
+    }
 
     res.json({ success: true, data: bills });
   }),

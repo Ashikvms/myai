@@ -109,7 +109,7 @@ export default function BillsScreen() {
   const subsTotal = useMemo(() => SUBSCRIPTIONS.reduce((sum, s) => sum + s.amount, 0), []);
 
   const renderBillCard = ({ item }: { item: Bill }) => {
-    const cat = CATEGORY_COLORS[item.category] || CATEGORY_COLORS.Other;
+    const cat = CATEGORY_COLORS[item.category] ?? CATEGORY_COLORS.Other ?? { bg: '#F3F4F6', text: '#6B7280', emoji: '📋' };
     const daysUntilDue = daysBetween(item.dueDate);
     const isDueSoon = daysUntilDue >= 0 && daysUntilDue <= 3;
 
@@ -152,7 +152,7 @@ export default function BillsScreen() {
   };
 
   const renderSubCard = ({ item }: { item: Subscription }) => {
-    const cat = CATEGORY_COLORS[item.category] || CATEGORY_COLORS.Other;
+    const cat = CATEGORY_COLORS[item.category] ?? CATEGORY_COLORS.Other ?? { bg: '#F3F4F6', text: '#6B7280', emoji: '📋' };
     const daysUntilRenewal = daysBetween(item.renewalDate);
     const isDueSoon = daysUntilRenewal >= 0 && daysUntilRenewal <= 3;
 

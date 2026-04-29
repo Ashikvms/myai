@@ -38,8 +38,14 @@ function redact(obj: unknown): unknown {
 }
 
 const redactFormat = winston.format((info) => {
-  const redacted = redact(info) as winston.Logform.TransformableInfo;
-  return redacted;
+  for (const [key, value] of Object.entries(info)) {
+    if (SENSITIVE_FIELDS.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
+      (info as Record<string, unknown>)[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      (info as Record<string, unknown>)[key] = redact(value);
+    }
+  }
+  return info;
 });
 
 const isProduction = process.env.NODE_ENV === 'production';
