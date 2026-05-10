@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * Laylo mobile design tokens — Phase 2.
+ * Beedo mobile design tokens — Phase 2.
  * Mirror of apps/web/src/styles/globals.css. NativeWind 4 reads
  * these via the colorScheme strategy. Theme switching driven by
  * the Appearance API in the mobile app — engineers wire the

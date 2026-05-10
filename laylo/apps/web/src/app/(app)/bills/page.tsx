@@ -961,7 +961,7 @@ function EmptyHive({
         >
           {primary.label}
         </MotionButton>
-        <AskAiChip prompt="Help me add my first bill" label="Ask Laylo to add something" />
+        <AskAiChip prompt="Help me add my first bill" label="Ask Beedo to add something" />
       </div>
     </div>
   );

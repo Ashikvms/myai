@@ -8,7 +8,7 @@
  */
 import { motion, useReducedMotion } from 'framer-motion';
 import { FileText, Bell, Calendar } from 'lucide-react';
-import { AskLayloHero } from '@/components/ai/ask-ai';
+import { AskBeedoHero } from '@/components/ai/ask-ai';
 import { HexTile } from '@/components/layout/hex-tile';
 
 const HUB_CELLS = [
@@ -44,7 +44,7 @@ export default function VaultPage() {
       </header>
 
       <div className="mb-12">
-        <AskLayloHero placeholder="Ask Laylo about your documents, reminders, or appointments…" />
+        <AskBeedoHero placeholder="Ask Beedo about your documents, reminders, or appointments…" />
       </div>
 
       {/* Honeycomb row — 3 cells, middle cell offset down 1/4 hex height

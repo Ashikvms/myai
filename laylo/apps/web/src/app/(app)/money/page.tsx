@@ -6,7 +6,7 @@
  *
  * Large outflow tile (information, not a link) + 6-month sparkline.
  * Four smaller hub cards (Bills, Subs, Transactions, Banks) with live counts +
- * one-line previews. AskLayloHero shrinks to a top-right chip.
+ * one-line previews. AskBeedoHero shrinks to a top-right chip.
  */
 import { useState } from 'react';
 import Link from 'next/link';
@@ -88,7 +88,7 @@ export default function MoneyPage() {
         </div>
         <AskAiChip
           prompt="Show me where my money's going this month"
-          label="Ask Laylo"
+          label="Ask Beedo"
         />
       </header>
 
@@ -218,7 +218,7 @@ export default function MoneyPage() {
       {/* Footer hint */}
       <div className="mt-6 flex items-center gap-2 text-[13px] leading-[18px] text-[var(--color-text-muted)] flex-wrap">
         <Sparkles className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
-        <span>Need a deeper view? Ask Laylo to break it down.</span>
+        <span>Need a deeper view? Ask Beedo to break it down.</span>
         <AskAiChip prompt="Break down this month's spending" label="Try a prompt" />
       </div>
     </div>

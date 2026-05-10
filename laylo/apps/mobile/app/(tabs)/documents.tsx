@@ -179,12 +179,12 @@ export default function DocumentsScreen() {
               <BeeMagnifying size={120} />
               <Text style={styles.emptyTitle}>Couldn&apos;t find anything</Text>
               <Text style={styles.emptyDesc}>
-                Try a different category — or ask Laylo to help.
+                Try a different category — or ask Beedo to help.
               </Text>
               <View style={{ marginTop: spacing.lg }}>
                 <AskAiButton
                   variant="chip"
-                  label="Ask Laylo to add something"
+                  label="Ask Beedo to add something"
                   onPress={() => sheet.open('Help me add a new document.')}
                 />
               </View>
@@ -198,7 +198,7 @@ export default function DocumentsScreen() {
               <View style={{ marginTop: spacing.lg }}>
                 <AskAiButton
                   variant="chip"
-                  label="Ask Laylo to add something"
+                  label="Ask Beedo to add something"
                   onPress={() => sheet.open('Help me add a new document.')}
                 />
               </View>

@@ -318,7 +318,7 @@ export default function AppointmentsPage() {
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Add Appointment
             </button>
-            <AskAiChip prompt="Help me schedule something" label="Ask Laylo to add something" />
+            <AskAiChip prompt="Help me schedule something" label="Ask Beedo to add something" />
           </div>
         </div>
       )}

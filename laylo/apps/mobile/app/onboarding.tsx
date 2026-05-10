@@ -55,7 +55,7 @@ const SLIDES: Slide[] = [
   },
   {
     Pose: BeeMagnifying,
-    title: 'Powered by Laylo',
+    title: 'Powered by Beedo',
     subtitle:
       'Spot patterns, surface savings, and surface what needs your attention today.',
   },

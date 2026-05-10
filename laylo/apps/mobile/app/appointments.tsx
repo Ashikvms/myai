@@ -232,7 +232,7 @@ export default function AppointmentsScreen() {
           <View style={{ marginTop: spacing.lg }}>
             <AskAiButton
               variant="chip"
-              label="Ask Laylo to add something"
+              label="Ask Beedo to add something"
               onPress={() => sheet.open('Help me schedule a new appointment.')}
             />
           </View>

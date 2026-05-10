@@ -2,7 +2,7 @@
 
 /**
  * Marketing layout — REDESIGN_BRIEF.md §2.10.
- * - "Life Admin AI" → "Laylo".
+ * - "Life Admin AI" → "Beedo".
  * - Indigo→purple gradients → flat gold.
  */
 import { useState, useEffect } from 'react';
@@ -55,7 +55,7 @@ function Header() {
             <div className="flex h-9 w-9 items-center justify-center rounded-[16px] bg-[var(--color-accent)]">
               <Sparkles className="h-5 w-5 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
             </div>
-            <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">Laylo</span>
+            <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">Beedo</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -147,7 +147,7 @@ function Footer() {
             <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--color-accent)]">
               <Sparkles className="h-4 w-4 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
             </div>
-            <span className="text-[13px] font-bold text-[var(--color-text)]">Laylo</span>
+            <span className="text-[13px] font-bold text-[var(--color-text)]">Beedo</span>
           </div>
 
           <div className="flex items-center gap-6 text-[13px] text-[var(--color-text-muted)]">
@@ -158,7 +158,7 @@ function Footer() {
           </div>
 
           <p className="text-[13px] text-[var(--color-text-subtle)]">
-            &copy; {new Date().getFullYear()} Laylo. All rights reserved.
+            &copy; {new Date().getFullYear()} Beedo. All rights reserved.
           </p>
         </div>
       </div>

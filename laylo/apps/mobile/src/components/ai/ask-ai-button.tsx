@@ -3,8 +3,8 @@
  *
  * Small reusable trigger that pops the AskAi bottom sheet. Two flavours:
  *   • `icon`  — 24 px gold sparkle, used in card top-rights (rest 50%).
- *   • `chip`  — pill with sparkle + label, e.g. "Ask Laylo".
- *   • `pill`  — header-prominence "Ask Laylo" pill (DESIGN_SYSTEM §9.4).
+ *   • `chip`  — pill with sparkle + label, e.g. "Ask Beedo".
+ *   • `pill`  — header-prominence "Ask Beedo" pill (DESIGN_SYSTEM §9.4).
  *
  * State handling for the sheet itself lives at the call-site so a
  * single sheet can be re-used across multiple triggers on the screen.
@@ -44,7 +44,7 @@ export type AskAiButtonProps = {
 export function AskAiButton({
   onPress,
   variant = 'icon',
-  label = 'Ask Laylo',
+  label = 'Ask Beedo',
   pulse = false,
   style,
   hitSlop = 8,
@@ -93,7 +93,7 @@ export function AskAiButton({
         onPressOut={onPressOut}
         hitSlop={hitSlop}
         accessibilityRole="button"
-        accessibilityLabel="Ask Laylo"
+        accessibilityLabel="Ask Beedo"
         style={style}
       >
         <Animated.View style={[styles.iconButton, pressStyle]}>

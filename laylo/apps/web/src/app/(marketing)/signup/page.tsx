@@ -11,7 +11,7 @@
  * Slot mapping (signup has more fields than the abstract slot vocabulary,
  * so we reuse cascade slots as animation cues, not literal field names):
  *   - Logo slot          : bee + "Join the hive"
- *   - Subtitle slot      : "Get started with Laylo"
+ *   - Subtitle slot      : "Get started with Beedo"
  *   - EmailField slot    : Full name (slides in from left)
  *   - PasswordField slot : Email (slides in from right)
  *   - Submit slot wraps  : Password + Confirm + Create button
@@ -157,7 +157,7 @@ export default function SignupPage() {
 
             <DropletChoreography.Subtitle>
               <p className="mb-6 text-center text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                Get started with Laylo
+                Get started with Beedo
               </p>
             </DropletChoreography.Subtitle>
 

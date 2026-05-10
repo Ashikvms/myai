@@ -76,7 +76,7 @@ export default function MoneyTab() {
           </View>
           <AskAiButton
             variant="pill"
-            label="Ask Laylo"
+            label="Ask Beedo"
             onPress={() =>
               sheet.open('How am I doing on bills + subscriptions this month?')
             }
@@ -123,7 +123,7 @@ export default function MoneyTab() {
         <View style={styles.footnote}>
           <WalletIcon color={tokens.textSubtle} size={18} />
           <Text style={styles.footnoteText}>
-            Tip: long-press any card to ask Laylo about it.
+            Tip: long-press any card to ask Beedo about it.
           </Text>
         </View>
       </ScrollView>

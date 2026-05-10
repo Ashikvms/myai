@@ -1,4 +1,4 @@
-# PROMPT.md — Life Admin AI Full Specification
+# PROMPT.md — Beedo Full Specification
 
 ---
 

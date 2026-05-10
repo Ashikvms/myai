@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 /**
- * Laylo mobile (Expo + NativeWind 4) Tailwind config — Phase 2.
+ * Beedo mobile (Expo + NativeWind 4) Tailwind config — Phase 2.
  *
  * NativeWind reads tokens declared here. CSS variables are wired
  * via apps/mobile/global.css (declared at the App root). Same

@@ -18,7 +18,7 @@
  *   t = 1200ms+    Idle. Bee breathes; focus rings glow gold.
  *
  * Trigger policy: ONCE per session via `sessionStorage` key
- *   `laylo:authDropletPlayed` (shared across login + signup).
+ *   `beedo:authDropletPlayed` (shared across login + signup).
  *
  * Reduce-motion fallback (`useReducedMotion()`):
  *   Skip droplet + ripples entirely. All slots render instantly with
@@ -46,7 +46,7 @@ import {
   type Transition,
 } from 'framer-motion';
 
-const SESSION_KEY = 'laylo:authDropletPlayed';
+const SESSION_KEY = 'beedo:authDropletPlayed';
 
 // Cubic-bezier "gravity" curve from the brief — accelerating fall.
 const GRAVITY: [number, number, number, number] = [0.55, 0.05, 0.68, 0.53];

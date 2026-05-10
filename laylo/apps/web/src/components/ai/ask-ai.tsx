@@ -41,7 +41,7 @@ export function AskAiChip({
           e.preventDefault();
           setOpen(true);
         }}
-        aria-label={`Ask Laylo: ${displayLabel}`}
+        aria-label={`Ask Beedo: ${displayLabel}`}
         className={[
           'group inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-1',
           'border border-[var(--color-accent-dim)]/50',
@@ -132,7 +132,7 @@ export function AskAiModal({
               }}
               role="dialog"
               aria-modal="true"
-              aria-label="Ask Laylo"
+              aria-label="Ask Beedo"
               className="relative mt-[10vh] w-full max-w-[640px] rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-accent)] shadow-[var(--shadow-lg)] p-6 pointer-events-auto"
             >
               <button
@@ -149,7 +149,7 @@ export function AskAiModal({
                   strokeWidth={1.75}
                 />
                 <h2 className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
-                  Ask Laylo
+                  Ask Beedo
                 </h2>
               </div>
               {context && (
@@ -193,16 +193,16 @@ export function AskAiModal({
   );
 }
 
-interface AskLayloHeroProps {
+interface AskBeedoHeroProps {
   className?: string;
   placeholder?: string;
 }
 
 /** The single prominent gold surface on the dashboard. */
-export function AskLayloHero({
+export function AskBeedoHero({
   className,
   placeholder = 'Ask anything about your bills, tasks, or money…',
-}: AskLayloHeroProps) {
+}: AskBeedoHeroProps) {
   const [value, setValue] = React.useState('');
   const [open, setOpen] = React.useState(false);
 
@@ -222,7 +222,7 @@ export function AskLayloHero({
           'flex items-center gap-3 px-5 py-4',
           className ?? '',
         ].join(' ')}
-        aria-label="Ask Laylo"
+        aria-label="Ask Beedo"
       >
         <Sparkles
           className="w-6 h-6 flex-shrink-0 text-[var(--color-accent)]"

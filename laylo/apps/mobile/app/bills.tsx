@@ -331,7 +331,7 @@ export default function BillsScreen() {
           <View style={{ marginTop: spacing.lg }}>
             <AskAiButton
               variant="chip"
-              label="Ask Laylo to add something"
+              label="Ask Beedo to add something"
               onPress={() => sheet.open('Add a new bill to my list.')}
             />
           </View>

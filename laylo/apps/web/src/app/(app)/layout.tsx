@@ -115,7 +115,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   exit={{ opacity: 0, width: 0 }}
                   className="font-semibold text-[var(--color-text)] whitespace-nowrap overflow-hidden text-[16px]"
                 >
-                  Laylo
+                  Beedo
                 </motion.span>
               )}
             </AnimatePresence>
@@ -337,7 +337,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="w-9 h-9 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
                 </div>
-                <span className="font-semibold text-[var(--color-text)]">Laylo</span>
+                <span className="font-semibold text-[var(--color-text)]">Beedo</span>
               </div>
               <nav className="space-y-1">
                 {NAV_ITEMS.map((item) => {

@@ -4,7 +4,7 @@
  * Dashboard — Bento Grid 2+3+1 (LAYOUT_REDESIGN_BRIEF §2.1).
  *
  * 12-col × 4-row asymmetric grid:
- *   row 1: HERO (1–8) Ask Laylo + greeting        | STAT (9–12) day's headline
+ *   row 1: HERO (1–8) Ask Beedo + greeting        | STAT (9–12) day's headline
  *   row 2: INSIGHT-LG (1–5) | INSIGHT (6–8)       | STREAK (9–12)
  *   row 3: BILLS (1–7) horizontal pair             | TASK (8–12) one-task tile
  *   below: banking widgets as a footer row
@@ -33,7 +33,7 @@ import {
   ConnectedAccountsCard,
   RecentTransactionsCard,
 } from '@/components/banking/dashboard-widgets';
-import { AskLayloHero, AskAiChip } from '@/components/ai/ask-ai';
+import { AskBeedoHero, AskAiChip } from '@/components/ai/ask-ai';
 import {
   BeeStanding,
   BeeMagnifying,
@@ -145,7 +145,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="mt-auto">
-              <AskLayloHero placeholder={`${greeting.split(',')[0]}. Ask anything…`} />
+              <AskBeedoHero placeholder={`${greeting.split(',')[0]}. Ask anything…`} />
             </div>
           </div>
         </BentoTile>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
               <AnimatedNumber value={185} prefix="$" decimals={0} />
             </p>
             <div className="mt-3">
-              <AskAiChip prompt="When does this expire?" context="Car insurance" label="Ask Laylo" />
+              <AskAiChip prompt="When does this expire?" context="Car insurance" label="Ask Beedo" />
             </div>
           </div>
         </BentoTile>
@@ -391,7 +391,7 @@ export default function DashboardPage() {
       <section className="mt-8">
         <div className="flex items-center gap-2 text-[13px] leading-[18px] text-[var(--color-text-muted)] flex-wrap">
           <Sparkles className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
-          <span>Want Laylo to add something for you?</span>
+          <span>Want Beedo to add something for you?</span>
           <AskAiChip prompt="Help me add my first bill" label="Try a prompt" />
         </div>
       </section>

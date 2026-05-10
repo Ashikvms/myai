@@ -22,7 +22,7 @@ const STATE = {
 };
 
 function flagKey(metric: string, threshold: number) {
-  return `laylo:milestone:${metric}:${threshold}`;
+  return `beedo:milestone:${metric}:${threshold}`;
 }
 
 /**

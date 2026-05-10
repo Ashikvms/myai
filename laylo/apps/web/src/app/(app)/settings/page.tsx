@@ -284,7 +284,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <p className="mt-4 text-center text-[12px] leading-[16px] text-[var(--color-text-subtle)]">
-            Made with care by the Laylo team. 🐝
+            Made with care by the Beedo team. 🐝
           </p>
         </SectionCard>
       </div>

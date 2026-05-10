@@ -6,7 +6,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <BeeStanding size={120} />
-      <Text style={styles.title}>Laylo</Text>
+      <Text style={styles.title}>Beedo</Text>
       <Text style={styles.subtitle}>Your bumblebee for life&apos;s admin.</Text>
     </View>
   );

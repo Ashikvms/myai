@@ -30,7 +30,7 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { InboxZeroOverlay } from '@/components/celebrations/inbox-zero-overlay';
 import { ProgressHive } from '@/components/layout/progress-hive';
 
-const INBOX_ZERO_FLAG = 'laylo:tasks:hadTasks';
+const INBOX_ZERO_FLAG = 'beedo:tasks:hadTasks';
 
 const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
@@ -303,7 +303,7 @@ export default function TasksPage() {
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Add Task
             </MotionButton>
-            <AskAiChip prompt="Help me plan my day" label="Ask Laylo to plan" />
+            <AskAiChip prompt="Help me plan my day" label="Ask Beedo to plan" />
           </div>
         </div>
       )}

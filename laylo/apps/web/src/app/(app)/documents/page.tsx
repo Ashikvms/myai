@@ -207,7 +207,7 @@ export default function DocumentsPage() {
           </h3>
           <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
             {activeCategory === 'All'
-              ? 'Upload your important papers and Laylo will keep them tidy.'
+              ? 'Upload your important papers and Beedo will keep them tidy.'
               : `You don't have any ${activeCategory.toLowerCase()} documents yet.`}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
@@ -218,7 +218,7 @@ export default function DocumentsPage() {
               <Upload className="w-4 h-4" strokeWidth={1.75} />
               Upload Document
             </MotionButton>
-            <AskAiChip prompt="Help me organise my documents" label="Ask Laylo to add something" />
+            <AskAiChip prompt="Help me organise my documents" label="Ask Beedo to add something" />
           </div>
         </div>
       )}
