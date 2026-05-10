@@ -47,68 +47,37 @@ function BeeFrame({
   );
 }
 
-/** Standing bee — default neutral pose. 404 + onboarding hero. */
+/** Standing bee — default neutral pose. Matches the BeeLogoMark composition
+ *  scaled up to 96×96 (wider antennae, thicker outline, clearer wings).
+ *  Used on auth/onboarding heroes + most empty states. Same friendly look
+ *  in both modes thanks to fixed colours + thick black outline. */
 export function BeeStanding(props: BeeProps) {
   return (
     <BeeFrame {...props} title="Standing bee">
-      {/* Antennae */}
-      <path
-        d="M40 22 Q36 14 32 12"
-        stroke={BLACK}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M56 22 Q60 14 64 12"
-        stroke={BLACK}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <circle cx={32} cy={12} r={2} fill={GOLD} />
-      <circle cx={64} cy={12} r={2} fill={GOLD} />
-      {/* Wings */}
+      {/* Antenna stalks */}
+      <path d="M36 28 L28 8" stroke={BLACK} strokeWidth={3.2} strokeLinecap="round" />
+      <path d="M60 28 L68 8" stroke={BLACK} strokeWidth={3.2} strokeLinecap="round" />
+      {/* Antenna dots — chunky yellow orbs with black outline */}
+      <circle cx={28} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      <circle cx={68} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      {/* Wings — outlined ovals tucked behind the face. Black stroke so they
+          read clearly on both the yellow canvas and the black canvas. */}
       <ellipse
-        cx={28}
-        cy={42}
-        rx={14}
-        ry={10}
-        stroke={WHITE}
-        strokeOpacity={0.5}
-        strokeWidth={1.5}
-        fill="none"
+        cx={16} cy={48} rx={13} ry={8}
+        fill={WHITE} fillOpacity={0.18}
+        stroke={BLACK} strokeOpacity={0.7} strokeWidth={2.2}
       />
       <ellipse
-        cx={68}
-        cy={42}
-        rx={14}
-        ry={10}
-        stroke={WHITE}
-        strokeOpacity={0.5}
-        strokeWidth={1.5}
-        fill="none"
+        cx={80} cy={48} rx={13} ry={8}
+        fill={WHITE} fillOpacity={0.18}
+        stroke={BLACK} strokeOpacity={0.7} strokeWidth={2.2}
       />
-      {/* Body */}
-      <ellipse cx={48} cy={52} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
-      {/* Stripes */}
-      <path
-        d="M34 44 Q48 50 62 44"
-        stroke={BLACK}
-        strokeWidth={5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M34 60 Q48 66 62 60"
-        stroke={BLACK}
-        strokeWidth={5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Eyes */}
-      <circle cx={42} cy={50} r={2} fill={BLACK} />
-      <circle cx={54} cy={50} r={2} fill={BLACK} />
+      {/* Face — round body with thick black outline */}
+      <circle cx={48} cy={52} r={30} fill={GOLD} stroke={BLACK} strokeWidth={3.5} />
+      {/* Eyebrow stripe — thick straight bar across upper third */}
+      <rect x={24} y={42} width={48} height={7} rx={3.5} fill={BLACK} />
+      {/* Mouth stripe — narrower bar below centre */}
+      <rect x={30} y={62} width={36} height={6} rx={3} fill={BLACK} />
     </BeeFrame>
   );
 }
