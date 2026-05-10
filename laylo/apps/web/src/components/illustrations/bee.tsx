@@ -47,12 +47,11 @@ function BeeFrame({
   );
 }
 
-/** Standing bee — default neutral pose with PERSONALITY restored.
- *  - Two angled eyebrows (slight stern/cool look)
- *  - Two visible eyes
- *  - Smiling mouth with two "teeth" peeking through (the character moment
- *    from the user's reference image)
- *  - Round face, chunky antennae, visible wings
+/** Standing bee — matches the user's reference image exactly:
+ *  round yellow face with thick black outline, two angled eyebrows
+ *  (outer ends HIGH, inner ends LOW = cool/confident look),
+ *  a single solid black mouth bar (no eyes, no teeth, no curve).
+ *  Antennae stalks with chunky yellow dots, outlined wings.
  *  Same fixed-colour design as BeeLogoMark — works in both modes. */
 export function BeeStanding(props: BeeProps) {
   return (
@@ -77,36 +76,21 @@ export function BeeStanding(props: BeeProps) {
       {/* Face — round body with thick black outline */}
       <circle cx={48} cy={52} r={30} fill={GOLD} stroke={BLACK} strokeWidth={3.5} />
 
-      {/* ─── FACE ─── */}
-      {/* Two angled eyebrows — left dips to centre, right rises from centre.
-          Gives a slightly stern/cool expression like the reference image. */}
+      {/* Two angled eyebrows — outer ends HIGH, inner ends LOW (cool look) */}
       <path
-        d="M28 44 L42 48"
+        d="M22 44 L42 50"
         stroke={BLACK}
-        strokeWidth={4.5}
+        strokeWidth={6}
         strokeLinecap="round"
       />
       <path
-        d="M54 48 L68 44"
+        d="M54 50 L74 44"
         stroke={BLACK}
-        strokeWidth={4.5}
+        strokeWidth={6}
         strokeLinecap="round"
       />
-      {/* Eyes — under each eyebrow, smaller dots */}
-      <circle cx={36} cy={54} r={2.2} fill={BLACK} />
-      <circle cx={60} cy={54} r={2.2} fill={BLACK} />
-      {/* Smile — thick black mouth bar, slightly curved upward at corners */}
-      <path
-        d="M32 66 Q48 74 64 66"
-        stroke={BLACK}
-        strokeWidth={5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Teeth — two small yellow rectangles peeking from inside the smile.
-          This is the character moment from the user's reference image. */}
-      <rect x={42} y={67} width={4} height={3.5} rx={0.6} fill={GOLD} />
-      <rect x={50} y={67} width={4} height={3.5} rx={0.6} fill={GOLD} />
+      {/* Mouth — single solid black bar (no teeth, no curve, no eyes) */}
+      <rect x={28} y={62} width={40} height={7} rx={3.5} fill={BLACK} />
     </BeeFrame>
   );
 }
@@ -486,23 +470,22 @@ export function BeeLogoMark({ size = 40, className }: BeeProps) {
       {/* Face — round body with thick black outline (works on yellow OR black bg) */}
       <circle cx={32} cy={34} r={20} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={2.8} />
 
-      {/* Two angled eyebrows — slight stern/cool look from reference image */}
-      <path d="M19 28 L28 31" stroke="#0A0A0A" strokeWidth={3} strokeLinecap="round" />
-      <path d="M36 31 L45 28" stroke="#0A0A0A" strokeWidth={3} strokeLinecap="round" />
-      {/* Eyes — small dots under eyebrows */}
-      <circle cx={25} cy={36} r={1.5} fill="#0A0A0A" />
-      <circle cx={39} cy={36} r={1.5} fill="#0A0A0A" />
-      {/* Smile — curved up at corners */}
+      {/* Two angled eyebrows — outer ends HIGH, inner ends LOW
+          (the cool/confident look from the reference image) */}
       <path
-        d="M22 43 Q32 48 42 43"
+        d="M16 28 L28 33"
         stroke="#0A0A0A"
-        strokeWidth={3.4}
+        strokeWidth={4}
         strokeLinecap="round"
-        fill="none"
       />
-      {/* Teeth — two yellow rectangles peeking through (reference image character) */}
-      <rect x={28} y={43.5} width={2.6} height={2.4} rx={0.4} fill={HIGHLIGHT_YELLOW} />
-      <rect x={33.4} y={43.5} width={2.6} height={2.4} rx={0.4} fill={HIGHLIGHT_YELLOW} />
+      <path
+        d="M36 33 L48 28"
+        stroke="#0A0A0A"
+        strokeWidth={4}
+        strokeLinecap="round"
+      />
+      {/* Mouth — single solid black bar (no teeth, no curve, no eyes) */}
+      <rect x={20} y={41} width={24} height={4.5} rx={2.25} fill="#0A0A0A" />
     </svg>
   );
 }
