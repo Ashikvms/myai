@@ -26,15 +26,15 @@ export const tokens = {
   textOnAccent: '#0A0A0A',
 
   // Brand accent — gold
-  accent: '#FFD700',
-  accentHover: '#FFCA1A',
+  accent: '#F8E71C',
+  accentHover: '#FAED4A',
   accentDim: '#8A7400',
   accentSoft: '#FFF4B8',
 
   // Borders
   border: '#E5E5E5',
   borderStrong: '#D4D4D4',
-  focusRing: '#FFD700',
+  focusRing: '#F8E71C',
 
   // Semantic
   success: '#22C55E',
@@ -63,7 +63,7 @@ export const spacing = {
 
 /** Theme-independent palette that the bee mascot relies on. */
 export const beePalette = {
-  gold: '#FFD700',
+  gold: '#F8E71C',
   black: '#0A0A0A',
   white: '#FFFFFF',
 } as const;

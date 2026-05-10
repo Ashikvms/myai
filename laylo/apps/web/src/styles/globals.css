@@ -18,23 +18,23 @@
  * var(--color-*) Just Work in either mode.
  */
 :root {
-  --color-bg: #FFD700;            /* honey canvas */
-  --color-surface: #FFE34D;       /* slightly lighter — cards stand out */
-  --color-surface-2: #FFEC80;     /* even lighter — nested cards, inputs */
-  --color-surface-hover: #FFDE26; /* hover state on cards/rows */
+  --color-bg: #F8E71C;            /* highlight yellow canvas */
+  --color-surface: #FAEC4A;       /* slightly lighter — cards stand out */
+  --color-surface-2: #FCF180;     /* even lighter — nested cards, inputs */
+  --color-surface-hover: #F4E211; /* hover state on cards/rows */
 
   --color-text: #0A0A0A;          /* pure black body text */
   --color-text-muted: #2A2A2A;    /* dark gray — still high contrast on yellow */
   --color-text-subtle: #4A4A0A;   /* warm dark for tertiary metadata */
-  --color-text-on-accent: #FFD700; /* gold text sits on black CTAs */
+  --color-text-on-accent: #F8E71C; /* highlight yellow text sits on black CTAs */
 
   --color-accent: #0A0A0A;        /* BLACK is the accent here — the stand-out */
   --color-accent-hover: #1F1F1F;  /* slight lift on hover */
   --color-accent-dim: #4A4A4A;    /* subdued accent for borders/glow base */
   --color-accent-soft: #2A2A2A;   /* tinted-black wash for chips on yellow */
 
-  --color-border: #B89400;        /* dark amber hairlines — visible on yellow */
-  --color-border-strong: #8A7400; /* stronger amber for hover borders */
+  --color-border: #B8A800;        /* dark amber hairlines — visible on yellow */
+  --color-border-strong: #8A7E00; /* stronger amber for hover borders */
   --color-focus-ring: #0A0A0A;    /* black ring — pops on yellow */
 
   --color-success: #166534;       /* darker greens read better on yellow */
@@ -50,9 +50,9 @@
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);
   --shadow-glow: 0 0 0 3px rgba(10, 10, 10, 0.35); /* black glow */
 
-  /* Bee mascot — body inverts (black on yellow in light, gold on black in dark) */
+  /* Bee mascot — body inverts (black on yellow in light, yellow on black in dark) */
   --bee-body: #0A0A0A;
-  --bee-detail: #FFD700;
+  --bee-detail: #F8E71C;
 }
 
 .dark {
@@ -66,10 +66,10 @@
   --color-text-subtle: #737373;
   --color-text-on-accent: #0A0A0A;
 
-  --color-accent: #FFD700;
-  --color-accent-hover: #FFCA1A;
-  --color-accent-dim: #8A7400;
-  --color-accent-soft: #3D3300;
+  --color-accent: #F8E71C;
+  --color-accent-hover: #FAED4A;
+  --color-accent-dim: #8A7E00;
+  --color-accent-soft: #3D3700;
 
   --color-border: #1F1F1F;
   --color-border-strong: #2A2A2A;
@@ -80,10 +80,10 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-glow: 0 0 0 3px rgba(255, 215, 0, 0.35);
+  --shadow-glow: 0 0 0 3px rgba(248, 231, 28, 0.35);
 
-  /* Bee mascot — gold body on black bg in dark mode */
-  --bee-body: #FFD700;
+  /* Bee mascot — highlight-yellow body on black bg in dark mode */
+  --bee-body: #F8E71C;
   --bee-detail: #0A0A0A;
 }
 
@@ -150,7 +150,7 @@
     font-feature-settings: "cv11", "cv05", "tnum";
   }
 
-  /* Theme transition overlay — recoloured to gold/black wash. */
+  /* Theme transition overlay — highlight-yellow/black wash. */
   .theme-fade-overlay {
     position: fixed;
     inset: 0;
@@ -159,7 +159,7 @@
     opacity: 0;
     background: radial-gradient(
       circle at center,
-      rgba(255, 215, 0, 0.18) 0%,
+      rgba(248, 231, 28, 0.18) 0%,
       rgba(0, 0, 0, 0.85) 70%
     );
     animation: theme-fade 0.7s ease-in-out forwards;

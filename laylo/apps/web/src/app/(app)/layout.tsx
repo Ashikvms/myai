@@ -81,8 +81,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
-        <div className="w-10 h-10 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center animate-pulse">
-          <BeeLogoMark size={26} className="on-accent" />
+        <div className="animate-pulse">
+          <BeeLogoMark size={48} />
         </div>
       </div>
     );
@@ -104,9 +104,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
-              <BeeLogoMark size={26} className="on-accent" />
-            </div>
+            <BeeLogoMark size={36} className="flex-shrink-0" />
             <AnimatePresence>
               {sidebarOpen && (
                 <motion.span
@@ -334,9 +332,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               className="lg:hidden fixed top-0 left-0 w-[280px] h-full z-50 bg-[var(--color-surface)] border-r border-[var(--color-border)] p-4"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center">
-                  <BeeLogoMark size={26} className="on-accent" />
-                </div>
+                <BeeLogoMark size={36} />
                 <span className="font-semibold text-[var(--color-text)]">BillBee</span>
               </div>
               <nav className="space-y-1">

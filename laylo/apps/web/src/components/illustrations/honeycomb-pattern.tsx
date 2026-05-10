@@ -15,7 +15,7 @@ import * as React from 'react';
 
 const HEX_SVG = `
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 96' width='56' height='96'>
-  <g fill='none' stroke='#FFD700' stroke-width='1.4'>
+  <g fill='none' stroke='#F8E71C' stroke-width='1.4'>
     <polygon points='28,2 54,16 54,46 28,60 2,46 2,16' />
     <polygon points='28,50 54,64 54,94 28,108 2,94 2,64' />
     <polygon points='0,2 14,-6 28,2 28,32 14,40 0,32' />

@@ -30,7 +30,7 @@ interface InboxZeroOverlayProps {
 }
 
 const CONFETTI_COUNT = 30;
-const COLORS = ['#FFD700', '#FFCA1A', '#0A0A0A', '#FFFFFF'];
+const COLORS = ['#F8E71C', '#FAED4A', '#0A0A0A', '#FFFFFF'];
 
 interface Particle {
   id: number;
@@ -53,7 +53,7 @@ function makeParticles(): Particle[] {
       duration: 1.6 + rand(3) * 1.4,
       rotateEnd: (rand(4) - 0.5) * 720,
       size: 6 + Math.floor(rand(5) * 8),
-      color: COLORS[i % COLORS.length] ?? '#FFD700',
+      color: COLORS[i % COLORS.length] ?? '#F8E71C',
     };
   });
 }
@@ -113,7 +113,7 @@ export function InboxZeroOverlay({
                     backgroundColor: p.color,
                     borderRadius: p.id % 3 === 0 ? '9999px' : '2px',
                     boxShadow:
-                      p.color === '#FFD700' || p.color === '#FFCA1A'
+                      p.color === '#F8E71C' || p.color === '#FAED4A'
                         ? '0 0 6px rgba(255,215,0,0.5)'
                         : 'none',
                   }}

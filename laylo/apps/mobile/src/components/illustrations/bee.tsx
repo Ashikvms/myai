@@ -23,7 +23,7 @@ export type BeeProps = {
   color?: string;
 };
 
-const GOLD = '#FFD700';
+const GOLD = '#F8E71C';
 const BLACK = '#0A0A0A';
 const WHITE = '#FFFFFF';
 

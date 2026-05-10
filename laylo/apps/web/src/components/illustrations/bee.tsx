@@ -441,46 +441,54 @@ export function BeeEnvelope(props: BeeProps) {
 }
 
 /**
- * BeeLogoMark — chunky, iconic bee designed to read at 20–32 px (logo size).
- * The empty-state poses (BeeStanding etc.) use 96×96 viewBoxes with thin 1.5px
- * strokes that disappear at small sizes; this one uses a 32×32 viewBox with
- * solid filled shapes so it stays legible inside the brand-mark square.
+ * BeeLogoMark — round-faced brand mark. Uses FIXED colours (highlight yellow
+ * face + black outline + black stripes) so it works on both yellow (light
+ * mode) and black (dark mode) backgrounds without any theme flip needed.
+ * The thick black outline gives the silhouette in light mode where the face
+ * would otherwise blend with the yellow canvas.
  *
- *   ┌────────────────┐
- *   │   . │ │ .      │   antenna dots
- *   │  ╭──┴─┴──╮     │   wings (top)
- *   │  │       │     │
- *   │  ╞═══════╡     │   body + stripes
- *   │  ╞═══════╡     │
- *   │  ╰───────╯     │
- *   └────────────────┘
+ * 64×64 viewBox; designed to read at 28–48 px when used as the brand mark.
+ * Solid filled shapes everywhere (no sub-pixel strokes at small sizes).
  */
-export function BeeLogoMark({ size = 32, className }: BeeProps) {
+const HIGHLIGHT_YELLOW = '#F8E71C';
+export function BeeLogoMark({ size = 40, className }: BeeProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 64 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="BillBee logo"
       className={className}
     >
-      {/* Antenna dots */}
-      <circle cx={11} cy={5} r={1.4} fill={BLACK} />
-      <circle cx={21} cy={5} r={1.4} fill={BLACK} />
       {/* Antenna stalks */}
-      <path d="M11 5 L13 11" stroke={BLACK} strokeWidth={1.4} strokeLinecap="round" />
-      <path d="M21 5 L19 11" stroke={BLACK} strokeWidth={1.4} strokeLinecap="round" />
-      {/* Wings — chunky white ovals slightly behind body */}
-      <ellipse cx={9} cy={12} rx={5} ry={3.2} fill={WHITE} fillOpacity={0.92} />
-      <ellipse cx={23} cy={12} rx={5} ry={3.2} fill={WHITE} fillOpacity={0.92} />
-      {/* Body — bold oval, tall enough to fit two stripes */}
-      <ellipse cx={16} cy={20} rx={9} ry={8} fill={GOLD} />
-      {/* Two thick horizontal stripes */}
-      <rect x={7.5} y={17} width={17} height={2.4} rx={1.2} fill={BLACK} />
-      <rect x={7.5} y={22} width={17} height={2.4} rx={1.2} fill={BLACK} />
+      <path d="M24 18 L19 6" stroke="#0A0A0A" strokeWidth={2.6} strokeLinecap="round" />
+      <path d="M40 18 L45 6" stroke="#0A0A0A" strokeWidth={2.6} strokeLinecap="round" />
+      {/* Antenna dots — yellow orbs with black outline */}
+      <circle cx={19} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
+      <circle cx={45} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
+
+      {/* Wings — outlined ovals tucked behind the face */}
+      <ellipse
+        cx={11} cy={32} rx={9} ry={5.5}
+        fill="#FFFFFF" fillOpacity={0.12}
+        stroke="#0A0A0A" strokeOpacity={0.7} strokeWidth={1.8}
+      />
+      <ellipse
+        cx={53} cy={32} rx={9} ry={5.5}
+        fill="#FFFFFF" fillOpacity={0.12}
+        stroke="#0A0A0A" strokeOpacity={0.7} strokeWidth={1.8}
+      />
+
+      {/* Face — round body with thick black outline (works on yellow OR black bg) */}
+      <circle cx={32} cy={34} r={20} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={2.8} />
+
+      {/* Eyebrow stripe */}
+      <rect x={16} y={28} width={32} height={5} rx={2.5} fill="#0A0A0A" />
+      {/* Mouth stripe */}
+      <rect x={20} y={42} width={24} height={4} rx={2} fill="#0A0A0A" />
     </svg>
   );
 }

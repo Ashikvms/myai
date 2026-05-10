@@ -53,9 +53,7 @@ function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[16px] bg-[var(--color-accent)]">
-              <BeeLogoMark size={26} className="on-accent" />
-            </div>
+            <BeeLogoMark size={36} />
             <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">BillBee</span>
           </Link>
 
@@ -145,9 +143,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--color-accent)]">
-              <BeeLogoMark size={20} className="on-accent" />
-            </div>
+            <BeeLogoMark size={28} />
             <span className="text-[13px] font-bold text-[var(--color-text)]">BillBee</span>
           </div>
 
