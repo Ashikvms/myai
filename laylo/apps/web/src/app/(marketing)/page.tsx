@@ -8,7 +8,7 @@
  */
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard,
   CreditCard,
@@ -61,9 +61,91 @@ function Section({
   );
 }
 
+// Tiny bee silhouette used for D5 — purely decorative, theme-independent.
+function MiniBee({ size = 28 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Wings */}
+      <ellipse cx="9" cy="11" rx="6" ry="3.5" fill="#FFFFFF" fillOpacity="0.55" />
+      <ellipse cx="22" cy="10" rx="6" ry="3.5" fill="#FFFFFF" fillOpacity="0.55" />
+      {/* Body */}
+      <ellipse cx="16" cy="18" rx="9" ry="6" fill="#FFD700" />
+      {/* Stripes */}
+      <rect x="11" y="13" width="2" height="10" rx="1" fill="#0A0A0A" />
+      <rect x="19" y="13" width="2" height="10" rx="1" fill="#0A0A0A" />
+      {/* Eye */}
+      <circle cx="9" cy="17" r="1" fill="#0A0A0A" />
+    </svg>
+  );
+}
+
+function FlyingBees() {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    // Static fallback — render small bees at fixed positions.
+    return (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-12 left-[10%]"><MiniBee /></div>
+        <div className="absolute top-32 right-[12%]"><MiniBee size={22} /></div>
+        <div className="absolute bottom-20 left-[35%]"><MiniBee size={20} /></div>
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Bee 1 — wide lazy loop, top-left → centre */}
+      <motion.div
+        className="absolute"
+        style={{ top: '8%', left: '6%' }}
+        animate={{
+          x: [0, 80, 160, 80, 0],
+          y: [0, 24, 0, -24, 0],
+          rotate: [-6, 4, 8, 4, -6],
+        }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <MiniBee size={28} />
+      </motion.div>
+      {/* Bee 2 — small bee bobbing top-right */}
+      <motion.div
+        className="absolute"
+        style={{ top: '18%', right: '8%' }}
+        animate={{
+          x: [0, -40, -80, -40, 0],
+          y: [0, 30, 0, -30, 0],
+          rotate: [6, -2, -8, -2, 6],
+        }}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+      >
+        <MiniBee size={22} />
+      </motion.div>
+      {/* Bee 3 — slow figure-8 lower */}
+      <motion.div
+        className="absolute"
+        style={{ bottom: '12%', left: '40%' }}
+        animate={{
+          x: [0, 50, 0, -50, 0],
+          y: [0, -20, -40, -20, 0],
+          rotate: [0, 10, 0, -10, 0],
+        }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut', delay: 2.4 }}
+      >
+        <MiniBee size={20} />
+      </motion.div>
+    </div>
+  );
+}
+
 function Hero() {
   return (
     <section className="relative overflow-hidden pt-28 pb-20 sm:pt-32">
+      <FlyingBees />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <motion.div initial="hidden" animate="visible" variants={stagger}>

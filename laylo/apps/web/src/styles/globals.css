@@ -73,10 +73,51 @@
 }
 
 @layer base {
+  /*
+   * Typography — single typeface design language.
+   * Fraunces variable. Body defaults to sharp + clean (opsz auto-tunes
+   * for readability, SOFT=0, WONK off). Headings opt into the warm,
+   * playful display vibe via opsz=auto + SOFT=80 + WONK on.
+   * (See /DESIGN_SYSTEM.md §2 for the full type scale + axis intent.)
+   */
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-feature-settings: "ss01", "cv11";
+    font-variation-settings: "opsz" 14, "SOFT" 0, "WONK" 0;
+    font-feature-settings: "ss01";
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .heading-display {
+    font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  }
+
+  h1, .heading-display {
+    /* Hero / display — full personality */
+    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    /* Page title — soft + slightly quirky */
+    font-variation-settings: "opsz" 56, "SOFT" 80, "WONK" 1;
+    letter-spacing: -0.015em;
+  }
+
+  h3 {
+    /* Section header — warm, restrained */
+    font-variation-settings: "opsz" 32, "SOFT" 50, "WONK" 0;
+    letter-spacing: -0.01em;
+  }
+
+  h4, h5, h6 {
+    /* Subheaders — clean */
+    font-variation-settings: "opsz" 20, "SOFT" 30, "WONK" 0;
+  }
+
+  /* Numerals — tabular for stats so they don't jitter on count-up */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   /* Theme transition overlay — recoloured to gold/black wash. */

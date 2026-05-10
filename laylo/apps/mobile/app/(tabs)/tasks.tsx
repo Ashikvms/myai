@@ -5,7 +5,7 @@
  * checkbox tick), AskAi sparkle on every row. Empty state uses the
  * sleeping bee with copy-bank wording.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,10 @@ import {
   useAiSheet,
 } from '../../src/components/ai';
 import { BeeSleeping } from '../../src/components/illustrations/bee';
+import { StaggeredListItem } from '../../src/components/motion/staggered-list-item';
+import { SparkleBurst } from '../../src/components/celebrations/sparkle-burst';
+import { InboxZeroOverlay } from '../../src/components/celebrations/inbox-zero-overlay';
+import { markInboxZeroShown } from '../../src/lib/inbox-zero-flag';
 
 const FILTERS = ['All', 'Today', 'Upcoming', 'Overdue', 'Completed'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -103,27 +107,44 @@ function PriorityBadge({ priority }: { priority: Task['priority'] }) {
   );
 }
 
-/** Animated checkbox — gold sweep on toggle. Brief §5.2. */
+/**
+ * Animated checkbox — gold sweep on toggle. Brief §5.2.
+ *
+ * Adds a "sweep" check-stroke animation: when toggling done → true,
+ * the gold fill paints in (opacity + scale) and the checkmark is
+ * revealed by a quick scale-from-0 over 220ms. Honors reduced motion.
+ */
 function GoldCheckbox({ done, onPress }: { done: boolean; onPress: () => void }) {
   const reduceMotion = useReducedMotion();
   const fill = useSharedValue(done ? 1 : 0);
+  const tickScale = useSharedValue(done ? 1 : 0);
 
   React.useEffect(() => {
     fill.value = withTiming(done ? 1 : 0, {
       duration: reduceMotion ? 0 : 200,
     });
-  }, [done, reduceMotion, fill]);
+    tickScale.value = withTiming(done ? 1 : 0, {
+      duration: reduceMotion ? 0 : 220,
+    });
+  }, [done, reduceMotion, fill, tickScale]);
 
   const fillStyle = useAnimatedStyle(() => ({
     opacity: fill.value,
     transform: [{ scale: fill.value }],
   }));
 
+  const tickStyle = useAnimatedStyle(() => ({
+    opacity: tickScale.value,
+    transform: [{ scale: tickScale.value }],
+  }));
+
   return (
     <Pressable onPress={onPress} hitSlop={8}>
       <View style={styles.checkbox}>
         <Animated.View style={[styles.checkboxFill, fillStyle]} />
-        {done && <Text style={styles.checkmark}>✓</Text>}
+        {done && (
+          <Animated.Text style={[styles.checkmark, tickStyle]}>✓</Animated.Text>
+        )}
       </View>
     </Pressable>
   );
@@ -133,6 +154,28 @@ export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const [tasks, setTasks] = useState(TASKS);
   const sheet = useAiSheet('Help me plan my tasks today.');
+
+  // Track which task just got celebrated so the burst plays once per
+  // completion. Reset to null after the burst finishes (~700ms).
+  const [burstTaskId, setBurstTaskId] = useState<string | null>(null);
+
+  // Inbox-zero overlay (D3) — fires once per session when the active
+  // (uncompleted) task count transitions from > 0 → 0.
+  const [zeroOverlay, setZeroOverlay] = useState(false);
+  const prevPendingRef = useRef<number>(
+    tasks.filter((t) => !t.done).length,
+  );
+
+  useEffect(() => {
+    const pending = tasks.filter((t) => !t.done).length;
+    if (prevPendingRef.current > 0 && pending === 0) {
+      // Just hit zero — celebrate, but only once per session.
+      if (markInboxZeroShown()) {
+        setZeroOverlay(true);
+      }
+    }
+    prevPendingRef.current = pending;
+  }, [tasks]);
 
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === 'Completed') return task.done;
@@ -144,41 +187,62 @@ export default function TasksScreen() {
   });
 
   const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-    );
+    setTasks((prev) => {
+      const next = prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
+      const becameDone = next.find((t) => t.id === id)?.done === true;
+      if (becameDone) {
+        setBurstTaskId(id);
+        // Auto-clear the burst marker so it can replay on the next
+        // completion (e.g. user re-checks a different task).
+        setTimeout(() => {
+          setBurstTaskId((curr) => (curr === id ? null : curr));
+        }, 800);
+      }
+      return next;
+    });
   };
 
-  const renderTask = ({ item }: { item: Task }) => (
-    <PressableTaskCard
-      onLongPress={() => sheet.open(`Break "${item.title}" into steps for me.`)}
-    >
-      <GoldCheckbox done={item.done} onPress={() => toggleTask(item.id)} />
-      <View style={styles.taskContent}>
-        <View style={styles.taskTopRow}>
-          <Text
-            style={[styles.taskTitle, item.done && styles.taskTitleDone]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <PriorityBadge priority={item.priority} />
-        </View>
-        <Text style={styles.taskDesc} numberOfLines={1}>
-          {item.description}
-        </Text>
-        <View style={styles.taskFooter}>
-          <Text style={styles.taskDue}>📅 {item.dueDate}</Text>
-          <AskAiButton
-            variant="chip"
-            label="Break into steps"
-            onPress={() =>
-              sheet.open(`Break "${item.title}" into steps for me.`)
-            }
-          />
-        </View>
+  const renderTask = ({ item, index }: { item: Task; index: number }) => (
+    <StaggeredListItem index={index}>
+      <View style={{ position: 'relative' }}>
+        <PressableTaskCard
+          onLongPress={() => sheet.open(`Break "${item.title}" into steps for me.`)}
+        >
+          <GoldCheckbox done={item.done} onPress={() => toggleTask(item.id)} />
+          <View style={styles.taskContent}>
+            <View style={styles.taskTopRow}>
+              <Text
+                style={[styles.taskTitle, item.done && styles.taskTitleDone]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              <PriorityBadge priority={item.priority} />
+            </View>
+            <Text style={styles.taskDesc} numberOfLines={1}>
+              {item.description}
+            </Text>
+            <View style={styles.taskFooter}>
+              <Text style={styles.taskDue}>📅 {item.dueDate}</Text>
+              <AskAiButton
+                variant="chip"
+                label="Break into steps"
+                onPress={() =>
+                  sheet.open(`Break "${item.title}" into steps for me.`)
+                }
+              />
+            </View>
+          </View>
+        </PressableTaskCard>
+        {/* Celebration burst — fixed origin near the checkbox. */}
+        <SparkleBurst
+          active={burstTaskId === item.id}
+          originX={28}
+          originY={28}
+          count={6}
+        />
       </View>
-    </PressableTaskCard>
+    </StaggeredListItem>
   );
 
   return (
@@ -256,6 +320,11 @@ export default function TasksScreen() {
           'Group these by category.',
           'Defer everything below high priority.',
         ]}
+      />
+
+      <InboxZeroOverlay
+        visible={zeroOverlay}
+        onDismiss={() => setZeroOverlay(false)}
       />
     </View>
   );

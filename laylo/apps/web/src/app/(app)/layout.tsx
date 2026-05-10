@@ -21,6 +21,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { PageTransition } from '@/components/motion/page-transition';
 
 // 5-item nav per REDESIGN_BRIEF.md §3.1
 const NAV_ITEMS = [
@@ -289,7 +290,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
 

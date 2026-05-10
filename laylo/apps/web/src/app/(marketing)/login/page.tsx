@@ -11,11 +11,12 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { ApiError } from '../../../lib/api';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { MotionButton } from '@/components/motion/motion-button';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -30,6 +31,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const reduce = useReducedMotion();
 
   const {
     register,
@@ -57,8 +59,25 @@ export default function LoginPage() {
       >
         <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-md">
           <div className="mb-8 flex flex-col items-center">
-            <BeeStanding size={96} />
-            <h1 className="mt-4 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
+            <div className="relative flex items-center justify-center" style={{ width: 200, height: 180 }}>
+              {/* Soft gold radial glow behind the bee — D2 */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(circle at center, rgba(255,215,0,0.32) 0%, rgba(255,215,0,0) 65%)',
+                }}
+              />
+              <motion.div
+                animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative"
+              >
+                <BeeStanding size={180} />
+              </motion.div>
+            </div>
+            <h1 className="mt-2 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
               Welcome back
             </h1>
             <p className="mt-1 text-[13px] leading-[18px] text-[var(--color-text-muted)]">
@@ -137,7 +156,7 @@ export default function LoginPage() {
               )}
             </div>
 
-            <button
+            <MotionButton
               type="submit"
               disabled={isSubmitting}
               className="relative w-full rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] px-5 py-3 text-[15px] font-semibold text-[var(--color-text-on-accent)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -150,7 +169,7 @@ export default function LoginPage() {
               ) : (
                 'Welcome back'
               )}
-            </button>
+            </MotionButton>
           </form>
 
           <div className="my-6 flex items-center gap-3">

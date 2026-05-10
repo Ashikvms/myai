@@ -24,6 +24,7 @@ import {
 import { format, addDays, addMonths, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding, BeeMagnifying } from '@/components/illustrations/bee';
+import { MotionButton } from '@/components/motion/motion-button';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type DocCategory = 'Insurance' | 'Lease' | 'Car' | 'Tax' | 'Medical' | 'Warranty' | 'Identity' | 'Other';
@@ -171,13 +172,13 @@ export default function DocumentsPage() {
               <List className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </div>
-          <button
+          <MotionButton
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
           >
             <Upload className="w-4 h-4" strokeWidth={1.75} />
             Upload Document
-          </button>
+          </MotionButton>
         </div>
       </header>
 
@@ -261,13 +262,13 @@ export default function DocumentsPage() {
               : `You don't have any ${activeCategory.toLowerCase()} documents yet.`}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-            <button
+            <MotionButton
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
             >
               <Upload className="w-4 h-4" strokeWidth={1.75} />
               Upload Document
-            </button>
+            </MotionButton>
             <AskAiChip prompt="Help me organise my documents" label="Ask Laylo to add something" />
           </div>
         </div>
@@ -288,7 +289,7 @@ export default function DocumentsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, delay: index * 0.04 }}
-                  whileHover={reduce ? undefined : { y: -2 }}
+                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
                   className="group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -374,7 +375,7 @@ export default function DocumentsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, delay: index * 0.04 }}
-                  whileHover={reduce ? undefined : { y: -2 }}
+                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
                   className="group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all"
                 >
                   <div className="flex items-center gap-4">
@@ -541,14 +542,14 @@ export default function DocumentsPage() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <MotionButton
                     onClick={addDocument}
                     disabled={!newTitle.trim()}
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Upload className="w-4 h-4" strokeWidth={1.75} />
                     Upload
-                  </button>
+                  </MotionButton>
                 </div>
               </motion.div>
             </div>

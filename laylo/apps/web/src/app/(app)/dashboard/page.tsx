@@ -28,6 +28,8 @@ import {
 } from '@/components/banking/dashboard-widgets';
 import { AskLayloHero, AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { ListStagger, ListItem } from '@/components/motion/list-stagger';
 
 // ─── Demo Data ───────────────────────────────────────────────────────
 const DEMO_TASKS = [
@@ -58,23 +60,39 @@ function getGreeting() {
 // ─── Stat Card ───────────────────────────────────────────────────────
 function StatCard({
   label,
-  value,
+  numericValue,
+  prefix,
+  suffix,
+  decimals,
   icon: Icon,
   accent,
 }: {
   label: string;
-  value: string;
+  numericValue: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
   icon: React.ElementType;
   accent?: boolean;
 }) {
   const reduce = useReducedMotion();
   return (
     <motion.div
-      whileHover={reduce ? undefined : { y: -2 }}
+      whileHover={reduce ? undefined : { y: -2, rotate: 1.2, scale: 1.01 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow"
+      className="relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow overflow-hidden"
     >
-      <div className="flex items-center gap-3">
+      {accent && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-4"
+          style={{
+            background:
+              'radial-gradient(circle at center, rgba(255,215,0,0.18) 0%, rgba(255,215,0,0) 65%)',
+          }}
+        />
+      )}
+      <div className="relative flex items-center gap-3">
         <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
         </div>
@@ -85,7 +103,12 @@ function StatCard({
               accent ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'
             }`}
           >
-            {value}
+            <AnimatedNumber
+              value={numericValue}
+              prefix={prefix}
+              suffix={suffix}
+              decimals={decimals}
+            />
           </p>
         </div>
       </div>
@@ -135,15 +158,26 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Ask Laylo Hero ───────────────────────────────────── */}
-      <div className="mb-8">
-        <AskLayloHero />
+      <div className="relative mb-8">
+        {/* Soft gold radial glow behind the hero — D4 */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-8 -z-0"
+          style={{
+            background:
+              'radial-gradient(circle at center, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0) 70%)',
+          }}
+        />
+        <div className="relative">
+          <AskLayloHero />
+        </div>
       </div>
 
       {/* ── Stats Row ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        <StatCard label="Pending Tasks" value="5" icon={CheckSquare} />
-        <StatCard label="Due This Week" value="2" icon={CreditCard} accent />
-        <StatCard label="Monthly Subs" value="$78.47" icon={DollarSign} />
+        <StatCard label="Pending Tasks" numericValue={5} icon={CheckSquare} />
+        <StatCard label="Due This Week" numericValue={2} icon={CreditCard} accent />
+        <StatCard label="Monthly Subs" numericValue={78.47} prefix="$" decimals={2} icon={DollarSign} />
       </div>
 
       {/* ── Banking Widgets (live data) ──────────────────────── */}
@@ -159,14 +193,13 @@ export default function DashboardPage() {
       {/* ── AI Insights ──────────────────────────────────────── */}
       <section className="mb-8">
         <SectionTitle icon={Sparkles} title="AI Insights" />
-        <div className="space-y-3">
-          {DEMO_INSIGHTS.map((insight, index) => (
-            <motion.div
+        <ListStagger className="space-y-3">
+          {DEMO_INSIGHTS.map((insight) => (
+            <ListItem
               key={insight.id}
-              initial={reduce ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.2 }}
-              className="flex items-start gap-3 p-6 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent)]"
+              whileHover={reduce ? undefined : { rotate: 1.5, y: -2, scale: 1.01 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className="flex items-start gap-3 p-6 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] border-l-4 border-l-[var(--color-accent)] hover:shadow-pop"
             >
               <insight.icon className="w-5 h-5 flex-shrink-0 mt-0.5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
               <div className="flex-1 min-w-0">
@@ -178,25 +211,23 @@ export default function DashboardPage() {
                   <AskAiChip prompt={insight.prompt} context={insight.message} label="Ask follow-up" />
                 </div>
               </div>
-            </motion.div>
+            </ListItem>
           ))}
-        </div>
+        </ListStagger>
       </section>
 
       {/* ── Today's Tasks ──────────────────────────────────── */}
       <section className="mb-8">
         <SectionTitle icon={CheckSquare} title="Today's Tasks" count={DEMO_TASKS.length} />
-        <div className="space-y-3">
-          {DEMO_TASKS.map((task, index) => {
+        <ListStagger className="space-y-3">
+          {DEMO_TASKS.map((task) => {
             const isChecked = taskChecked[task.id] || false;
             return (
-              <motion.div
+              <ListItem
                 key={task.id}
-                initial={reduce ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.2 }}
-                whileHover={reduce ? undefined : { y: -2 }}
-                className={`group rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-all ${
+                whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                className={`group rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow ${
                   isChecked ? 'opacity-60' : ''
                 }`}
               >
@@ -235,24 +266,22 @@ export default function DashboardPage() {
                     <AskAiChip prompt="Break into steps" context={task.title} iconOnly label="Ask" />
                   </div>
                 </div>
-              </motion.div>
+              </ListItem>
             );
           })}
-        </div>
+        </ListStagger>
       </section>
 
       {/* ── Bills Due This Week ─────────────────────────────── */}
       <section className="mb-8">
         <SectionTitle icon={CreditCard} title="Due This Week" />
-        <div className="grid sm:grid-cols-2 gap-3">
-          {DEMO_BILLS.map((bill, index) => (
-            <motion.div
+        <ListStagger className="grid sm:grid-cols-2 gap-3">
+          {DEMO_BILLS.map((bill) => (
+            <ListItem
               key={bill.id}
-              initial={reduce ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.2 }}
-              whileHover={reduce ? undefined : { y: -2 }}
-              className="group relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-all"
+              whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              className="group relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
@@ -283,9 +312,9 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
-            </motion.div>
+            </ListItem>
           ))}
-        </div>
+        </ListStagger>
       </section>
 
       {/* ── Empty hint ──────────────────────────────────────── */}

@@ -10,7 +10,6 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   Platform,
 } from 'react-native';
@@ -22,6 +21,8 @@ import {
   useAiSheet,
 } from '../../src/components/ai';
 import { ArchiveIcon } from '../../src/components/icons/tab-icons';
+import { HoneycombPattern } from '../../src/components/illustrations/honeycomb-pattern';
+import { WobblePressable } from '../../src/components/motion/wobble-pressable';
 
 type Hub = {
   id: string;
@@ -61,6 +62,7 @@ export default function VaultTab() {
 
   return (
     <View style={styles.container}>
+      <HoneycombPattern />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -81,35 +83,36 @@ export default function VaultTab() {
 
         <View style={styles.hubList}>
           {HUBS.map((h) => (
-            <TouchableOpacity
+            <WobblePressable
               key={h.id}
               style={styles.hubCard}
-              activeOpacity={0.85}
+              flourish
               onPress={() => router.push(h.href as never)}
               onLongPress={() =>
                 sheet.open(`Tell me about my ${h.title.toLowerCase()}.`)
               }
-              delayLongPress={420}
             >
-              <View style={styles.hubLeft}>
-                <View style={styles.hubAvatar}>
-                  <Text style={styles.hubAvatarText}>{h.glyph}</Text>
+              <View style={styles.hubInner}>
+                <View style={styles.hubLeft}>
+                  <View style={styles.hubAvatar}>
+                    <Text style={styles.hubAvatarText}>{h.glyph}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.hubTitle}>{h.title}</Text>
+                    <Text style={styles.hubDesc}>{h.description}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.hubTitle}>{h.title}</Text>
-                  <Text style={styles.hubDesc}>{h.description}</Text>
+                <View style={styles.hubRight}>
+                  <AskAiButton
+                    variant="icon"
+                    onPress={() =>
+                      sheet.open(`Tell me about my ${h.title.toLowerCase()}.`)
+                    }
+                  />
+                  <Text style={styles.chevron}>›</Text>
                 </View>
               </View>
-              <View style={styles.hubRight}>
-                <AskAiButton
-                  variant="icon"
-                  onPress={() =>
-                    sheet.open(`Tell me about my ${h.title.toLowerCase()}.`)
-                  }
-                />
-                <Text style={styles.chevron}>›</Text>
-              </View>
-            </TouchableOpacity>
+            </WobblePressable>
           ))}
         </View>
 
@@ -164,11 +167,14 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: tokens.border,
+    overflow: 'hidden',
+  },
+  hubInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: tokens.border,
   },
   hubLeft: {
     flexDirection: 'row',

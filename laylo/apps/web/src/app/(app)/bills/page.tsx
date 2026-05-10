@@ -32,6 +32,9 @@ import {
 import { format, addDays, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { ListStagger, ListItem } from '@/components/motion/list-stagger';
+import { MotionButton } from '@/components/motion/motion-button';
+import { CheckCircle2 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type ActiveTab = 'bills' | 'subscriptions';
@@ -117,12 +120,14 @@ function getRenewalLabel(dateStr: string): string {
 // ─── Bill Card ───────────────────────────────────────────────────────
 function BillCard({
   bill,
-  index,
   onDelete,
+  onPay,
+  paying,
 }: {
   bill: Bill;
-  index: number;
   onDelete: (id: string) => void;
+  onPay: (id: string) => void;
+  paying: boolean;
 }) {
   const reduce = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
@@ -131,17 +136,40 @@ function BillCard({
   const isDueSoon = daysUntil <= 3;
 
   return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ delay: index * 0.04, duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      whileHover={reduce ? undefined : { y: -2 }}
+    <ListItem
+      layout
+      whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       onClick={() => setExpanded(!expanded)}
-      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-all hover:shadow-pop ${
+      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-shadow hover:shadow-pop overflow-hidden ${
         isDueSoon ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]'
       }`}
     >
+      {/* Gold sweep on Mark-Paid + floating coin */}
+      {paying && !reduce && (
+        <>
+          <motion.div
+            aria-hidden="true"
+            initial={{ x: '-110%', opacity: 0 }}
+            animate={{ x: '110%', opacity: [0, 0.7, 0] }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.45) 50%, transparent 100%)',
+            }}
+          />
+          <motion.span
+            aria-hidden="true"
+            initial={{ y: 0, opacity: 0, scale: 0.8 }}
+            animate={{ y: -32, opacity: [0, 1, 1, 0], scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            className="pointer-events-none absolute right-6 top-6 text-[18px] z-10"
+          >
+            🪙
+          </motion.span>
+        </>
+      )}
       <div className="p-6">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
@@ -208,6 +236,16 @@ function BillCard({
                 </p>
                 <div className="flex items-center gap-3">
                   <AskAiChip prompt="Why did this go up?" context={`Bill: ${bill.name}, $${bill.amount}`} />
+                  <MotionButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPay(bill.id);
+                    }}
+                    className="flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] px-3 py-1.5 rounded-[8px] transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    Mark paid
+                  </MotionButton>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -224,18 +262,16 @@ function BillCard({
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </ListItem>
   );
 }
 
 // ─── Subscription Card ───────────────────────────────────────────────
 function SubscriptionCard({
   sub,
-  index,
   onDelete,
 }: {
   sub: Subscription;
-  index: number;
   onDelete: (id: string) => void;
 }) {
   const reduce = useReducedMotion();
@@ -245,14 +281,12 @@ function SubscriptionCard({
   const isRenewingSoon = daysUntil <= 3;
 
   return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ delay: index * 0.04, duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      whileHover={reduce ? undefined : { y: -2 }}
+    <ListItem
+      layout
+      whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       onClick={() => setExpanded(!expanded)}
-      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-all hover:shadow-pop ${
+      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-shadow hover:shadow-pop ${
         isRenewingSoon ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]'
       }`}
     >
@@ -332,7 +366,7 @@ function SubscriptionCard({
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </ListItem>
   );
 }
 
@@ -455,13 +489,13 @@ function AddBillModal({
                 <button onClick={onClose} className="px-4 h-10 rounded-[16px] text-[15px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors">
                   Cancel
                 </button>
-                <button
+                <MotionButton
                   onClick={handleSubmit}
                   disabled={!name || !amount}
                   className="px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Bill
-                </button>
+                </MotionButton>
               </div>
             </motion.div>
           </div>
@@ -586,13 +620,13 @@ function AddSubModal({
                 <button onClick={onClose} className="px-4 h-10 rounded-[16px] text-[15px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] transition-colors">
                   Cancel
                 </button>
-                <button
+                <MotionButton
                   onClick={handleSubmit}
                   disabled={!name || !amount}
                   className="px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Subscription
-                </button>
+                </MotionButton>
               </div>
             </motion.div>
           </div>
@@ -622,6 +656,8 @@ export default function BillsPage() {
   const [subs, setSubs] = useState<Subscription[]>(INITIAL_SUBS);
   const [showAddBill, setShowAddBill] = useState(false);
   const [showAddSub, setShowAddSub] = useState(false);
+  // Bill currently mid-pay-animation. Used for the gold sweep + coin float.
+  const [payingBillId, setPayingBillId] = useState<string | null>(null);
 
   const monthlyBillsTotal = bills.reduce((sum, b) => sum + b.amount, 0);
   const monthlySubsTotal = subs.reduce((sum, s) => sum + s.amount, 0);
@@ -633,6 +669,11 @@ export default function BillsPage() {
   const deleteSub = (id: string) => setSubs((prev) => prev.filter((s) => s.id !== id));
   const addBill = (bill: Bill) => setBills((prev) => [...prev, bill]);
   const addSub = (sub: Subscription) => setSubs((prev) => [...prev, sub]);
+  const payBill = (id: string) => {
+    setPayingBillId(id);
+    // Match the sweep duration in BillCard (~700ms).
+    window.setTimeout(() => setPayingBillId((cur) => (cur === id ? null : cur)), 700);
+  };
 
   return (
     <div className="max-w-[960px] mx-auto">
@@ -708,13 +749,13 @@ export default function BillsPage() {
             transition={{ duration: 0.15 }}
           >
             <div className="flex justify-end mb-4">
-              <button
+              <MotionButton
                 onClick={() => setShowAddBill(true)}
                 className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
               >
                 <Plus className="w-4 h-4" strokeWidth={1.75} />
                 Add Bill
-              </button>
+              </MotionButton>
             </div>
             {bills.length === 0 ? (
               <EmptyHive
@@ -723,13 +764,19 @@ export default function BillsPage() {
                 primary={{ label: 'Add Your First Bill', onClick: () => setShowAddBill(true) }}
               />
             ) : (
-              <div className="space-y-3">
+              <ListStagger className="space-y-3">
                 <AnimatePresence>
-                  {bills.map((bill, i) => (
-                    <BillCard key={bill.id} bill={bill} index={i} onDelete={deleteBill} />
+                  {bills.map((bill) => (
+                    <BillCard
+                      key={bill.id}
+                      bill={bill}
+                      onDelete={deleteBill}
+                      onPay={payBill}
+                      paying={payingBillId === bill.id}
+                    />
                   ))}
                 </AnimatePresence>
-              </div>
+              </ListStagger>
             )}
           </motion.div>
         ) : (
@@ -741,13 +788,13 @@ export default function BillsPage() {
             transition={{ duration: 0.15 }}
           >
             <div className="flex justify-end mb-4">
-              <button
+              <MotionButton
                 onClick={() => setShowAddSub(true)}
                 className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
               >
                 <Plus className="w-4 h-4" strokeWidth={1.75} />
                 Add Subscription
-              </button>
+              </MotionButton>
             </div>
             {subs.length === 0 ? (
               <EmptyHive
@@ -756,13 +803,13 @@ export default function BillsPage() {
                 primary={{ label: 'Add Your First Subscription', onClick: () => setShowAddSub(true) }}
               />
             ) : (
-              <div className="space-y-3">
+              <ListStagger className="space-y-3">
                 <AnimatePresence>
-                  {subs.map((sub, i) => (
-                    <SubscriptionCard key={sub.id} sub={sub} index={i} onDelete={deleteSub} />
+                  {subs.map((sub) => (
+                    <SubscriptionCard key={sub.id} sub={sub} onDelete={deleteSub} />
                   ))}
                 </AnimatePresence>
-              </div>
+              </ListStagger>
             )}
           </motion.div>
         )}
@@ -789,12 +836,12 @@ function EmptyHive({
       <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">{title}</h3>
       <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">{description}</p>
       <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-        <button
+        <MotionButton
           onClick={primary.onClick}
           className="px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
         >
           {primary.label}
-        </button>
+        </MotionButton>
         <AskAiChip prompt="Help me add my first bill" label="Ask Laylo to add something" />
       </div>
     </div>

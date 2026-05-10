@@ -26,6 +26,7 @@ import {
 import { format, addDays, addWeeks, isBefore, startOfDay } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { MotionButton } from '@/components/motion/motion-button';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
@@ -165,7 +166,10 @@ export default function AppointmentsPage() {
           />
           <div className="w-0.5 flex-1 mt-1 bg-[var(--color-border)]" />
         </div>
-        <div className="group flex-1 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 mb-4 hover:shadow-pop transition-all">
+        <motion.div
+          whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          className="group flex-1 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 mb-4 hover:shadow-pop transition-shadow">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
@@ -230,7 +234,7 @@ export default function AppointmentsPage() {
               <Trash2 className="w-4 h-4" strokeWidth={1.75} />
             </button>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     );
   };
@@ -250,13 +254,13 @@ export default function AppointmentsPage() {
             {upcomingAppointments.length} upcoming appointment{upcomingAppointments.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
+        <MotionButton
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
         >
           <Plus className="w-4 h-4" strokeWidth={1.75} />
           Add Appointment
-        </button>
+        </MotionButton>
       </header>
 
       {/* Empty */}
@@ -402,14 +406,14 @@ export default function AppointmentsPage() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <MotionButton
                     onClick={addAppointment}
                     disabled={!newTitle.trim()}
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
                     Add Appointment
-                  </button>
+                  </MotionButton>
                 </div>
               </motion.div>
             </div>

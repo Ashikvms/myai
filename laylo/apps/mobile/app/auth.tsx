@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/auth';
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { BeeStanding } from '../src/components/illustrations/bee';
+import { BreathingBee } from '../src/components/motion/breathing-bee';
 
 type Tab = 'signin' | 'signup';
 
@@ -96,7 +97,9 @@ export default function AuthScreen() {
         >
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <BeeStanding size={96} />
+            <BreathingBee>
+              <BeeStanding size={180} />
+            </BreathingBee>
             <Text style={styles.logoTitle}>Laylo</Text>
             <Text style={styles.logoSubtitle}>
               {activeTab === 'signin' ? 'Welcome back' : 'Join the hive'}

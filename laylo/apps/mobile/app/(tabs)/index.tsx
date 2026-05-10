@@ -34,11 +34,25 @@ import {
   useAiSheet,
 } from '../../src/components/ai';
 import { BeeSleeping, BeeStanding } from '../../src/components/illustrations/bee';
+import { AnimatedNumber } from '../../src/components/motion/animated-number';
 
-const STATS = [
-  { label: 'Pending Tasks', value: '5', accent: false },
-  { label: 'Bills due this week', value: '2', accent: true },
-  { label: 'Subscriptions', value: '$78', accent: false },
+type Stat = {
+  label: string;
+  value: number;
+  accent: boolean;
+  /** Optional formatter — defaults to `Math.round`. */
+  format?: (n: number) => string;
+};
+
+const STATS: Stat[] = [
+  { label: 'Pending Tasks', value: 5, accent: false },
+  { label: 'Bills due this week', value: 2, accent: true },
+  {
+    label: 'Subscriptions',
+    value: 78,
+    accent: false,
+    format: (n) => `$${Math.round(n)}`,
+  },
 ];
 
 const INSIGHTS = [
@@ -316,32 +330,42 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Hero — Ask Laylo input */}
+        {/* Hero — Ask Laylo input. Wrapped in a glow container that
+            paints a soft gold radial-ish bloom behind the bar (D4). */}
         <View style={styles.hero}>
-          <Pressable
-            onPress={() =>
-              sheet.open(
-                "Ask anything about your bills, tasks, or money…",
-              )
-            }
-            style={styles.heroBar}
-            accessibilityRole="button"
-            accessibilityLabel="Ask Laylo"
-          >
-            <SparkleIcon size={20} color={tokens.accent} />
-            <Text style={styles.heroPlaceholder}>
-              Ask Laylo about your bills, tasks, or money…
-            </Text>
-            <View style={styles.heroSubmit}>
-              <Text style={styles.heroSubmitArrow}>↑</Text>
-            </View>
-          </Pressable>
+          <View style={styles.heroGlowWrap} pointerEvents="box-none">
+            {/* Three concentric gold layers approximate a radial bloom
+                without true RN blur. Lower opacity outer rings give a
+                falloff illusion. */}
+            <View style={[styles.heroGlowLayer, styles.heroGlowOuter]} pointerEvents="none" />
+            <View style={[styles.heroGlowLayer, styles.heroGlowMid]} pointerEvents="none" />
+            <View style={[styles.heroGlowLayer, styles.heroGlowInner]} pointerEvents="none" />
+            <Pressable
+              onPress={() =>
+                sheet.open(
+                  "Ask anything about your bills, tasks, or money…",
+                )
+              }
+              style={styles.heroBar}
+              accessibilityRole="button"
+              accessibilityLabel="Ask Laylo"
+            >
+              <SparkleIcon size={20} color={tokens.accent} />
+              <Text style={styles.heroPlaceholder}>
+                Ask Laylo about your bills, tasks, or money…
+              </Text>
+              <View style={styles.heroSubmit}>
+                <Text style={styles.heroSubmitArrow}>↑</Text>
+              </View>
+            </Pressable>
+          </View>
           <Text style={styles.heroHelper}>
             What&apos;s worth your time today?
           </Text>
         </View>
 
-        {/* Stats Grid — single gold accent on most-actionable */}
+        {/* Stats Grid — single gold accent on most-actionable. Numbers
+            count up from 0 → final on mount (B6). */}
         <View style={styles.statsGrid}>
           {STATS.map((stat, index) => (
             <View
@@ -349,11 +373,11 @@ export default function HomeScreen() {
               style={[styles.statCard, stat.accent && styles.statCardAccent]}
             >
               <Text style={styles.statLabel}>{stat.label}</Text>
-              <Text
+              <AnimatedNumber
+                value={stat.value}
+                format={stat.format}
                 style={[styles.statValue, stat.accent && styles.statValueAccent]}
-              >
-                {stat.value}
-              </Text>
+              />
             </View>
           ))}
         </View>
@@ -503,6 +527,37 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xl,
+  },
+  heroGlowWrap: {
+    position: 'relative',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+  },
+  heroGlowLayer: {
+    position: 'absolute',
+    backgroundColor: tokens.accent,
+    alignSelf: 'center',
+  },
+  heroGlowOuter: {
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    opacity: 0.06,
+    top: -130,
+  },
+  heroGlowMid: {
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    opacity: 0.10,
+    top: -78,
+  },
+  heroGlowInner: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    opacity: 0.15,
+    top: -38,
   },
   heroBar: {
     flexDirection: 'row',

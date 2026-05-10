@@ -23,6 +23,7 @@ import {
   BeeLooking,
   BeeMagnifying,
 } from '../src/components/illustrations/bee';
+import { BreathingBee } from '../src/components/motion/breathing-bee';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -107,7 +108,11 @@ export default function OnboardingScreen() {
           return (
             <View key={index} style={styles.slide}>
               <View style={styles.poseWrap}>
-                <Pose size={120} />
+                {/* Each onboarding bee gently breathes + drifts side-to-
+                    side (D5). Reduced-motion: static. */}
+                <BreathingBee drift>
+                  <Pose size={180} />
+                </BreathingBee>
               </View>
               <Text style={styles.title}>{slide.title}</Text>
               <Text style={styles.subtitle}>{slide.subtitle}</Text>
@@ -179,9 +184,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   poseWrap: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',

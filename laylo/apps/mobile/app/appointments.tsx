@@ -25,6 +25,7 @@ import Animated, {
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeStanding } from '../src/components/illustrations/bee';
+import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
 
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
 
@@ -154,7 +155,7 @@ export default function AppointmentsScreen() {
   }) => {
     const isLast = index === APPOINTMENTS.length - 1;
     return (
-      <View style={styles.timelineItem}>
+      <StaggeredListItem index={index} style={styles.timelineItem}>
         <View style={styles.timelineLeft}>
           <View style={styles.timelineDot} />
           {!isLast && <View style={styles.timelineLine} />}
@@ -201,7 +202,7 @@ export default function AppointmentsScreen() {
             </Text>
           )}
         </PressableApptCard>
-      </View>
+      </StaggeredListItem>
     );
   };
 

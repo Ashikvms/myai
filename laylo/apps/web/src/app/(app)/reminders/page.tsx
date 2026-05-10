@@ -25,6 +25,7 @@ import {
 import { format, addDays, addMonths } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { MotionButton } from '@/components/motion/motion-button';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ReminderStatus = 'pending' | 'dismissed';
@@ -156,13 +157,13 @@ export default function RemindersPage() {
             {pendingCount} pending reminder{pendingCount !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
+        <MotionButton
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
         >
           <Plus className="w-4 h-4" strokeWidth={1.75} />
           Add Reminder
-        </button>
+        </MotionButton>
       </header>
 
       {/* Filter tabs */}
@@ -213,13 +214,13 @@ export default function RemindersPage() {
           </p>
           {activeFilter !== 'Dismissed' && (
             <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-              <button
+              <MotionButton
                 onClick={() => setModalOpen(true)}
                 className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
               >
                 <Plus className="w-4 h-4" strokeWidth={1.75} />
                 Add Reminder
-              </button>
+              </MotionButton>
               <AskAiChip prompt="Help me set up a reminder" label="Ask Laylo to add something" />
             </div>
           )}
@@ -241,7 +242,7 @@ export default function RemindersPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, delay: index * 0.04 }}
-                  whileHover={reduce ? undefined : { y: -2 }}
+                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
                   className={`group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all ${
                     !isPending ? 'opacity-60' : ''
                   }`}
@@ -439,14 +440,14 @@ export default function RemindersPage() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <MotionButton
                     onClick={addReminder}
                     disabled={!newTitle.trim()}
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
                     Add Reminder
-                  </button>
+                  </MotionButton>
                 </div>
               </motion.div>
             </div>

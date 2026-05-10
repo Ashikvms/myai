@@ -38,6 +38,7 @@ import type {
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMagnifying } from '../src/components/illustrations/bee';
+import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
 
 const PAGE_SIZE = 50;
 
@@ -170,7 +171,7 @@ export default function TransactionsScreen() {
   }, [searchInput]);
 
   const renderItem = useCallback(
-    ({ item: t }: { item: Transaction }) => {
+    ({ item: t, index }: { item: Transaction; index: number }) => {
       const amt = toNumber(t.amount);
       const isInflow = amt < 0;
       const acct = accountById.get(t.bankAccountId) ?? t.bankAccount;
@@ -178,6 +179,7 @@ export default function TransactionsScreen() {
         ? acct.name + (acct.mask ? ` ····${acct.mask}` : '')
         : '';
       return (
+        <StaggeredListItem index={index}>
         <PressableTxnRow
           onLongPress={() =>
             sheet.open(
@@ -219,6 +221,7 @@ export default function TransactionsScreen() {
             }
           />
         </PressableTxnRow>
+        </StaggeredListItem>
       );
     },
     [accountById, sheet],

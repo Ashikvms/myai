@@ -33,6 +33,7 @@ import {
   BeeMagnifying,
   BeeStanding,
 } from '../../src/components/illustrations/bee';
+import { StaggeredListItem } from '../../src/components/motion/staggered-list-item';
 
 const CATEGORIES = [
   'All',
@@ -75,7 +76,14 @@ export default function DocumentsScreen() {
       ? DOCUMENTS
       : DOCUMENTS.filter((d) => d.category === activeCategory);
 
-  const renderDocument = ({ item }: { item: Document }) => (
+  const renderDocument = ({
+    item,
+    index,
+  }: {
+    item: Document;
+    index: number;
+  }) => (
+    <StaggeredListItem index={index}>
     <PressableDocCard
       onLongPress={() => sheet.open(`Summarise the document "${item.title}".`)}
     >
@@ -101,6 +109,7 @@ export default function DocumentsScreen() {
         />
       </View>
     </PressableDocCard>
+    </StaggeredListItem>
   );
 
   const noResults = searched && filteredDocs.length === 0;

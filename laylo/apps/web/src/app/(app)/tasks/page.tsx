@@ -6,7 +6,7 @@
  * - Category/priority gradient maps removed.
  * - Per-task AskAi chip ("Break into steps").
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   CheckSquare,
@@ -22,6 +22,14 @@ import {
 import { format, isToday, isBefore, isAfter, startOfDay, addDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeSleeping } from '@/components/illustrations/bee';
+import { SparkleBurst } from '@/components/motion/sparkle-burst';
+import { MotionButton } from '@/components/motion/motion-button';
+import { ListStagger, ListItem } from '@/components/motion/list-stagger';
+import { InboxZeroOverlay } from '@/components/celebrations/inbox-zero-overlay';
+
+// Session-storage flag so the inbox-zero overlay only fires when the user
+// transitions from N>0 → 0 within a session (not on every page load).
+const INBOX_ZERO_FLAG = 'laylo:tasks:hadTasks';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Priority = 'High' | 'Medium' | 'Low';
@@ -102,6 +110,11 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
   const [modalOpen, setModalOpen] = useState(false);
+  // Per-task sparkle-burst id (only shown briefly after a complete-toggle).
+  const [burstingTaskId, setBurstingTaskId] = useState<string | null>(null);
+  // Inbox-zero celebration overlay
+  const [inboxZeroOpen, setInboxZeroOpen] = useState(false);
+  const lastPendingRef = useRef<number | null>(null);
 
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -122,8 +135,29 @@ export default function TasksPage() {
   const completedCount = tasks.filter((t) => t.completed).length;
   const filteredTasks = sortTasks(filterTasks(tasks, activeFilter));
 
+  // Inbox-zero detection: when pending transitions N>0 → 0, fire the overlay.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const prev = lastPendingRef.current;
+    if (prev !== null && prev > 0 && pendingCount === 0) {
+      setInboxZeroOpen(true);
+    }
+    lastPendingRef.current = pendingCount;
+    if (pendingCount > 0) {
+      sessionStorage.setItem(INBOX_ZERO_FLAG, '1');
+    }
+  }, [pendingCount]);
+
   const toggleTask = (id: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    setTasks((prev) => {
+      const next = prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
+      // Only burst on the complete edge (false → true).
+      const wasCompleted = prev.find((t) => t.id === id)?.completed;
+      if (!wasCompleted) {
+        setBurstingTaskId(id);
+      }
+      return next;
+    });
   };
 
   const addTask = () => {
@@ -161,13 +195,13 @@ export default function TasksPage() {
             {pendingCount} pending · {completedCount} completed
           </p>
         </div>
-        <button
+        <MotionButton
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
         >
           <Plus className="w-4 h-4" strokeWidth={1.75} />
           Add Task
-        </button>
+        </MotionButton>
       </header>
 
       {/* Filter Tabs */}
@@ -223,13 +257,13 @@ export default function TasksPage() {
               : `You don't have any ${activeFilter.toLowerCase()} tasks right now.`}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-            <button
+            <MotionButton
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
             >
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Add Task
-            </button>
+            </MotionButton>
             <AskAiChip prompt="Help me plan my day" label="Ask Laylo to plan" />
           </div>
         </div>
@@ -237,22 +271,40 @@ export default function TasksPage() {
 
       {/* Tasks list */}
       {filteredTasks.length > 0 && (
-        <motion.div layout className="space-y-3">
+        <ListStagger className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {filteredTasks.map((task, index) => (
-              <motion.div
+            {filteredTasks.map((task) => (
+              <ListItem
                 key={task.id}
                 layout
-                initial={reduce ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
-                transition={{ duration: 0.2, delay: index * 0.04, ease: [0.4, 0, 0.2, 1] }}
-                whileHover={reduce ? undefined : { y: -2 }}
-                className={`group rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-all ${
+                whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                className={`group relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow ${
                   task.completed ? 'opacity-60' : ''
                 }`}
               >
-                <div className="flex items-start gap-4">
+                {burstingTaskId === task.id && (
+                  <SparkleBurst
+                    onDone={() => setBurstingTaskId((cur) => (cur === task.id ? null : cur))}
+                  />
+                )}
+                {/* Sweep overlay when a task is being completed — gold shimmer
+                    that sweeps L→R on the row to make the strike-through feel earned. */}
+                {burstingTaskId === task.id && !reduce && (
+                  <motion.div
+                    aria-hidden="true"
+                    initial={{ x: '-110%', opacity: 0 }}
+                    animate={{ x: '110%', opacity: [0, 0.6, 0] }}
+                    transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                    className="pointer-events-none absolute inset-0 rounded-[16px] overflow-hidden"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.35) 50%, transparent 100%)',
+                    }}
+                  />
+                )}
+                <div className="relative flex items-start gap-4">
                   <button
                     onClick={() => toggleTask(task.id)}
                     aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
@@ -310,10 +362,10 @@ export default function TasksPage() {
                     <AskAiChip prompt="Break into steps" context={task.title} iconOnly label="Ask" />
                   </div>
                 </div>
-              </motion.div>
+              </ListItem>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </ListStagger>
       )}
 
       {/* Add Task Modal */}
@@ -414,20 +466,23 @@ export default function TasksPage() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <MotionButton
                     onClick={addTask}
                     disabled={!newTitle.trim()}
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
                     Add Task
-                  </button>
+                  </MotionButton>
                 </div>
               </motion.div>
             </div>
           </>
         )}
       </AnimatePresence>
+
+      {/* Inbox-zero earned celebration */}
+      <InboxZeroOverlay open={inboxZeroOpen} onClose={() => setInboxZeroOpen(false)} />
     </div>
   );
 }

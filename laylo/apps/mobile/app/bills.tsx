@@ -30,6 +30,8 @@ import {
   useAiSheet,
 } from '../src/components/ai';
 import { BeeStanding } from '../src/components/illustrations/bee';
+import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
+import { GoldSweep } from '../src/components/celebrations/gold-sweep';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -139,14 +141,35 @@ export default function BillsScreen() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('bills');
   const sheet = useAiSheet('Help me with my bills.');
 
+  // Track which bills the user has "paid" this session — and which one
+  // is currently sweeping (B4). Sweep animates for 600ms then clears.
+  const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
+  const [sweepingId, setSweepingId] = useState<string | null>(null);
+
+  const markPaid = (id: string) => {
+    setPaidIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setSweepingId(id);
+    setTimeout(() => {
+      setSweepingId((curr) => (curr === id ? null : curr));
+    }, 700);
+  };
+
   const billsTotal = useMemo(() => BILLS.reduce((sum, b) => sum + b.amount, 0), []);
   const subsTotal = useMemo(() => SUBSCRIPTIONS.reduce((sum, s) => sum + s.amount, 0), []);
 
-  const renderBillCard = ({ item }: { item: Bill }) => {
+  const renderBillCard = ({ item, index }: { item: Bill; index: number }) => {
     const days = daysBetween(item.dueDate);
     const isDueSoon = days >= 0 && days <= 3;
+    const isPaid = paidIds.has(item.id);
     return (
+      <StaggeredListItem index={index}>
       <PressableMoneyCard
+        onPress={() => markPaid(item.id)}
         onLongPress={() =>
           sheet.open(`Why did the ${item.name} bill go up?`)
         }
@@ -163,16 +186,19 @@ export default function BillsScreen() {
               <View style={styles.badgeRow}>
                 <Badge label={item.category} />
                 {item.autopay && <Badge label="Autopay" />}
-                {isDueSoon && <Badge label="Due soon" tone="danger" />}
+                {isPaid && <Badge label="Paid" tone="success" />}
+                {!isPaid && isDueSoon && <Badge label="Due soon" tone="danger" />}
               </View>
             </View>
           </View>
           <Text style={styles.cardAmount}>${item.amount.toFixed(2)}</Text>
         </View>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardDate}>Due: {formatDate(item.dueDate)}</Text>
+          <Text style={styles.cardDate}>
+            {isPaid ? `Paid · ${formatDate(item.dueDate)}` : `Due: ${formatDate(item.dueDate)}`}
+          </Text>
           <View style={styles.cardFooterRight}>
-            {isDueSoon && (
+            {!isPaid && isDueSoon && (
               <Text style={styles.dueSoonText}>
                 {days === 0
                   ? 'Due today'
@@ -187,14 +213,18 @@ export default function BillsScreen() {
             />
           </View>
         </View>
+        {/* Gold sweep + coin burst when this bill was just marked paid. */}
+        <GoldSweep active={sweepingId === item.id} />
       </PressableMoneyCard>
+      </StaggeredListItem>
     );
   };
 
-  const renderSubCard = ({ item }: { item: Subscription }) => {
+  const renderSubCard = ({ item, index }: { item: Subscription; index: number }) => {
     const days = daysBetween(item.renewalDate);
     const isDueSoon = days >= 0 && days <= 3;
     return (
+      <StaggeredListItem index={index}>
       <PressableMoneyCard
         onLongPress={() => sheet.open(`Is the ${item.name} subscription worth keeping?`)}
       >
@@ -233,6 +263,7 @@ export default function BillsScreen() {
           </View>
         </View>
       </PressableMoneyCard>
+      </StaggeredListItem>
     );
   };
 
@@ -332,18 +363,26 @@ export default function BillsScreen() {
   );
 }
 
-function Badge({ label, tone }: { label: string; tone?: 'danger' }) {
+function Badge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone?: 'danger' | 'success';
+}) {
   return (
     <View
       style={[
         styles.badge,
         tone === 'danger' && { backgroundColor: 'rgba(239,68,68,0.10)' },
+        tone === 'success' && { backgroundColor: 'rgba(34,197,94,0.12)' },
       ]}
     >
       <Text
         style={[
           styles.badgeText,
           tone === 'danger' && { color: tokens.danger },
+          tone === 'success' && { color: tokens.success },
         ]}
       >
         {label}
@@ -354,9 +393,11 @@ function Badge({ label, tone }: { label: string; tone?: 'danger' }) {
 
 function PressableMoneyCard({
   children,
+  onPress,
   onLongPress,
 }: {
   children: React.ReactNode;
+  onPress?: () => void;
   onLongPress?: () => void;
 }) {
   const reduceMotion = useReducedMotion();
@@ -366,7 +407,7 @@ function PressableMoneyCard({
   }));
   const onPressIn = () => {
     if (reduceMotion) return;
-    scale.value = withSpring(0.98, { stiffness: 320, damping: 22 });
+    scale.value = withSpring(0.97, { stiffness: 320, damping: 22 });
   };
   const onPressOut = () => {
     scale.value = withSpring(1, { stiffness: 320, damping: 22 });
@@ -375,6 +416,7 @@ function PressableMoneyCard({
     <Pressable
       onPressIn={onPressIn}
       onPressOut={onPressOut}
+      onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={420}
     >
@@ -486,6 +528,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: tokens.border,
+    // Clip the GoldSweep band so it doesn't bleed beyond the card edge.
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',

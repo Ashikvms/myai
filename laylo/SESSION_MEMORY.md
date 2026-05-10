@@ -13,8 +13,27 @@
   - Phase 2 partial ✅ — bee mascot (5 poses) and web `<AskAi>` component built
   - Phase 3a ✅ DONE (Frontend continuation, 13 web pages restyled, 5-item nav, /assistant deleted, theme bugs fixed, ThemeProvider consolidated, web typecheck + build clean — 15 routes incl. /money + /vault hubs)
   - Phase 3b ✅ DONE (Mobile continuation, 14 screens, 5 tabs, 11+ AI touchpoints, all 5 bee poses, typecheck clean)
-  - Phase 4 ✅ DONE (QA — REDESIGN_QA_REPORT.md, 0H/1M/2L/4I findings, GO recommendation; F1 copy-parity fix + F2 132/132 API test verification both done before commit)
-  - **Phase 5 🟡 IN-FLIGHT** (commit + push + open PR — see top of this file for branch info)
+  - Phase 4 ✅ DONE (QA — REDESIGN_QA_REPORT.md, 0H/1M/2L/4I findings, GO recommendation)
+  - Phase 5 ✅ DONE (PR #16 opened: https://github.com/Ashikvms/myai/pull/16)
+  - Phase 6 ✅ DONE (Playfulness boost B+D + Fraunces typography — pushed to PR #16 as additional commit)
+- **Item 27 STATUS: PR opened + playfulness layered in. Awaiting user review/merge.**
+
+## Item 27 Phase 6 — Playfulness boost B+D + Fraunces typography (2026-05-10)
+User chose options B (more motion) + D (bigger illustrations + color moments) after testing the initial redesign locally. Two parallel agents (web + mobile) spent ~16 min each implementing.
+
+**Web playfulness (apps/web):** 7 new components (`motion/list-stagger.tsx`, `motion/motion-button.tsx`, `motion/sparkle-burst.tsx`, `motion/animated-number.tsx`, `motion/page-transition.tsx`, `illustrations/honeycomb-pattern.tsx`, `celebrations/inbox-zero-overlay.tsx`). 12 pages enhanced. All 13 of 14 B+D items implemented (B8 toast skipped — toast lives in packages/ui which was out of scope).
+
+**Mobile playfulness (apps/mobile):** 9 new components (motion + celebrations + honeycomb). 11 screens enhanced. All 13 B+D items implemented with hand-rolled workarounds for the no-new-deps constraint: tiled View hexagons for honeycomb (no react-native-svg), layered translucent ellipses for the gold glow (no native blur), in-memory module-level flag for inbox-zero detection (no AsyncStorage).
+
+**Typography (Fraunces):** Replaced Inter on web with Fraunces variable font via `next/font/google` (axes: opsz, SOFT, WONK). Body uses sharp+clean axes; h1–h6 inherit warm+wonky display axes via globals.css cascade. ONE typeface, infinite hierarchy. DESIGN_SYSTEM.md §2 fully rewritten. Mobile font loading deferred (System fallback for now; intent in tokens.ts).
+
+**Verification:** web typecheck + build clean (17 routes), mobile typecheck clean.
+
+**Known follow-ups (non-blocking):**
+- Mobile Fraunces TTF loading via expo-font (currently System fallback)
+- 1 missed item: B8 toast slide-in (lives in packages/ui)
+- Bills "Mark paid" is currently a visual celebration without state mutation (real paidAt field is data-shape work)
+- Documented mobile-tech limitations: hand-rolled honeycomb texture, layered ellipse glow (no native blur primitive in core RN)
 - **Current branch:** `feat/redesign-black-yellow` (off main, NO commits yet — all work is uncommitted in working tree)
 - **Item 26 (Plaid):** ✅ PR #15 MERGED to main on 2026-04-29
 

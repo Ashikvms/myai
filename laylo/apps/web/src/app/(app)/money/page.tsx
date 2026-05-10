@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { AskLayloHero } from '@/components/ai/ask-ai';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
 
 const HUB_CARDS = [
   {
@@ -45,7 +46,8 @@ const HUB_CARDS = [
 export default function MoneyPage() {
   const reduce = useReducedMotion();
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div className="relative max-w-[960px] mx-auto">
+      <HoneycombPattern />
       <header className="mb-8">
         <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Money</h1>
         <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-2">
@@ -73,12 +75,29 @@ export default function MoneyPage() {
               hidden: { opacity: 0, y: 12 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] } },
             }}
+            whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="relative overflow-hidden rounded-[16px]"
           >
             <Link
               href={card.href}
-              className="group block rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:border-[var(--color-border-strong)] hover:shadow-pop transition-all"
+              className="group relative block rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:border-[var(--color-border-strong)] hover:shadow-pop transition-all overflow-hidden"
             >
-              <div className="flex items-start gap-4">
+              {/* Gold sheen sweep on hover — D6 */}
+              {!reduce && (
+                <motion.div
+                  aria-hidden="true"
+                  initial={{ x: '-110%' }}
+                  whileHover={{ x: '110%' }}
+                  transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.18) 50%, transparent 100%)',
+                  }}
+                />
+              )}
+              <div className="relative flex items-start gap-4">
                 <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
                   <card.icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
                 </div>

@@ -25,6 +25,7 @@ import Animated, {
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMail } from '../src/components/illustrations/bee';
+import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
 
 type ReminderStatus = 'pending' | 'dismissed';
 type LinkedType =
@@ -172,9 +173,16 @@ export default function RemindersScreen() {
     );
   };
 
-  const renderReminder = ({ item }: { item: Reminder }) => {
+  const renderReminder = ({
+    item,
+    index,
+  }: {
+    item: Reminder;
+    index: number;
+  }) => {
     const isPending = item.status === 'pending';
     return (
+      <StaggeredListItem index={index}>
       <PressableReminderCard
         dismissed={!isPending}
         onLongPress={() => sheet.open(`Why was the reminder "${item.title}" set?`)}
@@ -230,6 +238,7 @@ export default function RemindersScreen() {
           )}
         </View>
       </PressableReminderCard>
+      </StaggeredListItem>
     );
   };
 

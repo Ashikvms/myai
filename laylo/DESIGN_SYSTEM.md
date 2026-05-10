@@ -50,28 +50,47 @@ Every reference to `#6366F1`, `from-primary-*`, `to-purple-*`, `bg-indigo-*` is 
 
 ---
 
-## 2. Typography
+## 2. Typography — single typeface design language
 
-System: **Inter** (web, already loaded via `var(--font-inter)`); **System** (mobile — San Francisco / Roboto). Tailwind `fontFamily.sans` already wired.
+System: **Fraunces** for everything. ONE family, four variable axes deliver the entire hierarchy.
 
-### 2.1 Type scale
+- **Web:** loaded via `next/font/google` with axes `opsz`, `SOFT`, `WONK` (see `apps/web/src/app/layout.tsx`). Served self-hosted; zero CLS.
+- **Mobile:** intent set in `apps/mobile/src/lib/tokens.ts`; runtime font loading via `expo-font` with TTFs in `assets/fonts/` is a follow-up (currently System fallback). Not blocking.
 
-| Token       | Size / line-height | Weight | Tailwind class                                | Use case                                              |
-| ----------- | ------------------ | ------ | --------------------------------------------- | ----------------------------------------------------- |
-| `display`   | 48 / 56 (3rem/3.5rem) | 700 | `text-[48px] leading-[56px] font-bold`        | Marketing hero only.                                  |
-| `h1`        | 32 / 40 (2rem/2.5rem) | 700 | `text-[32px] leading-[40px] font-bold`        | Page title (Dashboard greeting, top of every route).  |
-| `h2`        | 22 / 28 (1.375rem/1.75rem) | 600 | `text-[22px] leading-[28px] font-semibold` | Section heading (e.g. "AI Insights", "This week").  |
-| `h3`        | 16 / 22 (1rem/1.375rem) | 600 | `text-[16px] leading-[22px] font-semibold` | Card title.                                           |
-| `body`      | 15 / 22 (0.9375rem/1.375rem) | 400 | `text-[15px] leading-[22px]`           | Default paragraph + card body. (Replaces 14 px.)      |
-| `body-sm`   | 13 / 18 (0.8125rem/1.125rem) | 500 | `text-[13px] leading-[18px] font-medium` | Chips, metadata, badge text, table cells.           |
-| `caption`   | 11 / 14 (0.6875rem/0.875rem) | 600 | `text-[11px] leading-[14px] font-semibold uppercase tracking-wider` | Eyebrow labels, "BILLS DUE", helper text. |
+### 2.1 Variable axes
 
-### 2.2 Rules
+Fraunces is variable across:
+| Axis      | Range     | Default (body) | Display use |
+|-----------|-----------|----------------|-------------|
+| `wght`    | 100–900   | 400/600        | 700 for hero |
+| `opsz`    | 9–144     | 14 (body)      | 32–96 (auto-tunes per element) |
+| `SOFT`    | 0–100     | 0 (sharp)      | 80–100 (round/warm) |
+| `WONK`    | 0–1       | 0 (clean)      | 1 (quirky display only) |
 
-- **Seven sizes, no others.** Retire all `text-[10px]`, `text-[12px]`, `text-2xl`, `text-3xl`, `text-4xl`. Anything outside the table is a bug.
-- Default body is now **15 px** (was 14) — better for long lists like Bills/Tasks.
-- All labels `font-medium` (500), all titles `font-semibold` (600), only display + h1 use `font-bold` (700).
-- `tabular-nums` on amounts ($/€/numeric counters) — keeps columns aligned in transaction lists.
+The trick: same letterforms feel **clean and editorial at body sizes**, **warm and playful at display sizes**. One font, multiple personalities.
+
+### 2.2 Type scale + axis settings
+
+| Token       | Size / line-height | Weight | opsz | SOFT | WONK | Use case |
+|-------------|--------------------|--------|------|------|------|----------|
+| **Hero / Display** | 56–96 / 1.0–1.05 | 700 | 96 | 100 | 1 | Marketing hero, "Inbox zero unlocked!" celebration overlay |
+| **Page Title (h1)** | 32 / 40 | 700 | 96 | 100 | 1 | Top of every route |
+| **Section (h2)** | 22 / 28 | 600 | 56 | 80 | 1 | "AI Insights", "This week" |
+| **Card Title (h3)** | 16 / 22 | 600 | 32 | 50 | 0 | Card headers, modal titles |
+| **Subheader (h4–h6)** | 14–18 / 20 | 500–600 | 20 | 30 | 0 | Sub-sections |
+| **Body** | 15 / 22 | 400 | 14 | 0 | 0 | Paragraphs, lists, descriptions |
+| **Body Strong** | 15 / 22 | 600 | 14 | 0 | 0 | Emphasized inline copy |
+| **Body-sm** | 13 / 18 | 500 | 12 | 0 | 0 | Chips, metadata, table cells |
+| **Caption** | 11 / 14 | 600 | 11 | 0 | 0 | Eyebrow labels (uppercase, tracking-wider) |
+
+Implementation: body axes set via `font-variation-settings` on `body`; heading axes set on `h1`–`h6` selectors in `apps/web/src/styles/globals.css`. Pages don't need explicit class changes — the cascade handles it. Tabular numerals via `.tabular-nums` for any element with counted/aligned numbers (dashboard stats, transaction amounts).
+
+### 2.3 Rules
+
+- **One typeface only** — no Inter, no Caveat, no system fallback in production code. Only Fraunces variable.
+- Eight sizes maximum (per scale above). Anything outside is a bug.
+- Body axes are sharp + clean for readability; only headings get `SOFT` and `WONK` axes turned on.
+- Tabular nums on stats so count-up animations don't jitter columns.
 
 ---
 
