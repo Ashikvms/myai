@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeTransition } from '@/lib/use-theme-transition';
-import { BeeStanding } from '@/components/illustrations/bee';
+import { BeeLogoMark } from '@/components/illustrations/bee';
 
 function ThemeToggleButton() {
   const { isDark, mounted, toggleTheme } = useThemeTransition();
@@ -54,7 +54,7 @@ function Header() {
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-[16px] bg-[var(--color-accent)]">
-              <BeeStanding size={28} className="on-accent" />
+              <BeeLogoMark size={26} className="on-accent" />
             </div>
             <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">BillBee</span>
           </Link>
@@ -146,7 +146,7 @@ function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--color-accent)]">
-              <BeeStanding size={22} className="on-accent" />
+              <BeeLogoMark size={20} className="on-accent" />
             </div>
             <span className="text-[13px] font-bold text-[var(--color-text)]">BillBee</span>
           </div>
