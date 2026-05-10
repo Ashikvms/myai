@@ -1,11 +1,16 @@
 'use client';
 
 /**
- * Appointments page — REDESIGN_BRIEF.md §2.6.
- * - Per-category gradient table replaced with single Lucide icon in gold.
- * - Per-card AskAi chip ("Help me prep").
+ * Appointments — Calendar Ribbon + Day Cards
+ * (LAYOUT_REDESIGN_BRIEF §2.9).
+ *
+ * Top: 14-day horizontal scroll-snap ribbon (today + 13 ahead). Each day is
+ * a column with weekday + date and 0-3 gold dots showing # of appts.
+ * Today gets a thin gold underline (layoutId="appt-today") + breathing halo.
+ *
+ * Below: day-grouped cards with h2 day header and time-left layout.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   CalendarDays,
@@ -13,7 +18,6 @@ import {
   X,
   MapPin,
   Bell,
-  Clock,
   ChevronDown,
   ChevronUp,
   Trash2,
@@ -23,7 +27,13 @@ import {
   User,
   Briefcase,
 } from 'lucide-react';
-import { format, addDays, addWeeks, isBefore, startOfDay } from 'date-fns';
+import {
+  format,
+  addDays,
+  isBefore,
+  startOfDay,
+  isSameDay,
+} from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
@@ -68,10 +78,10 @@ function setTime(date: Date, hours: number, minutes: number): Date {
 }
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  { id: 'a1', title: 'Tax Consultation', dateTime: setTime(addWeeks(today, 2), 10, 0), endTime: setTime(addWeeks(today, 2), 11, 0), location: 'H&R Block — 123 Main St', category: 'Finance', reminderMinutes: 60, notes: "Bring W-2, 1099 forms, and last year's return." },
-  { id: 'a2', title: 'Dentist Cleaning', dateTime: setTime(addWeeks(today, 3), 14, 30), endTime: setTime(addWeeks(today, 3), 15, 30), location: 'Bright Smile Dental — 456 Oak Ave', category: 'Health', reminderMinutes: 60, notes: 'Regular 6-month checkup and cleaning.' },
-  { id: 'a3', title: 'Eye Exam', dateTime: setTime(addDays(today, 24), 9, 0), endTime: setTime(addDays(today, 24), 10, 0), location: 'Vision Center — 789 Elm Blvd', category: 'Health', reminderMinutes: 120, notes: 'Annual eye exam. Bring current glasses.' },
-  { id: 'a4', title: 'Car Service — Oil Change', dateTime: setTime(addWeeks(today, 6), 8, 0), endTime: setTime(addWeeks(today, 6), 9, 30), location: 'Quick Lube — 321 Auto Way', category: 'Car', reminderMinutes: 60, notes: 'Oil change + tire rotation. 30k mile service.' },
+  { id: 'a1', title: 'Tax Consultation', dateTime: setTime(addDays(today, 14), 10, 0), endTime: setTime(addDays(today, 14), 11, 0), location: 'H&R Block — 123 Main St', category: 'Finance', reminderMinutes: 60, notes: "Bring W-2, 1099 forms, and last year's return." },
+  { id: 'a2', title: 'Dentist Cleaning', dateTime: setTime(addDays(today, 7), 14, 30), endTime: setTime(addDays(today, 7), 15, 30), location: 'Bright Smile Dental — 456 Oak Ave', category: 'Health', reminderMinutes: 60, notes: 'Regular 6-month checkup and cleaning.' },
+  { id: 'a3', title: 'Eye Exam', dateTime: setTime(addDays(today, 3), 9, 0), endTime: setTime(addDays(today, 3), 10, 0), location: 'Vision Center — 789 Elm Blvd', category: 'Health', reminderMinutes: 120, notes: 'Annual eye exam. Bring current glasses.' },
+  { id: 'a4', title: 'Car Service — Oil Change', dateTime: setTime(addDays(today, 21), 8, 0), endTime: setTime(addDays(today, 21), 9, 30), location: 'Quick Lube — 321 Auto Way', category: 'Car', reminderMinutes: 60, notes: 'Oil change + tire rotation. 30k mile service.' },
   { id: 'a5', title: 'Annual Physical', dateTime: setTime(addDays(today, -10), 11, 0), endTime: setTime(addDays(today, -10), 12, 0), location: 'City Health Clinic — 555 Health Dr', category: 'Health', reminderMinutes: 60, notes: 'Completed. Follow up on lab results.' },
 ];
 
@@ -89,7 +99,9 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [modalOpen, setModalOpen] = useState(false);
   const [showPast, setShowPast] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date>(today);
+
+  const dayRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(format(addDays(today, 1), 'yyyy-MM-dd'));
@@ -100,15 +112,51 @@ export default function AppointmentsPage() {
   const [newReminder, setNewReminder] = useState(60);
   const [newNotes, setNewNotes] = useState('');
 
-  const now = new Date();
+  // 14-day ribbon
+  const ribbonDays = useMemo(
+    () => Array.from({ length: 14 }, (_, i) => addDays(today, i)),
+    [],
+  );
+
+  const apptsByDay = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    appointments.forEach((a) => {
+      const key = format(a.dateTime, 'yyyy-MM-dd');
+      const arr = map.get(key) ?? [];
+      arr.push(a);
+      map.set(key, arr);
+    });
+    return map;
+  }, [appointments]);
+
   const upcomingAppointments = useMemo(
-    () => appointments.filter((a) => !isBefore(a.dateTime, now)).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()),
-    [appointments, now],
+    () =>
+      appointments
+        .filter((a) => !isBefore(startOfDay(a.dateTime), today))
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()),
+    [appointments],
   );
   const pastAppointments = useMemo(
-    () => appointments.filter((a) => isBefore(a.dateTime, now)).sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()),
-    [appointments, now],
+    () =>
+      appointments
+        .filter((a) => isBefore(startOfDay(a.dateTime), today))
+        .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()),
+    [appointments],
   );
+
+  const upcomingByDay = useMemo(() => {
+    const days: { date: Date; items: Appointment[] }[] = [];
+    upcomingAppointments.forEach((a) => {
+      const key = format(a.dateTime, 'yyyy-MM-dd');
+      const last = days[days.length - 1];
+      if (last && format(last.date, 'yyyy-MM-dd') === key) {
+        last.items.push(a);
+      } else {
+        days.push({ date: startOfDay(a.dateTime), items: [a] });
+      }
+    });
+    return days;
+  }, [upcomingAppointments]);
 
   const addAppointment = () => {
     if (!newTitle.trim()) return;
@@ -145,104 +193,17 @@ export default function AppointmentsPage() {
     setNewNotes('');
   };
 
-  const renderTimelineCard = (appt: Appointment, index: number, isPast: boolean) => {
-    const Icon = CATEGORY_ICONS[appt.category];
-    const isExpanded = expandedId === appt.id;
-    return (
-      <motion.div
-        key={appt.id}
-        initial={reduce ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: index * 0.04 }}
-        className={`relative flex gap-4 ${isPast ? 'opacity-60' : ''}`}
-      >
-        <div className="flex flex-col items-center flex-shrink-0 w-8">
-          <div
-            className={`w-3.5 h-3.5 rounded-full border-2 mt-6 ${
-              isPast
-                ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-2)]'
-                : 'border-[var(--color-accent)] bg-[var(--color-accent)]'
-            }`}
-          />
-          <div className="w-0.5 flex-1 mt-1 bg-[var(--color-border)]" />
-        </div>
-        <motion.div
-          whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-          className="group flex-1 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 mb-4 hover:shadow-pop transition-shadow">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
-                </div>
-                <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">{appt.title}</h3>
-              </div>
-              <p className="text-[15px] leading-[22px] text-[var(--color-text)] font-medium">
-                {format(appt.dateTime, 'EEEE, MMMM d, yyyy')}
-                <span className="ml-2 text-[var(--color-text-muted)] font-normal">
-                  {format(appt.dateTime, 'h:mm a')}
-                  {appt.endTime && ` – ${format(appt.endTime, 'h:mm a')}`}
-                </span>
-              </p>
-              {appt.location && (
-                <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5 mt-2">
-                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.75} />
-                  <span className="truncate">{appt.location}</span>
-                </p>
-              )}
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
-                <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                  {appt.category}
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[13px] leading-[18px] font-medium bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                  <Bell className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  {getReminderLabel(appt.reminderMinutes)}
-                </span>
-                <AskAiChip prompt="Help me prep" context={`Appointment: ${appt.title}`} label="Help me prep" />
-              </div>
-              {appt.notes && (
-                <div className="mt-3">
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : appt.id)}
-                    className="flex items-center gap-1 text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-                  >
-                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" strokeWidth={1.75} /> : <ChevronDown className="w-3.5 h-3.5" strokeWidth={1.75} />}
-                    {isExpanded ? 'Hide notes' : 'Show notes'}
-                  </button>
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-2">{appt.notes}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => deleteAppointment(appt.id)}
-              aria-label="Delete"
-              className="p-1.5 rounded-[8px] text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)] transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    );
+  const scrollToDay = (date: Date) => {
+    setSelectedDay(date);
+    const key = format(date, 'yyyy-MM-dd');
+    const el = dayRefs.current.get(key);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div className="max-w-[1024px] mx-auto">
       {/* Header */}
-      <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
@@ -251,7 +212,7 @@ export default function AppointmentsPage() {
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Appointments</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
-            {upcomingAppointments.length} upcoming appointment{upcomingAppointments.length !== 1 ? 's' : ''}
+            {upcomingAppointments.length} on the calendar
           </p>
         </div>
         <MotionButton
@@ -262,6 +223,82 @@ export default function AppointmentsPage() {
           Add Appointment
         </MotionButton>
       </header>
+
+      {/* Calendar Ribbon */}
+      {appointments.length > 0 && (
+        <div className="mb-8 -mx-4 px-4">
+          <div
+            className="flex items-stretch gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
+            style={{ scrollSnapType: 'x mandatory' }}
+          >
+            {ribbonDays.map((day) => {
+              const key = format(day, 'yyyy-MM-dd');
+              const items = apptsByDay.get(key) ?? [];
+              const isToday = isSameDay(day, today);
+              const isSelected = isSameDay(day, selectedDay);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => scrollToDay(day)}
+                  className="relative flex-shrink-0 w-[68px] snap-start group focus:outline-none"
+                  aria-label={format(day, 'EEEE, MMMM d')}
+                >
+                  {/* Today's breathing halo */}
+                  {isToday && !reduce && (
+                    <motion.div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 rounded-[16px]"
+                      animate={{ opacity: [0.15, 0.25, 0.15] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        background:
+                          'radial-gradient(circle at center, rgba(255,215,0,0.6) 0%, rgba(255,215,0,0) 70%)',
+                      }}
+                    />
+                  )}
+                  <div
+                    className={`relative flex flex-col items-center py-3 rounded-[16px] border transition-colors ${
+                      isSelected
+                        ? 'border-[var(--color-accent)] bg-[var(--color-surface)]'
+                        : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]'
+                    }`}
+                  >
+                    <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
+                      {format(day, 'EEE')}
+                    </span>
+                    <span
+                      className={`text-[18px] leading-[22px] font-semibold mt-1 tabular-nums ${
+                        isToday ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'
+                      }`}
+                    >
+                      {format(day, 'd')}
+                    </span>
+                    <div className="flex items-center gap-0.5 mt-2 h-1.5">
+                      {items.slice(0, 3).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 h-1 rounded-full bg-[var(--color-accent)]"
+                        />
+                      ))}
+                      {items.length === 0 && (
+                        <div className="w-1 h-1 rounded-full bg-[var(--color-border-strong)]" />
+                      )}
+                    </div>
+                    {isToday && (
+                      <motion.div
+                        layoutId="appt-today"
+                        className="absolute bottom-0 left-3 right-3 h-[2px] bg-[var(--color-accent)] rounded-full"
+                        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                      />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Empty */}
       {appointments.length === 0 && (
@@ -286,23 +323,104 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* Upcoming */}
-      {upcomingAppointments.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-[13px] leading-[18px] font-semibold text-[var(--color-text-muted)] mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4" strokeWidth={1.75} />
-            Upcoming
-          </h2>
-          <div>{upcomingAppointments.map((appt, index) => renderTimelineCard(appt, index, false))}</div>
-        </div>
-      )}
+      {/* Day-grouped cards */}
+      {upcomingByDay.map(({ date, items }) => {
+        const key = format(date, 'yyyy-MM-dd');
+        return (
+          <section
+            key={key}
+            ref={(el) => {
+              if (el) dayRefs.current.set(key, el);
+              else dayRefs.current.delete(key);
+            }}
+            className="mb-8"
+          >
+            <h2 className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)] mb-3 flex items-baseline gap-2">
+              {format(date, 'EEE, MMMM d')}
+              <span className="text-[13px] leading-[18px] font-medium text-[var(--color-text-subtle)]">
+                · {items.length} appointment{items.length !== 1 ? 's' : ''}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {items.map((appt) => {
+                const Icon = CATEGORY_ICONS[appt.category];
+                return (
+                  <motion.div
+                    key={appt.id}
+                    whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.005 }}
+                    transition={{ duration: 0.2 }}
+                    className="group rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover:shadow-pop transition-shadow"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col items-end flex-shrink-0 w-[80px]">
+                        <p className="text-[18px] leading-[22px] font-semibold text-[var(--color-text)] tabular-nums">
+                          {format(appt.dateTime, 'h:mm a')}
+                        </p>
+                        {appt.endTime && (
+                          <p className="text-[11px] leading-[14px] text-[var(--color-text-subtle)] tabular-nums">
+                            – {format(appt.endTime, 'h:mm a')}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        aria-hidden="true"
+                        className="w-[2px] flex-shrink-0 self-stretch bg-[var(--color-border)]"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-flex items-center gap-1 text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+                            <Icon className="w-3 h-3 text-[var(--color-accent)]" strokeWidth={1.75} />
+                            {appt.category}
+                          </span>
+                        </div>
+                        <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+                          {appt.title}
+                        </h3>
+                        {appt.location && (
+                          <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5 mt-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.75} />
+                            <span className="truncate">{appt.location}</span>
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[11px] leading-[14px] text-[var(--color-text-subtle)]">
+                            <Bell className="w-3 h-3" strokeWidth={1.75} />
+                            {getReminderLabel(appt.reminderMinutes)}
+                          </span>
+                          <AskAiChip
+                            prompt="Help me prep"
+                            context={`Appointment: ${appt.title}`}
+                            label="Help me prep"
+                          />
+                        </div>
+                        {appt.notes && (
+                          <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-3 italic">
+                            {appt.notes}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteAppointment(appt.id)}
+                        aria-label="Delete"
+                        className="p-1.5 rounded-[8px] text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)] transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
-      {/* Past */}
+      {/* Past expander */}
       {pastAppointments.length > 0 && (
         <div>
           <button
             onClick={() => setShowPast(!showPast)}
-            className="flex items-center gap-2 text-[13px] leading-[18px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4 transition-colors"
+            className="flex items-center gap-2 text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4 transition-colors"
           >
             {showPast ? <ChevronUp className="w-4 h-4" strokeWidth={1.75} /> : <ChevronDown className="w-4 h-4" strokeWidth={1.75} />}
             Past ({pastAppointments.length})
@@ -316,7 +434,15 @@ export default function AppointmentsPage() {
                 transition={{ duration: 0.22 }}
                 className="overflow-hidden"
               >
-                {pastAppointments.map((appt, index) => renderTimelineCard(appt, index, true))}
+                <ul className="space-y-1.5 text-[13px] leading-[18px] text-[var(--color-text-subtle)]">
+                  {pastAppointments.map((a) => (
+                    <li key={a.id} className="flex items-center gap-3 line-through">
+                      <span className="tabular-nums">{format(a.dateTime, 'MMM d')}</span>
+                      <span>—</span>
+                      <span>{a.title}</span>
+                    </li>
+                  ))}
+                </ul>
               </motion.div>
             )}
           </AnimatePresence>

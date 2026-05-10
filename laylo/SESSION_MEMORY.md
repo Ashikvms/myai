@@ -18,6 +18,24 @@
   - Phase 6 ✅ DONE (Playfulness boost B+D + Fraunces typography — pushed to PR #16 as additional commit)
 - **Item 27 STATUS: PR opened + playfulness layered in. Awaiting user review/merge.**
 
+## Item 27 Phase 7 — Layout redesign + Bricolage Grotesque + droplet choreography (2026-05-10)
+User rejected Fraunces ("not a fan of the font"), asked for joyful page layouts ("user should FEEL like using it"), and a login droplet animation. Spawned a Design Expert (Phase A) → 3 implementation agents in parallel (C1 typography, C2 layouts, C3 auth+droplet).
+
+**Phase A (Design Expert):** `/Users/ashiks/Desktop/myai/laylo/LAYOUT_REDESIGN_BRIEF.md` saved (4,014 words, 8 sections, 13 sub-sections). Picked **Bricolage Grotesque** (grotesque with opsz+wdth axes, free, near-Inter at body sizes). Three named layout patterns: **Bento Grid** (Dashboard, Money), **Honeycomb Tile Grid** (Vault, Documents), **Origami Card** (Bills). Plus Conversational Stack (Reminders), Calendar Ribbon (Appointments), Story Strip (Tasks), Settings Hub Grid. 1.8s droplet choreography for login (fall→impact→3 ripples→form cascade), once-per-session.
+
+**Phase C1 (typography ✅ done):** Bricolage Grotesque via `next/font/google` with axes `['opsz','wdth']`. globals.css rewritten with axis settings per heading level + OpenType features `cv11` (circular zero), `cv05` (straight l), `ss01` (single-storey a on display ≥22px), `tnum` on `.tabular-nums`. DESIGN_SYSTEM.md §2 fully rewritten. Build clean, 17 routes.
+
+**Phase C2 (layouts ⚠️ partial):** 8 of 10 (app) pages overhauled (dashboard Bento, bills Origami, tasks Story Strip, documents Honeycomb, reminders Conversational Stack, appointments Calendar Ribbon, transactions, money Bento). 4 new layout primitives shipped (`hex-tile.tsx`, `hive-header.tsx`, `progress-hive.tsx`, `sparkline.tsx`). Cross-cutting delights: time-of-day greeting (`lib/greeting.ts`), bee fly-by (`motion/bee-fly-by.tsx`), milestone toast (`celebrations/milestone-toast.tsx`). **Stream-timeout at minute 27 — vault + settings did NOT receive the new layout patterns (still have the Phase 3a + playfulness treatment, functional but not the Designer's Honeycomb Tile Grid / Settings Hub Grid).** Two typecheck regressions from C2 partial output were fixed manually: `IdCard` import → `Contact as IdCard` (lucide-react has no `IdCard`); `Map<string, HTMLDivElement>` → `Map<string, HTMLElement>` for `<section>` ref.
+
+**Phase C3 (auth+droplet ✅ done):** `<DropletChoreography>` reusable component built at `apps/web/src/components/motion/droplet-choreography.tsx` with named slots (Logo, Subtitle, EmailField, PasswordField, Submit, Divider, Google, Footer). Login: 3 ripples + 1× droplet. Signup: 4 ripples + 1.2× droplet. Once-per-session via `sessionStorage:laylo:authDropletPlayed` (shared across login↔signup). `useReducedMotion()` short-circuits to instant render. Both build clean (login 2.68KB, signup 3.58KB).
+
+**Verification:** web typecheck clean, build clean (17 routes prerendered). No mobile changes this round.
+
+**Known follow-ups (deferred to next iteration):**
+- Vault + Settings layout patterns (Honeycomb Tile Grid, Settings Hub Grid) — C2 timed out before reaching them
+- Mobile parity for Bento + Honeycomb tiles + droplet choreography (Designer flagged this needs separate engineering)
+- Mobile Bricolage TTF loading via expo-font
+
 ## Item 27 Phase 6 — Playfulness boost B+D + Fraunces typography (2026-05-10)
 User chose options B (more motion) + D (bigger illustrations + color moments) after testing the initial redesign locally. Two parallel agents (web + mobile) spent ~16 min each implementing.
 

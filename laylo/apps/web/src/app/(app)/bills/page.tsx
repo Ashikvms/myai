@@ -1,18 +1,18 @@
 'use client';
 
 /**
- * Bills + Subscriptions — REDESIGN_BRIEF.md §2.2 + §3.1.
- * - viewState toolbar removed.
- * - DOM-class theme toggle removed; theme handled by next-themes globally.
- * - CATEGORY_COLORS gradient table replaced with a flat semantic palette
- *   (single Lucide icon in gold, neutral surface).
- * - Per-card AskAi chip on hover.
+ * Bills + Subscriptions — Origami Card with Hive Header (LAYOUT_REDESIGN_BRIEF §2.2).
+ *
+ * Bills tab: Hive Header (hex pip per bill) + 2-col Origami Card grid.
+ *   On Mark-Paid: gold sweep (kept) → origami fold (rotateX 90deg from top) →
+ *   card docks into the visible "Paid this month" expander at the bottom.
+ *
+ * Subs tab: Story Strip — horizontally scrollable tiles + vertical compact list.
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   CreditCard,
-  DollarSign,
   AlertCircle,
   Calendar,
   Zap,
@@ -28,13 +28,14 @@ import {
   Monitor,
   GraduationCap,
   Tv,
+  CheckCircle2,
 } from 'lucide-react';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
-import { ListStagger, ListItem } from '@/components/motion/list-stagger';
 import { MotionButton } from '@/components/motion/motion-button';
-import { CheckCircle2 } from 'lucide-react';
+import { HiveHeader, type HivePip } from '@/components/layout/hive-header';
+import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type ActiveTab = 'bills' | 'subscriptions';
@@ -51,6 +52,7 @@ interface Bill {
   dueDate: string;
   autopay: boolean;
   notes?: string;
+  paid?: boolean;
 }
 
 interface Subscription {
@@ -64,7 +66,7 @@ interface Subscription {
   notes?: string;
 }
 
-// ─── Category Icons (single icon, gold accent — no per-category gradient) ───
+// ─── Category Icons ───────────────────────────────────────────────────
 function getCategoryIcon(category: string): React.ElementType {
   switch (category) {
     case 'Housing': return Home;
@@ -106,18 +108,13 @@ function getDaysUntil(dateStr: string): number {
 }
 function getDueDateLabel(dateStr: string): string {
   const days = getDaysUntil(dateStr);
-  if (days <= 0) return 'Due today';
+  if (days < 0) return `${Math.abs(days)}d overdue`;
+  if (days === 0) return 'Due today';
   if (days === 1) return 'Due tomorrow';
   return `Due in ${days} days`;
 }
-function getRenewalLabel(dateStr: string): string {
-  const days = getDaysUntil(dateStr);
-  if (days <= 0) return 'Renews today';
-  if (days === 1) return 'Renews tomorrow';
-  return `Renews in ${days} days`;
-}
 
-// ─── Bill Card ───────────────────────────────────────────────────────
+// ─── Origami Bill Card ───────────────────────────────────────────────
 function BillCard({
   bill,
   onDelete,
@@ -133,244 +130,267 @@ function BillCard({
   const [expanded, setExpanded] = useState(false);
   const Icon = getCategoryIcon(bill.category);
   const daysUntil = getDaysUntil(bill.dueDate);
-  const isDueSoon = daysUntil <= 3;
+  const isDueSoon = daysUntil <= 3 && daysUntil >= 0;
+  const isOverdue = daysUntil < 0;
+
+  // Origami fold state — when paying, card folds top-down off the page.
+  const foldAnim = paying && !reduce
+    ? { rotateX: 90, opacity: 0 }
+    : { rotateX: 0, opacity: 1 };
 
   return (
-    <ListItem
+    <motion.div
       layout
-      whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      onClick={() => setExpanded(!expanded)}
-      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-shadow hover:shadow-pop overflow-hidden ${
-        isDueSoon ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]'
-      }`}
+      animate={foldAnim}
+      transition={
+        paying
+          ? { duration: 0.38, ease: [0.4, 0, 0.6, 0.2], delay: 0.3 }
+          : { duration: 0.2 }
+      }
+      style={{
+        transformOrigin: 'top center',
+        transformStyle: 'preserve-3d',
+        perspective: 1000,
+      }}
+      className="relative"
     >
-      {/* Gold sweep on Mark-Paid + floating coin */}
-      {paying && !reduce && (
-        <>
-          <motion.div
-            aria-hidden="true"
-            initial={{ x: '-110%', opacity: 0 }}
-            animate={{ x: '110%', opacity: [0, 0.7, 0] }}
-            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.45) 50%, transparent 100%)',
-            }}
-          />
-          <motion.span
-            aria-hidden="true"
-            initial={{ y: 0, opacity: 0, scale: 0.8 }}
-            animate={{ y: -32, opacity: [0, 1, 1, 0], scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-            className="pointer-events-none absolute right-6 top-6 text-[18px] z-10"
-          >
-            🪙
-          </motion.span>
-        </>
-      )}
-      <div className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-            <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+      <motion.div
+        whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        onClick={() => setExpanded(!expanded)}
+        className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-shadow hover:shadow-pop overflow-hidden ${
+          isOverdue
+            ? 'border-[var(--color-danger)]'
+            : isDueSoon
+            ? 'border-[var(--color-accent)]'
+            : 'border-[var(--color-border)]'
+        }`}
+      >
+        {/* Gold sweep on Mark-Paid + floating coin (KEPT per brief §5) */}
+        {paying && !reduce && (
+          <>
+            <motion.div
+              aria-hidden="true"
+              initial={{ x: '-110%', opacity: 0 }}
+              animate={{ x: '110%', opacity: [0, 0.7, 0] }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.45) 50%, transparent 100%)',
+              }}
+            />
+            <motion.span
+              aria-hidden="true"
+              initial={{ y: 0, opacity: 0, scale: 0.8 }}
+              animate={{ y: -32, opacity: [0, 1, 1, 0], scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              className="pointer-events-none absolute right-6 top-6 text-[18px] z-10"
+            >
+              🪙
+            </motion.span>
+          </>
+        )}
+        <div className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+              <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+            </div>
+            <div className="flex-1 min-w-0">
               <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
                 {bill.name}
               </h3>
-              <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                {bill.category}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                {bill.frequency}
-              </span>
-              <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" strokeWidth={1.75} />
-                {getDueDateLabel(bill.dueDate)}
-              </span>
-              {bill.autopay ? (
-                <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-success)] flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Autopay
+              <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-0.5">
+                {bill.category} · {bill.frequency}
+              </p>
+              <div className="flex items-end justify-between mt-3">
+                <p className="text-[22px] leading-[28px] font-semibold tabular-nums text-[var(--color-text)]">
+                  ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <span
+                  className={`text-[11px] leading-[14px] font-medium px-2 py-1 rounded-[8px] flex items-center gap-1 ${
+                    isOverdue
+                      ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+                      : isDueSoon
+                      ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent-dim)]'
+                      : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)]'
+                  }`}
+                >
+                  <Calendar className="w-3 h-3" strokeWidth={1.75} />
+                  {getDueDateLabel(bill.dueDate)}
                 </span>
-              ) : (
-                <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-warning)]">
-                  Manual
+              </div>
+              {bill.autopay && (
+                <span className="inline-flex items-center gap-1 mt-2 text-[11px] leading-[14px] font-medium text-[var(--color-success)]">
+                  <Zap className="w-3 h-3" strokeWidth={1.75} />
+                  Autopay
                 </span>
               )}
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <p className="text-[22px] leading-[28px] font-semibold tabular-nums text-[var(--color-text)]">
-              ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <motion.div
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex-shrink-0"
+            >
               <ChevronDown className="w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
             </motion.div>
           </div>
-          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <AskAiChip prompt="Why did this go up?" context={`Bill: ${bill.name}, $${bill.amount}`} iconOnly label="Ask Laylo" />
-          </div>
-        </div>
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
-                {bill.notes && (
-                  <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mb-3">
-                    <span className="font-medium text-[var(--color-text)]">Notes:</span> {bill.notes}
+          <AnimatePresence>
+            {expanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
+                  {bill.notes && (
+                    <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mb-3">
+                      <span className="font-medium text-[var(--color-text)]">Notes:</span> {bill.notes}
+                    </p>
+                  )}
+                  <p className="text-[13px] leading-[18px] text-[var(--color-text-subtle)] mb-4">
+                    Next due: {format(new Date(bill.dueDate), 'EEEE, MMMM d, yyyy')}
                   </p>
-                )}
-                <p className="text-[13px] leading-[18px] text-[var(--color-text-subtle)] mb-4">
-                  Next due: {format(new Date(bill.dueDate), 'EEEE, MMMM d, yyyy')}
-                </p>
-                <div className="flex items-center gap-3">
-                  <AskAiChip prompt="Why did this go up?" context={`Bill: ${bill.name}, $${bill.amount}`} />
-                  <MotionButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPay(bill.id);
-                    }}
-                    className="flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] px-3 py-1.5 rounded-[8px] transition-colors"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-                    Mark paid
-                  </MotionButton>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(bill.id);
-                    }}
-                    className="flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-danger)] px-2 py-1 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-                    Delete
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AskAiChip prompt="Why did this go up?" context={`Bill: ${bill.name}, $${bill.amount}`} />
+                    <MotionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPay(bill.id);
+                      }}
+                      className="flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] px-3 py-1.5 rounded-[8px] transition-colors"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      Mark paid
+                    </MotionButton>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(bill.id);
+                      }}
+                      className="ml-auto flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-danger)] px-2 py-1 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </ListItem>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
-// ─── Subscription Card ───────────────────────────────────────────────
-function SubscriptionCard({
-  sub,
-  onDelete,
-}: {
-  sub: Subscription;
-  onDelete: (id: string) => void;
-}) {
+// ─── Subscription Story Strip Tile ──────────────────────────────────
+function SubscriptionTile({ sub }: { sub: Subscription }) {
   const reduce = useReducedMotion();
-  const [expanded, setExpanded] = useState(false);
   const Icon = getCategoryIcon(sub.category);
   const daysUntil = getDaysUntil(sub.renewalDate);
-  const isRenewingSoon = daysUntil <= 3;
+  // Renewal countdown ring — assume 30-day cycle for visual; clockwise drain.
+  const cyclePct = Math.max(0, Math.min(1, daysUntil / 30));
+  const circumference = 2 * Math.PI * 38;
+  const dashOffset = circumference * (1 - cyclePct);
 
   return (
-    <ListItem
-      layout
-      whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      onClick={() => setExpanded(!expanded)}
-      className={`group relative rounded-[16px] bg-[var(--color-surface)] border cursor-pointer transition-shadow hover:shadow-pop ${
-        isRenewingSoon ? 'border-[var(--color-accent)]' : 'border-[var(--color-border)]'
-      }`}
+    <motion.div
+      whileHover={reduce ? undefined : { y: -2, scale: 1.02 }}
+      transition={{ duration: 0.2 }}
+      className="relative flex-shrink-0 w-[200px] h-[160px] rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-4 hover:shadow-pop transition-shadow snap-start"
     >
-      <div className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-            <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">{sub.name}</h3>
-              <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                {sub.category}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                {sub.frequency}
-              </span>
-              <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] flex items-center gap-1">
-                <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
-                {getRenewalLabel(sub.renewalDate)}
-              </span>
-              {sub.autopay && (
-                <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-success)] flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Autopay
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <p className="text-[22px] leading-[28px] font-semibold tabular-nums text-[var(--color-text)]">
-              ${sub.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
-            </motion.div>
-          </div>
-          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <AskAiChip prompt="Worth keeping?" context={`Subscription: ${sub.name}, $${sub.amount}/${sub.frequency}`} iconOnly label="Ask Laylo" />
-          </div>
+      <svg
+        aria-hidden="true"
+        className="absolute top-3 right-3 -rotate-90"
+        width={48}
+        height={48}
+        viewBox="0 0 80 80"
+      >
+        <circle
+          cx={40}
+          cy={40}
+          r={38}
+          stroke="var(--color-border)"
+          strokeWidth={3}
+          fill="none"
+        />
+        <circle
+          cx={40}
+          cy={40}
+          r={38}
+          stroke="var(--color-accent)"
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+        />
+      </svg>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+          <Icon className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
         </div>
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 mt-4 border-t border-[var(--color-border)]">
-                {sub.notes && (
-                  <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mb-3">
-                    <span className="font-medium text-[var(--color-text)]">Notes:</span> {sub.notes}
-                  </p>
-                )}
-                <p className="text-[13px] leading-[18px] text-[var(--color-text-subtle)] mb-4">
-                  Next renewal: {format(new Date(sub.renewalDate), 'EEEE, MMMM d, yyyy')}
-                </p>
-                <div className="flex items-center gap-3">
-                  <AskAiChip prompt="Worth keeping?" context={`Subscription: ${sub.name}`} />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(sub.id);
-                    }}
-                    className="flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-danger)] px-2 py-1 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-    </ListItem>
+      <h3 className="text-[18px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
+        {sub.name}
+      </h3>
+      <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-1">
+        ${sub.amount.toFixed(2)}/{sub.frequency.toLowerCase().slice(0, 2)}
+      </p>
+      <p className="text-[11px] leading-[14px] font-medium text-[var(--color-accent-dim)] mt-2 absolute bottom-4 left-4">
+        Renews in {daysUntil}d
+      </p>
+    </motion.div>
   );
 }
 
-// ─── Add Bill Modal ──────────────────────────────────────────────────
+function SubscriptionRow({ sub, onDelete }: { sub: Subscription; onDelete: (id: string) => void }) {
+  const Icon = getCategoryIcon(sub.category);
+  const daysUntil = getDaysUntil(sub.renewalDate);
+  return (
+    <div className="group flex items-center gap-4 p-4 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] hover:shadow-pop transition-shadow">
+      <div className="w-9 h-9 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] leading-[22px] font-semibold text-[var(--color-text)]">{sub.name}</p>
+        <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)]">
+          {sub.category} · renews in {daysUntil}d
+        </p>
+      </div>
+      <p className="text-[16px] leading-[22px] font-semibold tabular-nums text-[var(--color-text)]">
+        ${sub.amount.toFixed(2)}
+      </p>
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+        <AskAiChip prompt="Worth keeping?" context={`Sub: ${sub.name}`} iconOnly label="Ask" />
+        <button
+          onClick={() => onDelete(sub.id)}
+          aria-label="Delete"
+          className="p-1.5 rounded-[8px] text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)] transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Bill / Sub Modals (unchanged shape) ──────────────────────────
+const inputClass =
+  'w-full px-3 py-2.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[15px] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 function AddBillModal({
   open,
   onClose,
@@ -505,7 +525,6 @@ function AddBillModal({
   );
 }
 
-// ─── Add Subscription Modal ──────────────────────────────────────────
 function AddSubModal({
   open,
   onClose,
@@ -636,18 +655,6 @@ function AddSubModal({
   );
 }
 
-const inputClass =
-  'w-full px-3 py-2.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[15px] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25';
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
 // ─── Main Page ───────────────────────────────────────────────────────
 export default function BillsPage() {
   const reduce = useReducedMotion();
@@ -656,14 +663,46 @@ export default function BillsPage() {
   const [subs, setSubs] = useState<Subscription[]>(INITIAL_SUBS);
   const [showAddBill, setShowAddBill] = useState(false);
   const [showAddSub, setShowAddSub] = useState(false);
-  // Bill currently mid-pay-animation. Used for the gold sweep + coin float.
+  const [paidExpanded, setPaidExpanded] = useState(true);
+  // Bill currently mid-pay-animation. Used for the gold sweep + coin float + fold.
   const [payingBillId, setPayingBillId] = useState<string | null>(null);
 
-  const monthlyBillsTotal = bills.reduce((sum, b) => sum + b.amount, 0);
-  const monthlySubsTotal = subs.reduce((sum, s) => sum + s.amount, 0);
-  const dueThisWeekCount =
-    bills.filter((b) => getDaysUntil(b.dueDate) <= 7 && getDaysUntil(b.dueDate) >= 0).length +
-    subs.filter((s) => getDaysUntil(s.renewalDate) <= 7 && getDaysUntil(s.renewalDate) >= 0).length;
+  const activeBills = useMemo(() => bills.filter((b) => !b.paid), [bills]);
+  const paidBills = useMemo(() => bills.filter((b) => b.paid), [bills]);
+
+  const monthlyBillsTotal = useMemo(
+    () => bills.reduce((sum, b) => sum + b.amount, 0),
+    [bills],
+  );
+  const monthlySubsTotal = useMemo(
+    () => subs.reduce((sum, s) => sum + s.amount, 0),
+    [subs],
+  );
+
+  // Hive Header pips — one per active bill.
+  const hivePips: HivePip[] = useMemo(
+    () =>
+      activeBills.map((b) => {
+        const days = getDaysUntil(b.dueDate);
+        const status = days < 0 ? 'overdue' : days <= 3 ? 'due' : 'due';
+        return {
+          id: b.id,
+          status,
+          label: `${b.name} · ${getDueDateLabel(b.dueDate)}`,
+        } satisfies HivePip;
+      }),
+    [activeBills],
+  );
+
+  const allPaid = activeBills.length === 0 && bills.length > 0;
+
+  // Milestone — fired when 3+ bills paid this session.
+  useMilestoneTracker(
+    'bills_paid',
+    3,
+    paidBills.length,
+    `${paidBills.length} bills paid this month. Look at you go.`,
+  );
 
   const deleteBill = (id: string) => setBills((prev) => prev.filter((b) => b.id !== id));
   const deleteSub = (id: string) => setSubs((prev) => prev.filter((s) => s.id !== id));
@@ -671,46 +710,49 @@ export default function BillsPage() {
   const addSub = (sub: Subscription) => setSubs((prev) => [...prev, sub]);
   const payBill = (id: string) => {
     setPayingBillId(id);
-    // Match the sweep duration in BillCard (~700ms).
-    window.setTimeout(() => setPayingBillId((cur) => (cur === id ? null : cur)), 700);
+    // 700ms after the fold finishes, mark the bill paid + dock it.
+    window.setTimeout(() => {
+      setBills((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, paid: true } : b)),
+      );
+      setPayingBillId(null);
+    }, 800);
   };
 
   return (
-    <div className="max-w-[960px] mx-auto">
-      <header className="mb-8">
+    <div className="max-w-[1024px] mx-auto">
+      <header className="mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
             <CreditCard className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
           </div>
           <div>
-            <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Money</h1>
-            <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1">
-              ${(monthlyBillsTotal + monthlySubsTotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} combined monthly spend
+            <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Bills &amp; Subs</h1>
+            <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1 tabular-nums">
+              ${(monthlyBillsTotal + monthlySubsTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} / month — {bills.length} bills, {subs.length} subs
             </p>
           </div>
         </div>
       </header>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        {[
-          { label: 'Monthly Bills', value: `$${monthlyBillsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: DollarSign },
-          { label: 'Monthly Subs', value: `$${monthlySubsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: RefreshCw },
-          { label: 'Due This Week', value: `${dueThisWeekCount} items`, icon: AlertCircle, accent: true },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-                <stat.icon className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
-              </div>
-              <div>
-                <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">{stat.label}</p>
-                <p className={`text-[22px] leading-[28px] font-semibold mt-1 tabular-nums ${stat.accent ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'}`}>{stat.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Hive Header — answers "how much is left this month?" visually */}
+      {activeTab === 'bills' && hivePips.length > 0 && (
+        <HiveHeader pips={hivePips} allPaid={allPaid} />
+      )}
+      {/* Page-level gold wash on all-paid */}
+      {allPaid && !reduce && (
+        <motion.div
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.4, 0] }}
+          transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+          className="pointer-events-none fixed inset-0 z-[60]"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 30%, rgba(255,215,0,0.35) 0%, rgba(255,215,0,0) 60%)',
+          }}
+        />
+      )}
 
       {/* Tab Toggle */}
       <div className="flex justify-center mb-6">
@@ -731,7 +773,7 @@ export default function BillsPage() {
                 />
               )}
               <span className="relative z-10 capitalize">
-                {tab === 'bills' ? `Bills (${bills.length})` : `Subscriptions (${subs.length})`}
+                {tab === 'bills' ? `Bills (${activeBills.length})` : `Subscriptions (${subs.length})`}
               </span>
             </button>
           ))}
@@ -757,26 +799,85 @@ export default function BillsPage() {
                 Add Bill
               </MotionButton>
             </div>
-            {bills.length === 0 ? (
+            {activeBills.length === 0 && paidBills.length === 0 ? (
               <EmptyHive
                 title="Nothing buzzing here yet — add your first bill"
                 description="Track your recurring bills to see what's due, what's paid, and what to plan for."
                 primary={{ label: 'Add Your First Bill', onClick: () => setShowAddBill(true) }}
               />
             ) : (
-              <ListStagger className="space-y-3">
-                <AnimatePresence>
-                  {bills.map((bill) => (
-                    <BillCard
-                      key={bill.id}
-                      bill={bill}
-                      onDelete={deleteBill}
-                      onPay={payBill}
-                      paying={payingBillId === bill.id}
-                    />
-                  ))}
-                </AnimatePresence>
-              </ListStagger>
+              <>
+                {/* Origami 2-col grid */}
+                <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <AnimatePresence>
+                    {activeBills.map((bill) => (
+                      <BillCard
+                        key={bill.id}
+                        bill={bill}
+                        onDelete={deleteBill}
+                        onPay={payBill}
+                        paying={payingBillId === bill.id}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+                {activeBills.length === 0 && paidBills.length > 0 && (
+                  <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center mt-4">
+                    <BeeStanding size={72} />
+                    <h3 className="mt-3 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+                      All caught up. The hive is humming.
+                    </h3>
+                  </div>
+                )}
+
+                {/* Paid this month — VISIBLE, collapsed by default per design risk-flag */}
+                {paidBills.length > 0 && (
+                  <div className="mt-6 rounded-[16px] bg-[var(--color-surface-2)] border border-[var(--color-border)]">
+                    <button
+                      onClick={() => setPaidExpanded(!paidExpanded)}
+                      className="w-full flex items-center justify-between px-5 py-3 text-left"
+                    >
+                      <span className="text-[13px] leading-[18px] font-semibold text-[var(--color-text)] flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
+                        Paid this month ({paidBills.length})
+                      </span>
+                      <motion.div
+                        animate={{ rotate: paidExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" strokeWidth={1.75} />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence>
+                      {paidExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22 }}
+                          className="overflow-hidden"
+                        >
+                          <ul className="px-5 pb-3 space-y-2">
+                            {paidBills.map((b) => {
+                              const Icon = getCategoryIcon(b.category);
+                              return (
+                                <li
+                                  key={b.id}
+                                  className="flex items-center gap-3 text-[13px] leading-[18px] text-[var(--color-text-muted)]"
+                                >
+                                  <Icon className="w-3.5 h-3.5 text-[var(--color-accent-dim)]" strokeWidth={1.75} />
+                                  <span className="flex-1">{b.name}</span>
+                                  <span className="tabular-nums">${b.amount.toFixed(2)}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         ) : (
@@ -803,13 +904,31 @@ export default function BillsPage() {
                 primary={{ label: 'Add Your First Subscription', onClick: () => setShowAddSub(true) }}
               />
             ) : (
-              <ListStagger className="space-y-3">
-                <AnimatePresence>
-                  {subs.map((sub) => (
-                    <SubscriptionCard key={sub.id} sub={sub} onDelete={deleteSub} />
-                  ))}
-                </AnimatePresence>
-              </ListStagger>
+              <>
+                {/* Story Strip — horizontally scrollable tiles */}
+                <div className="mb-2">
+                  <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)] mb-3">
+                    On the roster
+                  </p>
+                  <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
+                    {subs.map((sub) => (
+                      <SubscriptionTile key={sub.id} sub={sub} />
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)] mb-3">
+                    Compact list
+                  </p>
+                  <ul className="space-y-2">
+                    {subs.map((sub) => (
+                      <li key={sub.id}>
+                        <SubscriptionRow sub={sub} onDelete={deleteSub} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
             )}
           </motion.div>
         )}
@@ -847,3 +966,7 @@ function EmptyHive({
     </div>
   );
 }
+
+// AlertCircle stays in-scope but is no longer used in the redesigned layout.
+void AlertCircle;
+void RefreshCw;

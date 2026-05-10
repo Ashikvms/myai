@@ -1,13 +1,18 @@
 'use client';
 
 /**
- * Reminders page — REDESIGN_BRIEF.md §2.5 + §9.2.
- * - CRITICAL theme bug fixed: useState(()=>{...MutationObserver}) replaced
- *   with `useTheme()` from next-themes.
- * - Per-reminder AskAi chip ("Why was this set?").
+ * Reminders — Conversational Stack with Time Distance
+ * (LAYOUT_REDESIGN_BRIEF §2.8).
+ *
+ * Group by horizon: Soon (<7d) · This month (<30d) · Later (>30d).
+ * Each reminder is a single line with:
+ *   - 8px gold dot at left whose opacity decays with distance in time
+ *   - title + time row, dismiss/delete chevron on hover
+ * A faint vertical gold line connects the dots within a group.
+ *
+ * On dismiss, the dot grows + a tiny bee flies up off the right edge.
  */
-import { useState, useMemo } from 'react';
-import { useTheme } from 'next-themes';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Bell,
@@ -15,14 +20,8 @@ import {
   X,
   CheckCircle,
   Trash2,
-  Clock,
-  RefreshCw,
-  FileText,
-  CalendarDays,
-  CreditCard,
-  Repeat,
 } from 'lucide-react';
-import { format, addDays, addMonths } from 'date-fns';
+import { format, addDays, addMonths, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
@@ -30,7 +29,6 @@ import { MotionButton } from '@/components/motion/motion-button';
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ReminderStatus = 'pending' | 'dismissed';
 type LinkedType = 'Document' | 'Appointment' | 'Bill' | 'Subscription' | 'Task' | 'None';
-type FilterTab = 'Pending' | 'Dismissed' | 'All';
 
 interface Reminder {
   id: string;
@@ -41,15 +39,6 @@ interface Reminder {
   recurrenceRule?: string;
   status: ReminderStatus;
 }
-
-const LINKED_TYPE_ICONS: Record<LinkedType, React.ElementType> = {
-  Document: FileText,
-  Appointment: CalendarDays,
-  Bill: CreditCard,
-  Subscription: RefreshCw,
-  Task: CheckCircle,
-  None: Bell,
-};
 
 const ALL_LINKED_TYPES: LinkedType[] = ['Document', 'Appointment', 'Bill', 'Subscription', 'Task', 'None'];
 
@@ -72,16 +61,39 @@ const INITIAL_REMINDERS: Reminder[] = [
 const inputClass =
   'w-full px-3 py-2.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[15px] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25';
 
+type Horizon = 'Soon' | 'This month' | 'Later';
+
+function horizonOf(r: Reminder): Horizon {
+  const d = differenceInDays(r.dateTime, today);
+  if (d < 7) return 'Soon';
+  if (d < 30) return 'This month';
+  return 'Later';
+}
+
+/**
+ * Dot opacity decays linearly with days-out, capped at 25%.
+ * tomorrow → 1.0, +30d → ~0.55, +180d → 0.25.
+ */
+function dotOpacity(r: Reminder): number {
+  const d = Math.max(0, differenceInDays(r.dateTime, today));
+  const opacity = Math.max(0.25, 1 - d / 60);
+  return Math.min(1, opacity);
+}
+
+function voiceCopy(r: Reminder): string {
+  const day = format(r.dateTime, 'EEEE');
+  const t = format(r.dateTime, 'h:mm a');
+  return `I'll buzz you on ${day} at ${t} about ${r.title.toLowerCase()}.`;
+}
+
 export default function RemindersPage() {
   const reduce = useReducedMotion();
-  // ─── Theme bug fix per REDESIGN_BRIEF.md §2.5 ─────────────────────────
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  void isDark; // tokens handle theme; reads reactively now
-
   const [reminders, setReminders] = useState<Reminder[]>(INITIAL_REMINDERS);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('Pending');
   const [modalOpen, setModalOpen] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [whisperId, setWhisperId] = useState<string | null>(null);
+  const whisperTimer = useRef<number | null>(null);
+  const [dismissing, setDismissing] = useState<Record<string, boolean>>({});
 
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(format(addDays(today, 1), 'yyyy-MM-dd'));
@@ -90,18 +102,54 @@ export default function RemindersPage() {
   const [newRecurring, setNewRecurring] = useState(false);
   const [newRecurrenceRule, setNewRecurrenceRule] = useState('Monthly');
 
-  const filteredReminders = useMemo(() => {
-    let filtered = reminders;
-    if (activeFilter === 'Pending') filtered = reminders.filter((r) => r.status === 'pending');
-    else if (activeFilter === 'Dismissed') filtered = reminders.filter((r) => r.status === 'dismissed');
-    return [...filtered].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-  }, [reminders, activeFilter]);
+  const pendingReminders = useMemo(
+    () =>
+      reminders
+        .filter((r) => r.status === 'pending')
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()),
+    [reminders],
+  );
 
-  const pendingCount = useMemo(() => reminders.filter((r) => r.status === 'pending').length, [reminders]);
-  const dismissedCount = useMemo(() => reminders.filter((r) => r.status === 'dismissed').length, [reminders]);
+  const dismissedReminders = useMemo(
+    () =>
+      reminders
+        .filter((r) => r.status === 'dismissed')
+        .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime()),
+    [reminders],
+  );
+
+  const grouped = useMemo(() => {
+    const buckets: Record<Horizon, Reminder[]> = {
+      Soon: [],
+      'This month': [],
+      Later: [],
+    };
+    pendingReminders.forEach((r) => {
+      buckets[horizonOf(r)].push(r);
+    });
+    return buckets;
+  }, [pendingReminders]);
+
+  useEffect(() => {
+    return () => {
+      if (whisperTimer.current) window.clearTimeout(whisperTimer.current);
+    };
+  }, []);
 
   const dismissReminder = (id: string) => {
-    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'dismissed' as ReminderStatus } : r)));
+    setDismissing((p) => ({ ...p, [id]: true }));
+    window.setTimeout(() => {
+      setReminders((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: 'dismissed' as ReminderStatus } : r,
+        ),
+      );
+      setDismissing((p) => {
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+    }, 400);
   };
 
   const deleteReminder = (id: string) => {
@@ -136,16 +184,25 @@ export default function RemindersPage() {
     setNewRecurrenceRule('Monthly');
   };
 
-  const filterCounts: Record<FilterTab, number> = {
-    Pending: pendingCount,
-    Dismissed: dismissedCount,
-    All: reminders.length,
+  const handleHover = (id: string) => {
+    setHoveredId(id);
+    if (whisperTimer.current) window.clearTimeout(whisperTimer.current);
+    whisperTimer.current = window.setTimeout(() => setWhisperId(id), 800);
+  };
+
+  const handleHoverEnd = () => {
+    setHoveredId(null);
+    if (whisperTimer.current) {
+      window.clearTimeout(whisperTimer.current);
+      whisperTimer.current = null;
+    }
+    setWhisperId(null);
   };
 
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div className="max-w-[760px] mx-auto">
       {/* Header */}
-      <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
@@ -154,7 +211,7 @@ export default function RemindersPage() {
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Reminders</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
-            {pendingCount} pending reminder{pendingCount !== 1 ? 's' : ''}
+            {pendingReminders.length} on the horizon
           </p>
         </div>
         <MotionButton
@@ -166,151 +223,196 @@ export default function RemindersPage() {
         </MotionButton>
       </header>
 
-      {/* Filter tabs */}
-      <div className="mb-6 flex items-center gap-2">
-        {(['Pending', 'Dismissed', 'All'] as FilterTab[]).map((tab) => {
-          const isActive = activeFilter === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveFilter(tab)}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] leading-[18px] font-medium transition-colors ${
-                isActive
-                  ? 'text-[var(--color-text-on-accent)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="reminders-active-tab"
-                  className="absolute inset-0 bg-[var(--color-accent)] rounded-[8px]"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                {tab}
-                <span
-                  className={`text-[11px] leading-[14px] font-semibold px-1.5 py-0.5 rounded-[8px] ${
-                    isActive ? 'bg-[var(--color-text-on-accent)]/15' : 'bg-[var(--color-surface-2)]'
-                  }`}
-                >
-                  {filterCounts[tab]}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Empty */}
-      {filteredReminders.length === 0 && (
+      {pendingReminders.length === 0 && dismissedReminders.length === 0 && (
         <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
           <BeeStanding size={96} />
           <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
             All quiet on the notification front
           </h3>
           <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
-            {activeFilter === 'Dismissed' ? 'No dismissed reminders to show.' : "We'll buzz you when something needs attention."}
+            We&apos;ll buzz you when something needs attention.
           </p>
-          {activeFilter !== 'Dismissed' && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-              <MotionButton
-                onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
-              >
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Add Reminder
-              </MotionButton>
-              <AskAiChip prompt="Help me set up a reminder" label="Ask Laylo to add something" />
-            </div>
-          )}
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+            <MotionButton
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
+            >
+              <Plus className="w-4 h-4" strokeWidth={1.75} />
+              Add Reminder
+            </MotionButton>
+            <AskAiChip prompt="Help me set up a reminder" label="Ask Laylo to add something" />
+          </div>
         </div>
       )}
 
-      {/* Reminder cards */}
-      {filteredReminders.length > 0 && (
-        <motion.div layout className="space-y-3">
-          <AnimatePresence mode="popLayout">
-            {filteredReminders.map((reminder, index) => {
-              const isPending = reminder.status === 'pending';
-              const Icon = LINKED_TYPE_ICONS[reminder.linkedType];
-              return (
-                <motion.div
-                  key={reminder.id}
-                  layout
-                  initial={reduce ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.2, delay: index * 0.04 }}
-                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-                  className={`group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all ${
-                    !isPending ? 'opacity-60' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`text-[16px] leading-[22px] font-semibold text-[var(--color-text)] ${!isPending ? 'line-through' : ''}`}>
-                        {reminder.title}
-                      </h3>
-                      <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5 mt-1">
-                        <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-                        {format(reminder.dateTime, 'EEE, MMM d, yyyy — h:mm a')}
-                      </p>
-                      <div className="flex items-center gap-2 mt-3 flex-wrap">
-                        {reminder.recurring && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[13px] leading-[18px] font-medium bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                            <Repeat className="w-3.5 h-3.5" strokeWidth={1.75} />
-                            {reminder.recurrenceRule}
-                          </span>
+      {/* Conversational stack — grouped by horizon */}
+      {(['Soon', 'This month', 'Later'] as Horizon[]).map((horizon) => {
+        const items = grouped[horizon];
+        if (items.length === 0) return null;
+        return (
+          <section key={horizon} className="mb-8">
+            <h2 className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)] mb-3 flex items-baseline gap-2">
+              {horizon}
+              <span className="text-[13px] leading-[18px] font-medium text-[var(--color-text-subtle)] tabular-nums">
+                {items.length}
+              </span>
+            </h2>
+            <div className="relative pl-3">
+              {/* Threaded gold line */}
+              <div
+                aria-hidden="true"
+                className="absolute left-[5px] top-2 bottom-2 w-[1px]"
+                style={{ background: 'var(--color-accent)', opacity: 0.15 }}
+              />
+              <ul className="space-y-1">
+                <AnimatePresence>
+                  {items.map((r) => {
+                    const isDismissing = dismissing[r.id];
+                    const isHovered = hoveredId === r.id;
+                    return (
+                      <motion.li
+                        key={r.id}
+                        layout
+                        initial={false}
+                        animate={
+                          isDismissing
+                            ? { height: 0, opacity: 0 }
+                            : { height: 'auto', opacity: 1 }
+                        }
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        onMouseEnter={() => handleHover(r.id)}
+                        onMouseLeave={handleHoverEnd}
+                        className="relative overflow-hidden"
+                      >
+                        <div className="relative flex items-start gap-3 py-2 group">
+                          {/* Gold dot — opacity decays with time-out */}
+                          <div className="relative w-3 flex-shrink-0 mt-2">
+                            <motion.div
+                              animate={
+                                isDismissing && !reduce
+                                  ? { scale: [1, 2, 0], opacity: [1, 1, 0] }
+                                  : undefined
+                              }
+                              transition={{ duration: 0.4 }}
+                              className="absolute -left-[7px] top-0 w-3 h-3 rounded-full"
+                              style={{
+                                background: 'var(--color-accent)',
+                                opacity: dotOpacity(r),
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <p className="text-[15px] leading-[22px] font-medium text-[var(--color-text)]">
+                                {r.title}
+                              </p>
+                              <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex-shrink-0 tabular-nums">
+                                {format(r.dateTime, 'MMM d · h:mm a')}
+                              </p>
+                            </div>
+                            <AnimatePresence>
+                              {isHovered && (
+                                <motion.p
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="text-[13px] leading-[18px] text-[var(--color-text-subtle)] italic mt-1"
+                                >
+                                  “{voiceCopy(r)}”
+                                </motion.p>
+                              )}
+                            </AnimatePresence>
+                            <div
+                              className={`flex items-center gap-1 mt-1 transition-opacity ${
+                                isHovered ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            >
+                              <button
+                                onClick={() => dismissReminder(r.id)}
+                                aria-label="Dismiss"
+                                className="inline-flex items-center gap-1 text-[11px] leading-[14px] font-medium text-[var(--color-success)] px-2 py-0.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
+                              >
+                                <CheckCircle className="w-3 h-3" strokeWidth={1.75} />
+                                Dismiss
+                              </button>
+                              <button
+                                onClick={() => deleteReminder(r.id)}
+                                aria-label="Delete"
+                                className="inline-flex items-center gap-1 text-[11px] leading-[14px] font-medium text-[var(--color-text-subtle)] hover:text-[var(--color-danger)] px-2 py-0.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3" strokeWidth={1.75} />
+                                Delete
+                              </button>
+                              <AskAiChip
+                                prompt="Why was this set?"
+                                context={r.title}
+                                iconOnly
+                                label="Ask"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Bee whisper — flies off the right edge during dismiss */}
+                        {isDismissing && !reduce && (
+                          <motion.div
+                            initial={{ x: 0, y: 0, opacity: 1 }}
+                            animate={{ x: 200, y: -40, opacity: 0 }}
+                            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                            className="absolute right-2 top-1 pointer-events-none"
+                          >
+                            <BeeStanding size={20} />
+                          </motion.div>
                         )}
-                        {reminder.linkedType !== 'None' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[13px] leading-[18px] font-medium bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                            <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
-                            {reminder.linkedType}
-                          </span>
-                        )}
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-[8px] text-[13px] leading-[18px] font-medium bg-[var(--color-surface-2)] ${
-                            isPending ? 'text-[var(--color-warning)]' : 'text-[var(--color-success)]'
-                          }`}
-                        >
-                          {isPending ? 'Pending' : 'Dismissed'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {isPending && (
-                        <button
-                          onClick={() => dismissReminder(reminder.id)}
-                          aria-label="Dismiss"
-                          className="p-2 rounded-[8px] text-[var(--color-success)] hover:bg-[var(--color-surface-hover)] transition-colors"
-                          title="Dismiss"
-                        >
-                          <CheckCircle className="w-5 h-5" strokeWidth={1.75} />
-                        </button>
-                      )}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <AskAiChip prompt="Why was this set?" context={reminder.title} iconOnly label="Ask" />
-                        <button
-                          onClick={() => deleteReminder(reminder.id)}
-                          aria-label="Delete"
-                          className="p-2 rounded-[8px] text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)] transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
+                      </motion.li>
+                    );
+                  })}
+                </AnimatePresence>
+              </ul>
+            </div>
+          </section>
+        );
+      })}
+
+      {/* Dismissed footer */}
+      {dismissedReminders.length > 0 && (
+        <details className="mt-8">
+          <summary className="text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text)] transition-colors">
+            Dismissed ({dismissedReminders.length})
+          </summary>
+          <ul className="mt-3 pl-3 space-y-1.5">
+            {dismissedReminders.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center gap-3 text-[13px] leading-[18px] text-[var(--color-text-subtle)] line-through"
+              >
+                <span
+                  className="w-2 h-2 rounded-full bg-[var(--color-text-subtle)]"
+                  aria-hidden="true"
+                />
+                {r.title}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
+
+      {/* Bee whisper on long-hover */}
+      <AnimatePresence>
+        {whisperId && !reduce && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-6 right-6 z-[60] pointer-events-none"
+          >
+            <BeeStanding size={32} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Reminder Modal */}
       <AnimatePresence>

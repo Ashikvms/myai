@@ -75,49 +75,64 @@
 @layer base {
   /*
    * Typography — single typeface design language.
-   * Fraunces variable. Body defaults to sharp + clean (opsz auto-tunes
-   * for readability, SOFT=0, WONK off). Headings opt into the warm,
-   * playful display vibe via opsz=auto + SOFT=80 + WONK on.
-   * (See /DESIGN_SYSTEM.md §2 for the full type scale + axis intent.)
+   * Bricolage Grotesque variable. Body uses opsz=14 / wdth=100 for
+   * readability; display sizes auto-tune opsz upward for personality.
+   * OpenType: cv11 (circular zero) + cv05 (straight l) globally;
+   * ss01 (single-storey a) on display ≥ 22 px; tnum on .tabular-nums.
+   * (See /LAYOUT_REDESIGN_BRIEF.md §1 for the full type scale.)
    */
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-variation-settings: "opsz" 14, "SOFT" 0, "WONK" 0;
-    font-feature-settings: "ss01";
+    font-variation-settings: "opsz" 14, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
   }
 
   h1, h2, h3, h4, h5, h6,
   .heading-display {
-    font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+    font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   }
 
-  h1, .heading-display {
-    /* Hero / display — full personality */
-    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1;
+  .heading-display {
+    /* Marketing display — 64/68, opsz 96, full personality */
+    font-variation-settings: "opsz" 96, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
     letter-spacing: -0.02em;
   }
 
-  h2 {
-    /* Page title — soft + slightly quirky */
-    font-variation-settings: "opsz" 56, "SOFT" 80, "WONK" 1;
+  h1 {
+    /* Page title — 32/38, opsz 64 */
+    font-variation-settings: "opsz" 64, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
     letter-spacing: -0.015em;
   }
 
-  h3 {
-    /* Section header — warm, restrained */
-    font-variation-settings: "opsz" 32, "SOFT" 50, "WONK" 0;
+  h2 {
+    /* Section heading — 22/28, opsz 32, ss01 (≥22 px) */
+    font-variation-settings: "opsz" 32, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
     letter-spacing: -0.01em;
   }
 
-  h4, h5, h6 {
-    /* Subheaders — clean */
-    font-variation-settings: "opsz" 20, "SOFT" 30, "WONK" 0;
+  h3 {
+    /* Card / modal title, subsections — 16/22, opsz 20.
+       Brief §1 collapses h4–h6 into h3 — anything outside the 8-token
+       scale is a bug. */
+    font-variation-settings: "opsz" 20, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
   }
 
-  /* Numerals — tabular for stats so they don't jitter on count-up */
+  h4, h5, h6 {
+    /* Aliased to h3 per brief §1 (h4–h6 range collapses into h3). */
+    font-variation-settings: "opsz" 20, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
+  }
+
+  /* Numerals — tabular for stats so they don't jitter on count-up.
+     Retained on .tabular-nums (still useful for stat count-ups). */
   .tabular-nums {
     font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "cv11", "cv05", "tnum";
   }
 
   /* Theme transition overlay — recoloured to gold/black wash. */

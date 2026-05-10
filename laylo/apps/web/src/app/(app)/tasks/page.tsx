@@ -1,10 +1,17 @@
 'use client';
 
 /**
- * Tasks page — REDESIGN_BRIEF.md §2.3.
- * - Prototype state toolbar removed.
- * - Category/priority gradient maps removed.
- * - Per-task AskAi chip ("Break into steps").
+ * Tasks — Conversational Stack with Progress Hive (LAYOUT_REDESIGN_BRIEF §2.3).
+ *
+ * Replaces the filter-pill row with a Progress Hive (one hex per task, gold
+ * line beneath that fills as tasks are cleared). Filters move into a select.
+ *
+ * Each task renders a "voice line" composed from category + priority + dueDate
+ * (e.g. "Pay the electricity bill — $142.50, due tomorrow."). The user's typed
+ * title is shown verbatim on hover via a `title` tooltip per Designer's risk
+ * note. High-priority tasks get a 2px gold left-bar; medium/low are smaller.
+ *
+ * Checkbox is a hexagon, tying back to the Progress Hive vocabulary.
  */
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -14,22 +21,18 @@ import {
   Clock,
   Check,
   X,
-  ListTodo,
-  CalendarDays,
-  AlertTriangle,
-  CheckCircle2,
 } from 'lucide-react';
 import { format, isToday, isBefore, isAfter, startOfDay, addDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
-import { BeeSleeping } from '@/components/illustrations/bee';
+import { BeeSleeping, BeeStanding } from '@/components/illustrations/bee';
 import { SparkleBurst } from '@/components/motion/sparkle-burst';
 import { MotionButton } from '@/components/motion/motion-button';
-import { ListStagger, ListItem } from '@/components/motion/list-stagger';
 import { InboxZeroOverlay } from '@/components/celebrations/inbox-zero-overlay';
+import { ProgressHive } from '@/components/layout/progress-hive';
 
-// Session-storage flag so the inbox-zero overlay only fires when the user
-// transitions from N>0 → 0 within a session (not on every page load).
 const INBOX_ZERO_FLAG = 'laylo:tasks:hadTasks';
+
+const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Priority = 'High' | 'Medium' | 'Low';
@@ -44,26 +47,19 @@ interface Task {
   category: Category;
   dueDate: Date;
   completed: boolean;
+  amount?: number;
 }
 
 const today = startOfDay(new Date());
 
 const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Pay electricity bill', description: 'Monthly electricity bill payment due. $142.50', priority: 'High', category: 'Bills', dueDate: addDays(today, 1), completed: false },
+  { id: '1', title: 'Pay electricity bill', description: 'Monthly electricity bill payment due. $142.50', priority: 'High', category: 'Bills', dueDate: addDays(today, 1), completed: false, amount: 142.5 },
   { id: '2', title: 'Schedule dentist appointment', description: 'Regular checkup and cleaning', priority: 'Medium', category: 'Health', dueDate: addDays(today, 2), completed: false },
   { id: '3', title: 'Review car insurance policy', description: 'Annual review. Compare rates.', priority: 'High', category: 'Finance', dueDate: addDays(today, 5), completed: false },
   { id: '4', title: 'Buy groceries', description: 'Weekly grocery run', priority: 'Low', category: 'Personal', dueDate: today, completed: false },
   { id: '5', title: 'Submit tax documents', description: 'Gather W-2, 1099s for accountant', priority: 'High', category: 'Tax', dueDate: addDays(today, 7), completed: false },
   { id: '6', title: 'Update resume', description: 'Add recent experience', priority: 'Medium', category: 'Work', dueDate: addDays(today, -2), completed: true },
 ];
-
-const FILTER_ICONS: Record<FilterTab, React.ElementType> = {
-  All: ListTodo,
-  Today: CalendarDays,
-  Upcoming: Clock,
-  Overdue: AlertTriangle,
-  Completed: CheckCircle2,
-};
 
 const CATEGORIES: Category[] = ['Bills', 'Health', 'Finance', 'Personal', 'Tax', 'Home', 'Work'];
 const PRIORITIES: Priority[] = ['High', 'Medium', 'Low'];
@@ -87,6 +83,7 @@ function filterTasks(tasks: Task[], filter: FilterTab): Task[] {
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
     const pDiff = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
     if (pDiff !== 0) return pDiff;
     return a.dueDate.getTime() - b.dueDate.getTime();
@@ -94,12 +91,46 @@ function sortTasks(tasks: Task[]): Task[] {
 }
 
 function getDueDateLabel(date: Date): string {
-  if (isToday(date)) return 'Today';
+  if (isToday(date)) return 'today';
   const diff = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 1) return 'Tomorrow';
-  if (diff === -1) return 'Yesterday';
-  if (diff > 1) return `In ${diff} days`;
+  if (diff === 1) return 'tomorrow';
+  if (diff === -1) return 'yesterday';
+  if (diff > 1 && diff <= 7) return `in ${diff} days`;
+  if (diff > 7) return `on ${format(date, 'MMM d')}`;
   return `${Math.abs(diff)} days ago`;
+}
+
+/**
+ * Compose a "voice line" from category + priority + dueDate + amount.
+ * Returns the rendered display string. Original `title` is kept in the
+ * `title=` hover tooltip on the row (per Design risk-flag).
+ */
+function composeVoiceLine(t: Task): string {
+  const due = getDueDateLabel(t.dueDate);
+  switch (t.category) {
+    case 'Bills':
+      if (t.amount) return `Pay the ${t.title.toLowerCase()} — $${t.amount.toFixed(2)}, due ${due}.`;
+      return `Pay the ${t.title.toLowerCase()} — due ${due}.`;
+    case 'Health':
+      return `Book the ${extractNoun(t.title)} ${due === 'today' ? 'today' : `for ${due}`}.`;
+    case 'Personal':
+      return `${t.title}${due === 'today' ? ' today' : `, ${due}`}.`;
+    case 'Finance':
+      return `Sort out ${t.title.toLowerCase()} — ${due}.`;
+    case 'Tax':
+      return `${t.title} — due ${due}. Don’t let it slide.`;
+    case 'Home':
+      return `Take care of ${t.title.toLowerCase()} ${due === 'today' ? 'today' : `by ${due}`}.`;
+    case 'Work':
+      return `${t.title} — ${due}.`;
+    default:
+      return `${t.title} — ${due}.`;
+  }
+}
+
+function extractNoun(s: string): string {
+  // Trivial heuristic: drop leading verbs like "Schedule", "Review", "Buy" etc.
+  return s.replace(/^(schedule|book|review|buy|update|file|submit|make)\s+/i, '').toLowerCase();
 }
 
 const inputClass =
@@ -110,9 +141,12 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
   const [modalOpen, setModalOpen] = useState(false);
-  // Per-task sparkle-burst id (only shown briefly after a complete-toggle).
   const [burstingTaskId, setBurstingTaskId] = useState<string | null>(null);
-  // Inbox-zero celebration overlay
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Bee-whisper hover state — only fires after 800ms hover.
+  const [whisperId, setWhisperId] = useState<string | null>(null);
+  const whisperTimerRef = useRef<number | null>(null);
+
   const [inboxZeroOpen, setInboxZeroOpen] = useState(false);
   const lastPendingRef = useRef<number | null>(null);
 
@@ -135,7 +169,7 @@ export default function TasksPage() {
   const completedCount = tasks.filter((t) => t.completed).length;
   const filteredTasks = sortTasks(filterTasks(tasks, activeFilter));
 
-  // Inbox-zero detection: when pending transitions N>0 → 0, fire the overlay.
+  // Inbox-zero overlay on N>0 → 0 transition.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const prev = lastPendingRef.current;
@@ -148,10 +182,15 @@ export default function TasksPage() {
     }
   }, [pendingCount]);
 
+  // Progress Hive pips — derived from the entire task list.
+  const hivePips = useMemo(
+    () => tasks.map((t) => ({ id: t.id, done: t.completed, label: t.title })),
+    [tasks],
+  );
+
   const toggleTask = (id: string) => {
     setTasks((prev) => {
       const next = prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
-      // Only burst on the complete edge (false → true).
       const wasCompleted = prev.find((t) => t.id === id)?.completed;
       if (!wasCompleted) {
         setBurstingTaskId(id);
@@ -180,10 +219,32 @@ export default function TasksPage() {
     setModalOpen(false);
   };
 
+  const handleHoverStart = (id: string) => {
+    setHoveredId(id);
+    if (whisperTimerRef.current) window.clearTimeout(whisperTimerRef.current);
+    whisperTimerRef.current = window.setTimeout(() => {
+      setWhisperId(id);
+    }, 800);
+  };
+  const handleHoverEnd = () => {
+    setHoveredId(null);
+    if (whisperTimerRef.current) {
+      window.clearTimeout(whisperTimerRef.current);
+      whisperTimerRef.current = null;
+    }
+    setWhisperId(null);
+  };
+
+  const scrollToTask = (id: string) => {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById(`task-${id}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div className="max-w-[760px] mx-auto">
       {/* Header */}
-      <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
@@ -192,57 +253,35 @@ export default function TasksPage() {
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Tasks</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
-            {pendingCount} pending · {completedCount} completed
+            {pendingCount} on the list · {completedCount} cleared
           </p>
         </div>
-        <MotionButton
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
-        >
-          <Plus className="w-4 h-4" strokeWidth={1.75} />
-          Add Task
-        </MotionButton>
+        <div className="flex items-center gap-3">
+          {/* Filter dropdown — replaces the row of pill tabs */}
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value as FilterTab)}
+            className="px-3 h-10 rounded-[16px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[13px] font-medium text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/25"
+            aria-label="Filter tasks"
+          >
+            {(['All', 'Today', 'Upcoming', 'Overdue', 'Completed'] as FilterTab[]).map((f) => (
+              <option key={f} value={f}>
+                {f} ({counts[f]})
+              </option>
+            ))}
+          </select>
+          <MotionButton
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            Add Task
+          </MotionButton>
+        </div>
       </header>
 
-      {/* Filter Tabs */}
-      <div className="mb-6 overflow-x-auto">
-        <div className="flex items-center gap-2 min-w-max">
-          {(['All', 'Today', 'Upcoming', 'Overdue', 'Completed'] as FilterTab[]).map((tab) => {
-            const Icon = FILTER_ICONS[tab];
-            const isActive = activeFilter === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveFilter(tab)}
-                className={`relative flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] leading-[18px] font-medium transition-colors ${
-                  isActive
-                    ? 'text-[var(--color-text-on-accent)]'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="task-active-tab"
-                    className="absolute inset-0 bg-[var(--color-accent)] rounded-[8px]"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  <Icon className="w-4 h-4" strokeWidth={1.75} />
-                  {tab}
-                  <span
-                    className={`text-[11px] leading-[14px] font-semibold px-1.5 py-0.5 rounded-[8px] ${
-                      isActive ? 'bg-[var(--color-text-on-accent)]/15' : 'bg-[var(--color-surface-2)]'
-                    }`}
-                  >
-                    {counts[tab]}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Progress Hive */}
+      {tasks.length > 0 && <ProgressHive pips={hivePips} onSelect={scrollToTask} />}
 
       {/* Empty */}
       {filteredTasks.length === 0 && (
@@ -269,104 +308,160 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Tasks list */}
+      {/* Conversational Stack — the list itself */}
       {filteredTasks.length > 0 && (
-        <ListStagger className="space-y-3">
+        <ul className="space-y-2">
           <AnimatePresence mode="popLayout">
-            {filteredTasks.map((task) => (
-              <ListItem
-                key={task.id}
-                layout
-                exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
-                whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                className={`group relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow ${
-                  task.completed ? 'opacity-60' : ''
-                }`}
-              >
-                {burstingTaskId === task.id && (
-                  <SparkleBurst
-                    onDone={() => setBurstingTaskId((cur) => (cur === task.id ? null : cur))}
-                  />
-                )}
-                {/* Sweep overlay when a task is being completed — gold shimmer
-                    that sweeps L→R on the row to make the strike-through feel earned. */}
-                {burstingTaskId === task.id && !reduce && (
-                  <motion.div
-                    aria-hidden="true"
-                    initial={{ x: '-110%', opacity: 0 }}
-                    animate={{ x: '110%', opacity: [0, 0.6, 0] }}
-                    transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-                    className="pointer-events-none absolute inset-0 rounded-[16px] overflow-hidden"
-                    style={{
-                      background:
-                        'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.35) 50%, transparent 100%)',
-                    }}
-                  />
-                )}
-                <div className="relative flex items-start gap-4">
-                  <button
-                    onClick={() => toggleTask(task.id)}
-                    aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
-                    className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-[8px] border-2 flex items-center justify-center transition-colors ${
-                      task.completed
-                        ? 'bg-[var(--color-accent)] border-[var(--color-accent)]'
-                        : 'border-[var(--color-border-strong)] hover:border-[var(--color-accent)]'
-                    }`}
-                  >
-                    <AnimatePresence>
-                      {task.completed && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        >
-                          <Check className="w-4 h-4 text-[var(--color-text-on-accent)]" strokeWidth={3} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </button>
+            {filteredTasks.map((task) => {
+              const isHigh = task.priority === 'High';
+              const sizeClass = isHigh
+                ? 'text-[16px] leading-[22px] font-semibold'
+                : 'text-[14px] leading-[20px] font-medium';
+              const voiceLine = composeVoiceLine(task);
+              return (
+                <motion.li
+                  id={`task-${task.id}`}
+                  key={task.id}
+                  layout
+                  exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
+                  whileHover={reduce ? undefined : { y: -1, rotate: 1.5 }}
+                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  onMouseEnter={() => handleHoverStart(task.id)}
+                  onMouseLeave={handleHoverEnd}
+                  title={task.title /* original typed title — risk-flag */}
+                  className={`group relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] hover:shadow-pop transition-shadow ${
+                    task.completed ? 'opacity-50' : ''
+                  } ${isHigh ? 'pl-1' : 'pl-0'}`}
+                >
+                  {/* Gold left-bar for High priority */}
+                  {isHigh && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute left-0 top-3 bottom-3 w-[2px] bg-[var(--color-accent)] rounded-r-full"
+                    />
+                  )}
+                  {/* Sparkle + sweep on completion (KEPT) */}
+                  {burstingTaskId === task.id && (
+                    <SparkleBurst
+                      onDone={() =>
+                        setBurstingTaskId((cur) => (cur === task.id ? null : cur))
+                      }
+                    />
+                  )}
+                  {burstingTaskId === task.id && !reduce && (
+                    <motion.div
+                      aria-hidden="true"
+                      initial={{ x: '-110%', opacity: 0 }}
+                      animate={{ x: '110%', opacity: [0, 0.6, 0] }}
+                      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                      className="pointer-events-none absolute inset-0 rounded-[16px] overflow-hidden"
+                      style={{
+                        background:
+                          'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.35) 50%, transparent 100%)',
+                      }}
+                    />
+                  )}
 
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className={`text-[16px] leading-[22px] font-semibold text-[var(--color-text)] ${
-                        task.completed ? 'line-through' : ''
-                      }`}
+                  <div className="relative flex items-center gap-4 p-4">
+                    {/* Hexagon checkbox */}
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+                      className="relative flex-shrink-0 w-6 h-6 group/check"
                     >
-                      {task.title}
-                    </h3>
-                    {task.description && (
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 transition-colors"
+                        style={{
+                          clipPath: HEX_CLIP,
+                          WebkitClipPath: HEX_CLIP,
+                          background: task.completed
+                            ? 'var(--color-accent)'
+                            : 'var(--color-border-strong)',
+                        }}
+                      />
+                      {!task.completed && (
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-[1.5px] group-hover/check:bg-[var(--color-accent-soft)] transition-colors"
+                          style={{
+                            clipPath: HEX_CLIP,
+                            WebkitClipPath: HEX_CLIP,
+                            background: 'var(--color-surface)',
+                          }}
+                        />
+                      )}
+                      <div className="relative z-10 w-full h-full flex items-center justify-center">
+                        <AnimatePresence>
+                          {task.completed && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0 }}
+                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            >
+                              <Check
+                                className="w-3.5 h-3.5 text-[var(--color-text-on-accent)]"
+                                strokeWidth={3}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </button>
+
+                    <div className="flex-1 min-w-0">
                       <p
-                        className={`text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-1 truncate ${
+                        className={`${sizeClass} text-[var(--color-text)] ${
                           task.completed ? 'line-through' : ''
                         }`}
                       >
-                        {task.description}
+                        {voiceLine}
                       </p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                        {task.priority}
-                      </span>
-                      <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                        {task.category}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-[var(--color-text-subtle)]">
-                        <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-                        {getDueDateLabel(task.dueDate)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <span className="text-[11px] leading-[14px] font-medium px-1.5 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+                          {task.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] leading-[14px] text-[var(--color-text-subtle)]">
+                          <Clock className="w-3 h-3" strokeWidth={1.75} />
+                          {format(task.dueDate, 'MMM d')}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className={`transition-opacity ${
+                        hoveredId === task.id ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    >
+                      <AskAiChip
+                        prompt="Break into steps"
+                        context={task.title}
+                        iconOnly
+                        label="Ask"
+                      />
                     </div>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <AskAiChip prompt="Break into steps" context={task.title} iconOnly label="Ask" />
-                  </div>
-                </div>
-              </ListItem>
-            ))}
+                </motion.li>
+              );
+            })}
           </AnimatePresence>
-        </ListStagger>
+        </ul>
       )}
+
+      {/* Bee whisper — peeks from bottom-right corner on long-hover */}
+      <AnimatePresence>
+        {whisperId && !reduce && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-6 right-6 z-[60] pointer-events-none"
+          >
+            <BeeStanding size={32} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Task Modal */}
       <AnimatePresence>

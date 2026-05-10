@@ -1,34 +1,43 @@
 'use client';
 
 /**
- * Documents page — REDESIGN_BRIEF.md §2.4 + §9.2.
- * - CRITICAL theme bug fixed: useState(()=>{...MutationObserver}) replaced
- *   with `useTheme()` from next-themes.
- * - Per-doc AskAi chip ("Summarise" / "When does this expire?").
+ * Documents — Honeycomb Tile Grid (compact) with Category Hexes
+ * (LAYOUT_REDESIGN_BRIEF §2.7).
+ *
+ * - Top: 8 category hexes (one per category), each filling with
+ *   --color-accent-soft when active. Counts displayed inside.
+ * - Below: 3-col grid of "file folder" doc cards — 4px gold tab on top,
+ *   pulsing on expiring docs.
+ * - Grid/list toggle removed.
  */
 import { useState, useMemo } from 'react';
-import { useTheme } from 'next-themes';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   FileText,
   X,
-  Grid3X3,
-  List,
-  AlertTriangle,
   Upload,
   Calendar,
   Clock,
   Trash2,
   Eye,
+  Shield,
+  Home,
+  Car,
+  Calculator,
+  Stethoscope,
+  Wrench,
+  Contact as IdCard,
+  MoreHorizontal,
 } from 'lucide-react';
 import { format, addDays, addMonths, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding, BeeMagnifying } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
 
+const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 type DocCategory = 'Insurance' | 'Lease' | 'Car' | 'Tax' | 'Medical' | 'Warranty' | 'Identity' | 'Other';
-type ViewMode = 'grid' | 'list';
 
 interface Document {
   id: string;
@@ -41,6 +50,17 @@ interface Document {
 }
 
 const ALL_CATEGORIES: DocCategory[] = ['Insurance', 'Lease', 'Car', 'Tax', 'Medical', 'Warranty', 'Identity', 'Other'];
+
+const CATEGORY_ICONS: Record<DocCategory, React.ElementType> = {
+  Insurance: Shield,
+  Lease: Home,
+  Car: Car,
+  Tax: Calculator,
+  Medical: Stethoscope,
+  Warranty: Wrench,
+  Identity: IdCard,
+  Other: MoreHorizontal,
+};
 
 // ─── Demo Data ───────────────────────────────────────────────────────────────
 const today = new Date();
@@ -73,15 +93,8 @@ const inputClass =
 
 export default function DocumentsPage() {
   const reduce = useReducedMotion();
-  // ─── Theme bug fix per REDESIGN_BRIEF.md §2.4 ─────────────────────────
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  // (isDark currently unused at the layout level — tokens handle theme,
-  // but kept here for any future dark-only branches without the buggy MutationObserver.)
-  void isDark;
 
   const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCUMENTS);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [activeCategory, setActiveCategory] = useState<DocCategory | 'All'>('All');
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -97,8 +110,16 @@ export default function DocumentsPage() {
     return documents.filter((d) => d.category === activeCategory);
   }, [documents, activeCategory]);
 
-  const expiringDocs = useMemo(() => {
-    return documents.filter((d) => getExpiryStatus(d) === 'expiring');
+  // Per-category count for the hex bar.
+  const categoryCounts: Record<DocCategory, number> = useMemo(() => {
+    const counts = ALL_CATEGORIES.reduce(
+      (acc, c) => ({ ...acc, [c]: 0 }),
+      {} as Record<DocCategory, number>,
+    );
+    documents.forEach((d) => {
+      counts[d.category] = (counts[d.category] ?? 0) + 1;
+    });
+    return counts;
   }, [documents]);
 
   const addDocument = () => {
@@ -131,9 +152,9 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="max-w-[960px] mx-auto">
+    <div className="max-w-[1024px] mx-auto">
       {/* Header */}
-      <header className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
@@ -142,112 +163,40 @@ export default function DocumentsPage() {
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Documents</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
-            {documents.length} document{documents.length !== 1 ? 's' : ''} stored
+            {documents.length} document{documents.length !== 1 ? 's' : ''} in your hive
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              aria-label="Grid view"
-              aria-pressed={viewMode === 'grid'}
-              className={`p-2 rounded-[8px] transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              aria-label="List view"
-              aria-pressed={viewMode === 'list'}
-              className={`p-2 rounded-[8px] transition-all ${
-                viewMode === 'list'
-                  ? 'bg-[var(--color-surface-2)] text-[var(--color-text)]'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              <List className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          </div>
-          <MotionButton
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
-          >
-            <Upload className="w-4 h-4" strokeWidth={1.75} />
-            Upload Document
-          </MotionButton>
-        </div>
+        <MotionButton
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
+        >
+          <Upload className="w-4 h-4" strokeWidth={1.75} />
+          Upload
+        </MotionButton>
       </header>
 
-      {/* Category Filter Chips */}
-      <div className="mb-6 overflow-x-auto">
-        <div className="flex items-center gap-2 min-w-max">
-          {(['All', ...ALL_CATEGORIES] as (DocCategory | 'All')[]).map((cat) => {
-            const isActive = activeCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`relative px-4 py-2 rounded-[8px] text-[13px] leading-[18px] font-medium transition-colors ${
-                  isActive
-                    ? 'text-[var(--color-text-on-accent)]'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="docs-active-cat"
-                    className="absolute inset-0 bg-[var(--color-accent)] rounded-[8px]"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">{cat}</span>
-              </button>
-            );
-          })}
+      {/* Category hex bar */}
+      <div className="mb-8 overflow-x-auto">
+        <div className="flex items-end gap-2 sm:gap-3 min-w-max pb-2">
+          <CategoryHex
+            label="All"
+            count={documents.length}
+            active={activeCategory === 'All'}
+            onClick={() => setActiveCategory('All')}
+            icon={FileText}
+          />
+          {ALL_CATEGORIES.map((cat) => (
+            <CategoryHex
+              key={cat}
+              label={cat}
+              count={categoryCounts[cat]}
+              active={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
+              icon={CATEGORY_ICONS[cat]}
+            />
+          ))}
         </div>
       </div>
-
-      {/* Expiring Soon Alert */}
-      {expiringDocs.length > 0 && activeCategory === 'All' && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" strokeWidth={1.75} />
-            <h2 className="text-[13px] leading-[18px] font-semibold text-[var(--color-warning)]">
-              Expiring Soon
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {expiringDocs.map((doc, index) => {
-              const daysLeft = getDaysUntilExpiry(doc);
-              return (
-                <motion.div
-                  key={doc.id}
-                  initial={reduce ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.04 }}
-                  className="rounded-[16px] border border-[var(--color-warning)]/40 bg-[var(--color-surface)] p-6"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-[var(--color-warning)]" strokeWidth={1.75} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">{doc.title}</h3>
-                      <p className="text-[13px] leading-[18px] text-[var(--color-warning)]">
-                        {daysLeft !== null && daysLeft >= 0 ? `Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}` : 'Expired'}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Empty */}
       {filteredDocs.length === 0 && (
@@ -274,13 +223,18 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Grid View */}
-      {filteredDocs.length > 0 && viewMode === 'grid' && (
-        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* File-folder grid */}
+      {filteredDocs.length > 0 && (
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
           <AnimatePresence mode="popLayout">
             {filteredDocs.map((doc, index) => {
               const expiryStatus = getExpiryStatus(doc);
               const daysLeft = getDaysUntilExpiry(doc);
+              const Icon = CATEGORY_ICONS[doc.category];
+              const isExpiring = expiryStatus === 'expiring';
               return (
                 <motion.div
                   key={doc.id}
@@ -290,140 +244,91 @@ export default function DocumentsPage() {
                   exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, delay: index * 0.04 }}
                   whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-                  className="group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all"
+                  className="group relative pt-1.5"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        aria-label="View"
-                        className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-text)] transition-colors"
-                      >
-                        <Eye className="w-4 h-4" strokeWidth={1.75} />
-                      </button>
-                      <button
-                        onClick={() => deleteDocument(doc.id)}
-                        aria-label="Delete"
-                        className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-danger)] transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  </div>
-                  <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] mb-2">{doc.title}</h3>
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                      {doc.category}
-                    </span>
-                    <span className="text-[13px] leading-[18px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                      {doc.fileType}
-                    </span>
-                  </div>
-                  <div className="space-y-1 mb-3">
-                    <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" strokeWidth={1.75} />
-                      Issued {format(new Date(doc.issueDate), 'MMM d, yyyy')}
-                    </p>
-                    {doc.expirationDate && (
-                      <p
-                        className={`text-[13px] leading-[18px] flex items-center gap-1.5 ${
-                          expiryStatus === 'expired'
-                            ? 'text-[var(--color-danger)]'
-                            : expiryStatus === 'expiring'
-                            ? 'text-[var(--color-warning)]'
-                            : 'text-[var(--color-text-muted)]'
-                        }`}
-                      >
-                        <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
-                        {expiryStatus === 'expired'
-                          ? 'Expired'
-                          : `Expires ${format(new Date(doc.expirationDate), 'MMM d, yyyy')}`}
-                        {daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && (
-                          <span className="font-medium">({daysLeft}d)</span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div className="pt-3 border-t border-[var(--color-border)]">
-                    <AskAiChip
-                      prompt={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
-                      context={`Document: ${doc.title}`}
-                      label={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
-                    />
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-      {/* List View */}
-      {filteredDocs.length > 0 && viewMode === 'list' && (
-        <motion.div layout className="space-y-3">
-          <AnimatePresence mode="popLayout">
-            {filteredDocs.map((doc, index) => {
-              const expiryStatus = getExpiryStatus(doc);
-              const daysLeft = getDaysUntilExpiry(doc);
-              return (
-                <motion.div
-                  key={doc.id}
-                  layout
-                  initial={reduce ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -40, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.2, delay: index * 0.04 }}
-                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
-                  className="group relative rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:shadow-pop transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">{doc.title}</h3>
-                      {doc.notes && (
-                        <p className="text-[13px] leading-[18px] text-[var(--color-text-subtle)] truncate mt-0.5">{doc.notes}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="hidden sm:inline-flex text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-1 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                        {doc.category}
-                      </span>
-                      <span className="hidden md:inline-flex text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                        {format(new Date(doc.issueDate), 'MMM d, yyyy')}
-                      </span>
-                      {doc.expirationDate && (
-                        <span
-                          className={`hidden lg:inline-flex text-[13px] leading-[18px] ${
-                            expiryStatus === 'expiring'
-                              ? 'text-[var(--color-warning)]'
-                              : expiryStatus === 'expired'
-                              ? 'text-[var(--color-danger)]'
-                              : 'text-[var(--color-text-subtle)]'
-                          }`}
-                        >
-                          {expiryStatus === 'expired' ? 'Expired' : `Exp: ${format(new Date(doc.expirationDate), 'MMM yyyy')}`}
-                          {daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && ` (${daysLeft}d)`}
-                        </span>
-                      )}
+                  {/* 4px gold "filing tab" on top */}
+                  <motion.div
+                    aria-hidden="true"
+                    animate={
+                      isExpiring && !reduce
+                        ? { opacity: [0.6, 1, 0.6] }
+                        : { opacity: 1 }
+                    }
+                    transition={
+                      isExpiring
+                        ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+                        : undefined
+                    }
+                    className="absolute left-4 right-4 top-0 h-1 rounded-t-[4px]"
+                    style={{
+                      background: isExpiring
+                        ? 'var(--color-warning)'
+                        : 'var(--color-accent)',
+                    }}
+                  />
+                  <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover:shadow-pop transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+                      </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <AskAiChip
-                          prompt={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
-                          context={doc.title}
-                          iconOnly
-                          label="Ask"
-                        />
+                        <button
+                          aria-label="View"
+                          className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-text)] transition-colors"
+                        >
+                          <Eye className="w-4 h-4" strokeWidth={1.75} />
+                        </button>
                         <button
                           onClick={() => deleteDocument(doc.id)}
                           aria-label="Delete"
                           className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-danger)] transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                          <Trash2 className="w-4 h-4" strokeWidth={1.75} />
                         </button>
                       </div>
+                    </div>
+                    <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+                      {doc.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+                      <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+                        {doc.category}
+                      </span>
+                      <span className="text-[11px] leading-[14px] font-medium text-[var(--color-text-subtle)]">
+                        {doc.fileType}
+                      </span>
+                    </div>
+                    <div className="space-y-1 mb-3">
+                      <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        Issued {format(new Date(doc.issueDate), 'MMM d, yyyy')}
+                      </p>
+                      {doc.expirationDate && (
+                        <p
+                          className={`text-[13px] leading-[18px] flex items-center gap-1.5 ${
+                            expiryStatus === 'expired'
+                              ? 'text-[var(--color-danger)]'
+                              : isExpiring
+                              ? 'text-[var(--color-warning)]'
+                              : 'text-[var(--color-text-muted)]'
+                          }`}
+                        >
+                          <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
+                          {expiryStatus === 'expired'
+                            ? 'Expired'
+                            : `Expires ${format(new Date(doc.expirationDate), 'MMM d, yyyy')}`}
+                          {daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && (
+                            <span className="font-medium">({daysLeft}d)</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div className="pt-3 border-t border-[var(--color-border)]">
+                      <AskAiChip
+                        prompt={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
+                        context={`Document: ${doc.title}`}
+                        label={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
+                      />
                     </div>
                   </div>
                 </motion.div>
@@ -557,5 +462,88 @@ export default function DocumentsPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── Category Hex ────────────────────────────────────────────────────
+function CategoryHex({
+  label,
+  count,
+  active,
+  onClick,
+  icon: Icon,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="relative flex flex-col items-center group focus:outline-none"
+    >
+      <motion.div
+        animate={
+          reduce
+            ? undefined
+            : active
+            ? { scale: 1.08 }
+            : { scale: 0.92, opacity: 0.7 }
+        }
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        className="relative w-[72px] h-[72px]"
+      >
+        {/* outer hex */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 transition-colors"
+          style={{
+            clipPath: HEX_CLIP,
+            WebkitClipPath: HEX_CLIP,
+            background: active
+              ? 'var(--color-accent)'
+              : 'var(--color-border)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-[1.5px]"
+          style={{
+            clipPath: HEX_CLIP,
+            WebkitClipPath: HEX_CLIP,
+            background: active
+              ? 'var(--color-accent-soft)'
+              : 'var(--color-surface)',
+          }}
+        />
+        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+          <Icon
+            className={`w-5 h-5 ${
+              active ? 'text-[var(--color-accent-dim)]' : 'text-[var(--color-text-muted)]'
+            }`}
+            strokeWidth={1.75}
+          />
+          <span
+            className={`text-[11px] leading-[14px] font-semibold tabular-nums mt-0.5 ${
+              active ? 'text-[var(--color-accent-dim)]' : 'text-[var(--color-text-muted)]'
+            }`}
+          >
+            {count}
+          </span>
+        </div>
+      </motion.div>
+      <span
+        className={`mt-1 text-[11px] leading-[14px] font-medium uppercase tracking-wider ${
+          active ? 'text-[var(--color-text)]' : 'text-[var(--color-text-subtle)]'
+        }`}
+      >
+        {label}
+      </span>
+    </button>
   );
 }

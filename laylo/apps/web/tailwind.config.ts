@@ -77,8 +77,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-fraunces)', 'ui-serif', 'Georgia', 'serif'],
-        display: ['var(--font-fraunces)', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['var(--font-bricolage)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-bricolage)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // Per /DESIGN_SYSTEM.md §2 — seven sizes only.

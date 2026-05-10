@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
-import { Fraunces } from 'next/font/google';
+import { Bricolage_Grotesque } from 'next/font/google';
 import '../styles/globals.css';
 import { Providers } from './providers';
 
-// Single typeface — Fraunces variable. Axes: opsz (optical size auto-tuned
-// per element), SOFT (0=sharp body / 100=round display), WONK (0=clean /
-// 1=quirky display only). Body uses sharp/clean defaults; headings opt
-// into the soft+wonky display vibe via .heading classes in globals.css.
-const fraunces = Fraunces({
+// Single typeface — Bricolage Grotesque variable. Axes: opsz (optical size
+// auto-tunes per element from 12→96), wdth (held at 100 throughout). The
+// trick: same letterforms read clean and editorial at body sizes, warm and
+// playful at display sizes. See LAYOUT_REDESIGN_BRIEF.md §1 for the full
+// type scale + axis intent.
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  axes: ['opsz', 'SOFT', 'WONK'],
+  variable: '--font-bricolage',
+  axes: ['opsz', 'wdth'],
   display: 'swap',
 });
 
@@ -27,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} font-sans antialiased`}>
+      <body className={`${bricolage.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

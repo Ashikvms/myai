@@ -52,45 +52,58 @@ Every reference to `#6366F1`, `from-primary-*`, `to-purple-*`, `bg-indigo-*` is 
 
 ## 2. Typography — single typeface design language
 
-System: **Fraunces** for everything. ONE family, four variable axes deliver the entire hierarchy.
+System: **Bricolage Grotesque** (Mathieu Triay / ATF) for everything. ONE family, three variable axes deliver the entire hierarchy. Free on Google Fonts.
 
-- **Web:** loaded via `next/font/google` with axes `opsz`, `SOFT`, `WONK` (see `apps/web/src/app/layout.tsx`). Served self-hosted; zero CLS.
+> Supersedes the prior Fraunces spec. See `LAYOUT_REDESIGN_BRIEF.md` §1 for the rationale (user rejected serif; Bricolage = grotesque body + hand-cut display personality, no quirk-tax).
+
+- **Web:** loaded via `next/font/google` with `axes: ['opsz', 'wdth']`, `variable: '--font-bricolage'`, `display: 'swap'` (see `apps/web/src/app/layout.tsx`). Served self-hosted by Next; zero CLS.
 - **Mobile:** intent set in `apps/mobile/src/lib/tokens.ts`; runtime font loading via `expo-font` with TTFs in `assets/fonts/` is a follow-up (currently System fallback). Not blocking.
 
 ### 2.1 Variable axes
 
-Fraunces is variable across:
-| Axis      | Range     | Default (body) | Display use |
-|-----------|-----------|----------------|-------------|
-| `wght`    | 100–900   | 400/600        | 700 for hero |
-| `opsz`    | 9–144     | 14 (body)      | 32–96 (auto-tunes per element) |
-| `SOFT`    | 0–100     | 0 (sharp)      | 80–100 (round/warm) |
-| `WONK`    | 0–1       | 0 (clean)      | 1 (quirky display only) |
+Bricolage Grotesque is variable across:
+| Axis    | Range    | Default (body) | Display use                         |
+|---------|----------|----------------|-------------------------------------|
+| `wght`  | 200–800  | 400 / 600      | 700 for hero                        |
+| `opsz`  | 12–96    | 14 (body)      | 20 → 96 (auto-tunes per element)    |
+| `wdth`  | 75–100   | 100            | 100 throughout (no compression)     |
 
-The trick: same letterforms feel **clean and editorial at body sizes**, **warm and playful at display sizes**. One font, multiple personalities.
+The trick: same letterforms feel **clean and grotesque at body sizes** (near-Inter readability), **warm and slightly hand-cut at display sizes** (tilted `g` ear, friendly `a`, counter-curved `t`). One font, two personalities — same trick Fraunces tried, minus the serif.
 
-### 2.2 Type scale + axis settings
+### 2.2 OpenType features (global)
 
-| Token       | Size / line-height | Weight | opsz | SOFT | WONK | Use case |
-|-------------|--------------------|--------|------|------|------|----------|
-| **Hero / Display** | 56–96 / 1.0–1.05 | 700 | 96 | 100 | 1 | Marketing hero, "Inbox zero unlocked!" celebration overlay |
-| **Page Title (h1)** | 32 / 40 | 700 | 96 | 100 | 1 | Top of every route |
-| **Section (h2)** | 22 / 28 | 600 | 56 | 80 | 1 | "AI Insights", "This week" |
-| **Card Title (h3)** | 16 / 22 | 600 | 32 | 50 | 0 | Card headers, modal titles |
-| **Subheader (h4–h6)** | 14–18 / 20 | 500–600 | 20 | 30 | 0 | Sub-sections |
-| **Body** | 15 / 22 | 400 | 14 | 0 | 0 | Paragraphs, lists, descriptions |
-| **Body Strong** | 15 / 22 | 600 | 14 | 0 | 0 | Emphasized inline copy |
-| **Body-sm** | 13 / 18 | 500 | 12 | 0 | 0 | Chips, metadata, table cells |
-| **Caption** | 11 / 14 | 600 | 11 | 0 | 0 | Eyebrow labels (uppercase, tracking-wider) |
+| Feature | Where applied | Effect |
+|---------|---------------|--------|
+| `cv11`  | Body + headings + tabular | Circular zero — disambiguates from `O` in amounts. |
+| `cv05`  | Body + headings + tabular | Straight `l` — disambiguates `1` / `I` in passwords + amounts. |
+| `ss01`  | Display ≥ 22 px (h1, h2, `.heading-display`) | Single-storey `a` — display-only flourish. |
+| `tnum`  | `.tabular-nums` only | Tabular-figure spacing so count-ups don't jitter. |
+
+### 2.3 Type scale + axis settings (8 tokens — hard cap)
+
+| Token             | Size / line-height | Weight | opsz | wdth | OT features          | Use case |
+|-------------------|--------------------|--------|------|------|----------------------|----------|
+| **Display**       | 64 / 68            | 700    | 96   | 100  | cv11, cv05, ss01     | Marketing hero. `tracking-[-0.02em]`. |
+| **Page Title (h1)** | 32 / 38          | 700    | 64   | 100  | cv11, cv05, ss01     | Top of every route. `tracking-[-0.015em]`. |
+| **Section (h2)**  | 22 / 28            | 600    | 32   | 100  | cv11, cv05, ss01     | "AI Insights", "This week". `tracking-[-0.01em]`. |
+| **Card Title (h3)** | 16 / 22          | 600    | 20   | 100  | cv11, cv05           | Card / modal title, subsections. |
+| **Body**          | 15 / 23            | 400    | 14   | 100  | cv11, cv05           | Paragraphs, lists, descriptions. |
+| **Body Strong**   | 15 / 23            | 600    | 14   | 100  | cv11, cv05           | Inline emphasis. |
+| **Body-sm**       | 13 / 18            | 500    | 12   | 100  | cv11, cv05           | Chips, metadata, table cells. |
+| **Caption**       | 11 / 14            | 600    | 11   | 100  | cv11, cv05           | Eyebrow labels (uppercase, `tracking-[0.08em]`). |
+
+The previous "Subheader (h4–h6)" range **collapses into h3** — anything outside this 8-token scale is a bug.
 
 Implementation: body axes set via `font-variation-settings` on `body`; heading axes set on `h1`–`h6` selectors in `apps/web/src/styles/globals.css`. Pages don't need explicit class changes — the cascade handles it. Tabular numerals via `.tabular-nums` for any element with counted/aligned numbers (dashboard stats, transaction amounts).
 
-### 2.3 Rules
+### 2.4 Rules
 
-- **One typeface only** — no Inter, no Caveat, no system fallback in production code. Only Fraunces variable.
-- Eight sizes maximum (per scale above). Anything outside is a bug.
-- Body axes are sharp + clean for readability; only headings get `SOFT` and `WONK` axes turned on.
+- **One typeface only** — no Inter, no Caveat, no system fallback in production code. Only Bricolage Grotesque variable.
+- Eight tokens maximum (per scale above). Anything outside is a bug.
+- Body uses `opsz` 14 + `cv11`/`cv05` only; display sizes (≥22 px) opt into `ss01` for the single-storey `a`.
+- `wdth` stays at 100 throughout — never compress.
 - Tabular nums on stats so count-up animations don't jitter columns.
+- **Fallback typeface (if Bricolage fails QA on extended scripts):** Space Grotesk. Cabinet Grotesk / Switzer / Satoshi are paid-commercial — out.
 
 ---
 
