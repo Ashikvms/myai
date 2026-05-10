@@ -1,4 +1,4 @@
-# SESSION_MEMORY.md — Beedo (formerly Laylo / Life Admin AI)
+# SESSION_MEMORY.md — BillBee (formerly Laylo / Life Admin AI)
 
 > **THIS FILE IS THE SESSION RESUME PROTOCOL.** CLAUDE.md Step 0 instructs every Claude session to read this file first. Update it after every meaningful state change so a fresh Claude (or even a different person) can pick up exactly where we left off — even if all session tokens were used mid-task.
 
@@ -164,7 +164,7 @@ If you arrive in a new session and an in-flight agentId isn't in any task-notifi
 | 27 | Black/yellow redesign + AI affordances| 🚀 PR #16 OPEN (awaiting merge)    |
 | 28 | Transaction detail drawer + AI explainer| 🚀 PR #16 OPEN (layered onto #27) |
 | 29 | Email order tracking                  | ⏸️ DEFERRED (user paused 2026-05-10) |
-| 30 | Rebrand Laylo → Beedo                 | 🚀 PR #16 (commit pending)          |
+| 30 | Rebrand Laylo → BillBee                 | 🚀 PR #16 (commit pending)          |
 
 ## Progress Summary
 ```

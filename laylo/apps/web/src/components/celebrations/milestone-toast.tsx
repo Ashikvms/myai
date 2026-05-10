@@ -22,7 +22,7 @@ const STATE = {
 };
 
 function flagKey(metric: string, threshold: number) {
-  return `beedo:milestone:${metric}:${threshold}`;
+  return `billbee:milestone:${metric}:${threshold}`;
 }
 
 /**

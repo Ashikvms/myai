@@ -1,4 +1,4 @@
-# PROMPT.md — Beedo Full Specification
+# PROMPT.md — BillBee Full Specification
 
 ---
 

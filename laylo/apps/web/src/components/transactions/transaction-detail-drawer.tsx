@@ -416,7 +416,7 @@ function DrawerBody({
               className="w-4 h-4 animate-spin text-[var(--color-accent)]"
               strokeWidth={1.75}
             />
-            Asking Beedo…
+            Asking BillBee…
           </div>
         )}
         {explainError && (
@@ -439,7 +439,7 @@ function DrawerBody({
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-subtle)]">
-                Beedo says
+                BillBee says
               </span>
               {explainResult.mock && (
                 <span className="text-[11px] leading-[14px] font-semibold px-1.5 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">

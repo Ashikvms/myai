@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Beedo web Tailwind config — Phase 2.
+ * BillBee web Tailwind config — Phase 2.
  *
  * All colour tokens are CSS variables declared in
  * apps/web/src/styles/globals.css (`:root` for light, `.dark` for dark).

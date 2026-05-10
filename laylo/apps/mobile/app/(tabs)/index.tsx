@@ -330,7 +330,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Hero — Ask Beedo input. Wrapped in a glow container that
+        {/* Hero — Ask BillBee input. Wrapped in a glow container that
             paints a soft gold radial-ish bloom behind the bar (D4). */}
         <View style={styles.hero}>
           <View style={styles.heroGlowWrap} pointerEvents="box-none">
@@ -348,11 +348,11 @@ export default function HomeScreen() {
               }
               style={styles.heroBar}
               accessibilityRole="button"
-              accessibilityLabel="Ask Beedo"
+              accessibilityLabel="Ask BillBee"
             >
               <SparkleIcon size={20} color={tokens.accent} />
               <Text style={styles.heroPlaceholder}>
-                Ask Beedo about your bills, tasks, or money…
+                Ask BillBee about your bills, tasks, or money…
               </Text>
               <View style={styles.heroSubmit}>
                 <Text style={styles.heroSubmitArrow}>↑</Text>

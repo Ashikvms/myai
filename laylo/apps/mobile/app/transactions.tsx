@@ -292,12 +292,12 @@ export default function TransactionsScreen() {
                   : 'Connect a bank to see what’s been flowing'}
               </Text>
               <Text style={styles.emptyDesc}>
-                Pull down to refresh, or ask Beedo to dig deeper.
+                Pull down to refresh, or ask BillBee to dig deeper.
               </Text>
               <View style={{ marginTop: spacing.lg }}>
                 <AskAiButton
                   variant="chip"
-                  label="Ask Beedo"
+                  label="Ask BillBee"
                   onPress={() => sheet.open('Help me understand my transactions.')}
                 />
               </View>

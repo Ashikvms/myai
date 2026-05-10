@@ -100,7 +100,7 @@ export default function AuthScreen() {
             <BreathingBee>
               <BeeStanding size={180} />
             </BreathingBee>
-            <Text style={styles.logoTitle}>Beedo</Text>
+            <Text style={styles.logoTitle}>BillBee</Text>
             <Text style={styles.logoSubtitle}>
               {activeTab === 'signin' ? 'Welcome back' : 'Join the hive'}
             </Text>

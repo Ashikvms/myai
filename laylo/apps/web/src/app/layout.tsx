@@ -16,7 +16,7 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Beedo — Your bumblebee for life's admin",
+  title: "BillBee — Your bumblebee for life's admin",
   description:
     'Track bills, subscriptions, reminders, appointments, and documents in one calm, intelligent workspace.',
 };

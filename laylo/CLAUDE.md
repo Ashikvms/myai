@@ -1,4 +1,4 @@
-# CLAUDE.md — Beedo
+# CLAUDE.md — BillBee
 
 ## Step 0: Session Start
 Read `SESSION_MEMORY.md` at the start of every session before doing anything.
@@ -13,7 +13,7 @@ Display a session resume card showing:
 Format:
 ```
 ┌─────────────────────────────────────────────┐
-│  🔄 SESSION RESUME — Beedo          │
+│  🔄 SESSION RESUME — BillBee          │
 ├─────────────────────────────────────────────┤
 │  Last completed: Item N — [name]            │
 │  Next item:      Item N+1 — [name]          │
@@ -23,7 +23,7 @@ Format:
 ```
 
 ## Step 2: Project Identity
-- **Name:** Beedo
+- **Name:** BillBee
 - **Repo:** https://github.com/Ashikvms/myai
 - **Main branch:** main
 - **Dev branch:** dev

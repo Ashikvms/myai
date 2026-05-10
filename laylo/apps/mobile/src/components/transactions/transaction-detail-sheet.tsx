@@ -344,7 +344,7 @@ export function TransactionDetailSheet({
 
                 {/* Card 6 — AI Explainer */}
                 <Card>
-                  <CardHeader title="Ask Beedo" />
+                  <CardHeader title="Ask BillBee" />
                   <TouchableOpacity
                     style={styles.explainButton}
                     onPress={handleExplain}
@@ -356,7 +356,7 @@ export function TransactionDetailSheet({
                       {explaining
                         ? 'Thinking…'
                         : explanation
-                          ? 'Re-ask Beedo'
+                          ? 'Re-ask BillBee'
                           : 'Why did this repeat?'}
                     </Text>
                   </TouchableOpacity>

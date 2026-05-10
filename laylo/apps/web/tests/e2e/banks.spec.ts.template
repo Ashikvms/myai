@@ -20,7 +20,7 @@
  *   - Web app running on localhost:3001 (`playwright.config.ts` already
  *     auto-starts `next dev -p 3001`)
  *   - PLAID_ENV=sandbox in API env
- *   - Test user `qa@beedo.test` / `Password1` seeded
+ *   - Test user `qa@billbee.test` / `Password1` seeded
  *   - Plaid sandbox sandbox creds: user_good / pass_good
  *
  * The spec follows the journey:
@@ -40,7 +40,7 @@
  *
  * import { test, expect } from '@playwright/test';
  *
- * const TEST_USER = { email: 'qa@beedo.test', password: 'Password1' };
+ * const TEST_USER = { email: 'qa@billbee.test', password: 'Password1' };
  * const PLAID_SANDBOX = { user: 'user_good', pass: 'pass_good' };
  *
  * test.describe('Plaid bank-linking flow (sandbox)', () => {
@@ -105,7 +105,7 @@
  * TODO before this spec can run:
  *  [ ] cd apps/web && npm install -D @playwright/test
  *  [ ] npx playwright install
- *  [ ] Seed `qa@beedo.test` test user (script: apps/api/prisma/seed-qa.ts)
+ *  [ ] Seed `qa@billbee.test` test user (script: apps/api/prisma/seed-qa.ts)
  *  [ ] Confirm `PLAID_ENV=sandbox` and webhook URL are set in API env
  *  [ ] Rename this file: banks.spec.ts.template -> banks.spec.ts
  * ────────────────────────────────────────────────────────────────────────────

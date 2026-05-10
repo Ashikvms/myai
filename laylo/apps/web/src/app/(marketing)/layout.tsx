@@ -2,7 +2,7 @@
 
 /**
  * Marketing layout — REDESIGN_BRIEF.md §2.10.
- * - "Life Admin AI" → "Beedo".
+ * - "Life Admin AI" → "BillBee".
  * - Indigo→purple gradients → flat gold.
  */
 import { useState, useEffect } from 'react';
@@ -56,7 +56,7 @@ function Header() {
             <div className="flex h-9 w-9 items-center justify-center rounded-[16px] bg-[var(--color-accent)]">
               <BeeStanding size={28} className="on-accent" />
             </div>
-            <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">Beedo</span>
+            <span className="text-[16px] leading-[22px] font-bold text-[var(--color-text)]">BillBee</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -148,7 +148,7 @@ function Footer() {
             <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--color-accent)]">
               <BeeStanding size={22} className="on-accent" />
             </div>
-            <span className="text-[13px] font-bold text-[var(--color-text)]">Beedo</span>
+            <span className="text-[13px] font-bold text-[var(--color-text)]">BillBee</span>
           </div>
 
           <div className="flex items-center gap-6 text-[13px] text-[var(--color-text-muted)]">
@@ -159,7 +159,7 @@ function Footer() {
           </div>
 
           <p className="text-[13px] text-[var(--color-text-subtle)]">
-            &copy; {new Date().getFullYear()} Beedo. All rights reserved.
+            &copy; {new Date().getFullYear()} BillBee. All rights reserved.
           </p>
         </div>
       </div>

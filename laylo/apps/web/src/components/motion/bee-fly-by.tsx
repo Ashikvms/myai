@@ -13,7 +13,7 @@ import * as React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { BeeStanding } from '@/components/illustrations/bee';
 
-const STORAGE_KEY = 'beedo:beeFlyByDate';
+const STORAGE_KEY = 'billbee:beeFlyByDate';
 
 function todayKey() {
   const d = new Date();

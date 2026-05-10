@@ -99,7 +99,7 @@ export default function LoginPage() {
 
             <DropletChoreography.Subtitle>
               <p className="mb-6 text-center text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                Sign in to your Beedo account
+                Sign in to your BillBee account
               </p>
             </DropletChoreography.Subtitle>
 
@@ -221,7 +221,7 @@ export default function LoginPage() {
 
             <DropletChoreography.Footer>
               <p className="mt-6 text-center text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                New to Beedo?{' '}
+                New to BillBee?{' '}
                 <Link href="/signup" className="font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors">
                   Join the hive
                 </Link>

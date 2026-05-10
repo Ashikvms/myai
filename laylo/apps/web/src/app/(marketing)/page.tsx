@@ -2,7 +2,7 @@
 
 /**
  * Marketing landing — REDESIGN_BRIEF.md §2.10.
- * - "Life Admin AI" → "Beedo".
+ * - "Life Admin AI" → "BillBee".
  * - Indigo→purple gradients → flat gold.
  * - "Get Started" → "Join the hive". "Sign In" → "Welcome back".
  */
@@ -196,7 +196,7 @@ function Hero() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
                 <span className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
-                  Ask Beedo
+                  Ask BillBee
                 </span>
               </div>
               <p className="text-center text-[13px] leading-[18px] text-[var(--color-text-muted)] max-w-xs">
@@ -259,7 +259,7 @@ function ProblemSolution() {
       <motion.div variants={fadeUp} className="text-center">
         <p className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
           There&apos;s a better way.{' '}
-          <span className="text-[var(--color-accent)]">Let Beedo handle the busywork.</span>
+          <span className="text-[var(--color-accent)]">Let BillBee handle the busywork.</span>
         </p>
       </motion.div>
     </Section>
@@ -271,7 +271,7 @@ function Features() {
     { icon: LayoutDashboard, title: 'Smart Dashboard', desc: 'See everything at a glance — bills, tasks, appointments, and documents in one unified view.' },
     { icon: Wallet, title: 'Bill & Subscription Tracking', desc: 'Never miss a payment. Track due dates, amounts, and get smart alerts before deadlines.' },
     { icon: FileText, title: 'Document Vault', desc: 'Store and organise important files. Insurance, tax forms, warranties — always within reach.' },
-    { icon: Sparkles, title: 'Ask Beedo', desc: 'Ask questions in natural language. Get instant answers and smart suggestions in context.' },
+    { icon: Sparkles, title: 'Ask BillBee', desc: 'Ask questions in natural language. Get instant answers and smart suggestions in context.' },
     { icon: Bell, title: 'Smart Reminders', desc: 'Get notified before deadlines, not after. Intelligent timing based on urgency and your preferences.' },
     { icon: CalendarDays, title: 'Appointment Manager', desc: 'Keep your calendar organised with upcoming appointments, follow-ups, and recurring events.' },
   ];
@@ -350,7 +350,7 @@ function Pricing() {
       desc: 'Perfect for getting started with life admin.',
       cta: 'Join the hive',
       featured: false,
-      features: ['Up to 25 tasks', 'Up to 10 documents', 'Up to 10 bills tracked', 'Basic reminders', 'Limited Ask Beedo (20 messages/day)'],
+      features: ['Up to 25 tasks', 'Up to 10 documents', 'Up to 10 bills tracked', 'Basic reminders', 'Limited Ask BillBee (20 messages/day)'],
     },
     {
       name: 'Premium',
@@ -360,7 +360,7 @@ function Pricing() {
       cta: 'Upgrade to Premium',
       featured: true,
       badge: 'Most Popular',
-      features: ['Unlimited tasks', 'Unlimited documents', 'Unlimited bill tracking', 'Full Ask Beedo (unlimited)', 'Smart summaries & insights', 'Advanced smart reminders', 'Priority support'],
+      features: ['Unlimited tasks', 'Unlimited documents', 'Unlimited bill tracking', 'Full Ask BillBee (unlimited)', 'Smart summaries & insights', 'Advanced smart reminders', 'Priority support'],
     },
   ];
   return (
@@ -422,10 +422,10 @@ function Pricing() {
 function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
   const faqs = [
-    { q: 'What is Beedo?', a: 'Beedo is an intelligent workspace that helps you manage everyday administrative tasks — bills, subscriptions, appointments, documents, and reminders — all in one place, powered by AI to save you time and reduce mental load.' },
+    { q: 'What is BillBee?', a: 'BillBee is an intelligent workspace that helps you manage everyday administrative tasks — bills, subscriptions, appointments, documents, and reminders — all in one place, powered by AI to save you time and reduce mental load.' },
     { q: 'Is my data secure?', a: 'Absolutely. All data is encrypted end-to-end, both in transit and at rest. We never sell or share your data with third parties. Your privacy is our top priority.' },
-    { q: 'Can I use it on mobile?', a: 'Yes. Beedo is fully responsive and works beautifully on any device — phone, tablet, or desktop. A native mobile app is on our roadmap.' },
-    { q: 'What AI powers Ask Beedo?', a: 'Ask Beedo is built on state-of-the-art large language models, fine-tuned for life admin tasks. It can understand your questions in natural language and provide smart, actionable answers.' },
+    { q: 'Can I use it on mobile?', a: 'Yes. BillBee is fully responsive and works beautifully on any device — phone, tablet, or desktop. A native mobile app is on our roadmap.' },
+    { q: 'What AI powers Ask BillBee?', a: 'Ask BillBee is built on state-of-the-art large language models, fine-tuned for life admin tasks. It can understand your questions in natural language and provide smart, actionable answers.' },
     { q: 'Can I cancel anytime?', a: 'Of course. There are no contracts or commitments. You can upgrade, downgrade, or cancel your Premium subscription at any time. Your data is always exportable.' },
   ];
   return (

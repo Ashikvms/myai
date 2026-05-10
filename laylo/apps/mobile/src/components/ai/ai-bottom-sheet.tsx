@@ -44,7 +44,7 @@ export type AiBottomSheetProps = {
   onClose: () => void;
   /** Pre-filled prompt — typically context-derived. */
   initialPrompt?: string;
-  /** Title above the textarea. Defaults to "Ask Beedo". */
+  /** Title above the textarea. Defaults to "Ask BillBee". */
   title?: string;
   /** Optional one-tap suggestion chips above the textarea. */
   suggestions?: string[];
@@ -54,7 +54,7 @@ export function AiBottomSheet({
   visible,
   onClose,
   initialPrompt = '',
-  title = 'Ask Beedo',
+  title = 'Ask BillBee',
   suggestions,
 }: AiBottomSheetProps) {
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -181,9 +181,9 @@ export function AiBottomSheet({
               activeOpacity={0.85}
               disabled={!prompt.trim()}
               accessibilityRole="button"
-              accessibilityLabel="Send to Beedo"
+              accessibilityLabel="Send to BillBee"
             >
-              <Text style={styles.submitText}>Ask Beedo</Text>
+              <Text style={styles.submitText}>Ask BillBee</Text>
             </TouchableOpacity>
 
             {toastVisible && (

@@ -241,7 +241,7 @@ export default function RemindersPage() {
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Add Reminder
             </MotionButton>
-            <AskAiChip prompt="Help me set up a reminder" label="Ask Beedo to add something" />
+            <AskAiChip prompt="Help me set up a reminder" label="Ask BillBee to add something" />
           </div>
         </div>
       )}

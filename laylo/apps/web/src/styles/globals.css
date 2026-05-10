@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * Beedo design tokens — Phase 2.
+ * BillBee design tokens — Phase 2.
  * Light mode lives at :root. Dark mode overrides come in via .dark
  * (Tailwind darkMode: 'class'). Components consume via Tailwind
  * arbitrary values, e.g. bg-[var(--color-accent)].

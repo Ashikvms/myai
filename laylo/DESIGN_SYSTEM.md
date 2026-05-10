@@ -1,4 +1,4 @@
-# Beedo Design System — Black + Bumblebee Gold
+# BillBee Design System — Black + Bumblebee Gold
 
 **Author:** Principal UI / Visual Designer (Phase 2 of 5)
 **Branch:** `feat/redesign-black-yellow`
@@ -443,8 +443,8 @@ The "Ask AI" affordance is the single most opinionated visual decision in this r
 | Web — Document/Reminder/Appointment card | Card hover               | Chip top-right.                                                  |
 | Web — Dashboard hero | Always visible                      | Full input bar (see §9.3).                                       |
 | Mobile — Bill / Task / Transaction row | Tap-and-hold (long press) | Bottom sheet appears with chip + suggested prompts.            |
-| Mobile — Home header | Always visible                      | "Ask Beedo" pill in header.                                      |
-| Mobile — Bills/Tasks empty state | Always visible            | Secondary "Ask Beedo to add something" link below primary CTA.   |
+| Mobile — Home header | Always visible                      | "Ask BillBee" pill in header.                                      |
+| Mobile — Bills/Tasks empty state | Always visible            | Secondary "Ask BillBee to add something" link below primary CTA.   |
 
 ### 9.2 Chip visual spec
 
@@ -477,9 +477,9 @@ The "Ask AI" affordance is the single most opinionated visual decision in this r
 | Document (with expiry) | "When does this expire?" |
 | Appointment   | "Help me prep"                |
 | Reminder      | "Why was this set?"           |
-| Generic empty | "Ask Beedo to add something"  |
+| Generic empty | "Ask BillBee to add something"  |
 
-### 9.3 Dashboard hero "Ask Beedo" input
+### 9.3 Dashboard hero "Ask BillBee" input
 
 The single primary gold surface on the dashboard. **The whole hero element is the input.**
 
@@ -491,7 +491,7 @@ The single primary gold surface on the dashboard. **The whole hero element is th
 
 ### 9.4 Mobile equivalent
 
-Header chip: pill 36 px tall, gold border 1 px @ 50%, sparkle icon + "Ask Beedo" label. Tap → opens bottom sheet (`dur-expansive`, `Easing.out(Easing.cubic)`).
+Header chip: pill 36 px tall, gold border 1 px @ 50%, sparkle icon + "Ask BillBee" label. Tap → opens bottom sheet (`dur-expansive`, `Easing.out(Easing.cubic)`).
 
 Long-press on any list row → contextual bottom sheet pre-filled with that row's default prompt.
 
@@ -505,7 +505,7 @@ Gold chips at rest are 50% opacity. They pop to full only on interaction. The da
 
 ### 10.1 Dashboard
 
-- **Hero:** "Ask Beedo" input bar (§9.3) full width, top of page. 32 px below greeting.
+- **Hero:** "Ask BillBee" input bar (§9.3) full width, top of page. 32 px below greeting.
 - **Stat row:** single row, **3 tiles max** (was 4 differently-coloured). All tiles use the same `Card` `default` variant. Gold accent appears once — on the `value` of the most-actionable tile (e.g. "Due this week").
 - **Section grid:** 2-column on desktop (≥1024 px), 1-column below. Sections: AI Insights (left, full-bleed if alone), Upcoming Bills, Recent Transactions, Tasks Snapshot.
 - **Gutters:** 24 px between cards. 32 px between sections.
@@ -517,7 +517,7 @@ Gold chips at rest are 50% opacity. They pop to full only on interaction. The da
 - **Sticky header:** Page title (`h1`), filter pills row, search/add button row. White surface, 1 px bottom border.
 - **Card list:** full-width cards stacked with 12 px vertical gap. Each row uses `Card hoverable`.
 - **Row anatomy (target):** Lucide icon (20 px) + title (`h3`) + 1-line metadata (`body-sm` muted) + amount (`body` `tabular-nums`) right-aligned + AI chip on hover. Maximum 5 visible elements per row at rest.
-- **Empty state:** centred Bee mascot + Brief §6 copy + primary "Add" button + secondary "Ask Beedo" link.
+- **Empty state:** centred Bee mascot + Brief §6 copy + primary "Add" button + secondary "Ask BillBee" link.
 - **Max content width:** 960 px. Reading-line concern — list items get long.
 
 ### 10.3 Detail / modal

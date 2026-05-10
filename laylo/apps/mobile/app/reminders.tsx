@@ -306,7 +306,7 @@ export default function RemindersScreen() {
           <View style={{ marginTop: spacing.lg }}>
             <AskAiButton
               variant="chip"
-              label="Ask Beedo to add something"
+              label="Ask BillBee to add something"
               onPress={() => sheet.open('Help me set a new reminder.')}
             />
           </View>

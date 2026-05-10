@@ -50,7 +50,7 @@ const HUBS: Hub[] = [
   {
     id: 'reminders',
     title: 'Reminders',
-    description: 'Things Beedo will buzz you about.',
+    description: 'Things BillBee will buzz you about.',
     href: '/reminders',
     glyph: 'R',
   },
@@ -74,7 +74,7 @@ export default function VaultTab() {
           </View>
           <AskAiButton
             variant="pill"
-            label="Ask Beedo"
+            label="Ask BillBee"
             onPress={() =>
               sheet.open('Find me the document I need for my next appointment.')
             }
@@ -119,7 +119,7 @@ export default function VaultTab() {
         <View style={styles.footnote}>
           <ArchiveIcon color={tokens.textSubtle} size={18} />
           <Text style={styles.footnoteText}>
-            Tip: long-press any card to ask Beedo about it.
+            Tip: long-press any card to ask BillBee about it.
           </Text>
         </View>
       </ScrollView>
