@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { useThemeTransition } from '@/lib/use-theme-transition';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   LayoutDashboard,
   CheckSquare,
   Wallet,
@@ -22,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { PageTransition } from '@/components/motion/page-transition';
+import { BeeStanding } from '@/components/illustrations/bee';
 
 // 5-item nav per REDESIGN_BRIEF.md §3.1
 const NAV_ITEMS = [
@@ -82,7 +82,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
         <div className="w-10 h-10 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center animate-pulse">
-          <Sparkles className="w-5 h-5 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
+          <BeeStanding size={28} className="on-accent" />
         </div>
       </div>
     );
@@ -105,7 +105,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between h-16 px-4">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
+              <BeeStanding size={28} className="on-accent" />
             </div>
             <AnimatePresence>
               {sidebarOpen && (
@@ -335,7 +335,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-9 h-9 rounded-[16px] bg-[var(--color-accent)] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[var(--color-text-on-accent)]" strokeWidth={1.75} />
+                  <BeeStanding size={28} className="on-accent" />
                 </div>
                 <span className="font-semibold text-[var(--color-text)]">Beedo</span>
               </div>

@@ -228,4 +228,16 @@
   .text-on-accent {
     color: var(--color-text-on-accent);
   }
+
+  /*
+   * .on-accent — when the bee mascot sits *inside* a gold-accent surface
+   * (e.g. the brand-mark logo square), its body needs to flip so it
+   * contrasts with the accent colour, not with the page canvas.
+   * Light mode: accent is BLACK → bee body becomes GOLD inside.
+   * Dark mode: accent is GOLD → bee body becomes BLACK inside.
+   */
+  .on-accent {
+    --bee-body: var(--color-text-on-accent);
+    --bee-detail: var(--color-accent);
+  }
 }
