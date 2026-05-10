@@ -39,6 +39,7 @@ import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMagnifying } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
+import { TransactionDetailSheet } from '../src/components/transactions/transaction-detail-sheet';
 
 const PAGE_SIZE = 50;
 
@@ -91,6 +92,9 @@ export default function TransactionsScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Detail sheet — Item 28 Phase 3b
+  const [selectedTxnId, setSelectedTxnId] = useState<string | null>(null);
 
   const baseQuery: TransactionsQuery = useMemo(
     () => ({
@@ -181,6 +185,7 @@ export default function TransactionsScreen() {
       return (
         <StaggeredListItem index={index}>
         <PressableTxnRow
+          onPress={() => setSelectedTxnId(t.id)}
           onLongPress={() =>
             sheet.open(
               `Why did the "${t.merchantName || t.name}" transaction repeat?`,
@@ -358,16 +363,23 @@ export default function TransactionsScreen() {
         onClose={sheet.close}
         initialPrompt={sheet.prompt}
       />
+
+      <TransactionDetailSheet
+        transactionId={selectedTxnId}
+        onClose={() => setSelectedTxnId(null)}
+      />
     </View>
   );
 }
 
 function PressableTxnRow({
   children,
+  onPress,
   onLongPress,
   dim,
 }: {
   children: React.ReactNode;
+  onPress?: () => void;
   onLongPress?: () => void;
   dim?: boolean;
 }) {
@@ -383,8 +395,12 @@ function PressableTxnRow({
   const onPressOut = () => {
     scale.value = withSpring(1, { stiffness: 320, damping: 22 });
   };
+  // RN Pressable already suppresses onPress when onLongPress fires past
+  // delayLongPress, so the two are mutually exclusive — tap opens detail,
+  // tap-and-hold opens AskAi without the detail sheet flashing.
   return (
     <Pressable
+      onPress={onPress}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onLongPress={onLongPress}

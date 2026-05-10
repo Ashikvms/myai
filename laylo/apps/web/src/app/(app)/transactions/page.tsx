@@ -32,6 +32,7 @@ import { ApiError } from '@/lib/api';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeMagnifying, BeeStanding } from '@/components/illustrations/bee';
 import { AnimatedNumber } from '@/components/motion/animated-number';
+import { TransactionDetailDrawer } from '@/components/transactions/transaction-detail-drawer';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function toNumber(amount: string | number): number {
@@ -84,6 +85,10 @@ export default function TransactionsPage() {
   const [items, setItems] = useState<Transaction[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  // Item 28 Phase 3a — selected row opens the detail drawer.
+  const [selectedTransactionId, setSelectedTransactionId] = useState<
+    string | null
+  >(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -361,7 +366,17 @@ export default function TransactionsPage() {
                   return (
                     <li
                       key={t.id}
-                      className={`group relative flex items-center gap-3 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] pl-4 pr-4 py-3 transition-colors hover:bg-[var(--color-surface-hover)] ${
+                      onClick={() => setSelectedTransactionId(t.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedTransactionId(t.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View details for ${t.merchantName || t.name}`}
+                      className={`group relative flex items-center gap-3 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] pl-4 pr-4 py-3 transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
                         t.pending ? 'opacity-60' : ''
                       }`}
                     >
@@ -447,6 +462,12 @@ export default function TransactionsPage() {
           </button>
         </div>
       )}
+
+      {/* Item 28 Phase 3a — Transaction detail drawer */}
+      <TransactionDetailDrawer
+        transactionId={selectedTransactionId}
+        onClose={() => setSelectedTransactionId(null)}
+      />
     </div>
   );
 }

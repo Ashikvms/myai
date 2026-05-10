@@ -445,6 +445,8 @@ model Transaction {
   subscriptionId     String?
   matchConfidence    Decimal?  @db.Decimal(4, 3)
   userVerifiedMatch  Boolean   @default(false)
+  userNote           String?   @db.Text
+  receiptUrl         String?   @db.VarChar(500)
   deletedAt          DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
