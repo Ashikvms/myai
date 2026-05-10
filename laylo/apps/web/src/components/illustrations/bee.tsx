@@ -15,10 +15,13 @@ export interface BeeProps {
   className?: string;
 }
 
-// Theme-adaptive: body flips with mode (gold in dark, black in light) so the
-// bee always contrasts against the canvas. White wings stay literal.
-const GOLD = 'var(--bee-body)';
-const BLACK = 'var(--bee-detail)';
+// Fixed brand colours so every bee pose looks identical in both modes.
+// The body's thick BLACK stroke gives the silhouette in light mode where
+// the highlight-yellow body would otherwise blend with the canvas.
+// (User feedback: "the mascot logo does not work in light mode" when the
+// body+detail flipped — black face with yellow stripes read as angry mask.)
+const GOLD = '#F8E71C';
+const BLACK = '#0A0A0A';
 const WHITE = '#FFFFFF';
 
 function BeeFrame({
