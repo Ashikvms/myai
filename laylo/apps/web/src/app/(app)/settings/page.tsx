@@ -1,9 +1,11 @@
 'use client';
 
 /**
- * Settings — REDESIGN_BRIEF.md §2.8.
- * - Indigo replaced with semantic gold tokens.
- * - Local DOM-class theme toggle replaced with next-themes.
+ * Settings — Settings Hub Grid (LAYOUT_REDESIGN_BRIEF.md §2.10).
+ * Hero Profile (full width) + 2x2 grid of section tiles (Notifications,
+ * Appearance, Data & Privacy, Plan) + footer About row. Each section
+ * card carries its own visual identity (icon in gold tile, generous
+ * spacing) so the page feels intentional rather than a flat list.
  */
 import { useState, useCallback } from 'react';
 import { useTheme } from 'next-themes';
@@ -101,18 +103,23 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-[720px]">
-      <h1 className="mb-8 text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Settings</h1>
+    <div className="mx-auto max-w-[1040px]">
+      <header className="mb-8">
+        <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Settings</h1>
+        <p className="mt-2 text-[15px] leading-[22px] text-[var(--color-text-muted)]">
+          Tune your hive. Profile up top, the rest sorted into rooms below.
+        </p>
+      </header>
 
-      <div className="flex flex-col gap-6">
-        {/* Profile */}
-        <SectionCard index={0}>
-          <SectionHeading icon={User} title="Profile" />
-          <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[22px] font-semibold text-[var(--color-text-muted)]">
-              AJ
-            </div>
-            <div className="w-full space-y-4">
+      {/* Hero Profile — full width */}
+      <SectionCard index={0}>
+        <SectionHeading icon={User} title="Profile" />
+        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[28px] font-semibold text-[var(--color-text)]">
+            AJ
+          </div>
+          <div className="w-full space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)]">Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
@@ -121,21 +128,24 @@ export default function SettingsPage() {
                 <label className="mb-1 block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)]">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
               </div>
-              <button
-                disabled={!profileDirty}
-                onClick={() => alert('Tucked away safely')}
-                className={`px-4 h-10 rounded-[16px] text-[15px] font-medium transition ${
-                  profileDirty
-                    ? 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)]'
-                    : 'cursor-not-allowed bg-[var(--color-surface-2)] text-[var(--color-text-subtle)]'
-                }`}
-              >
-                Save Changes
-              </button>
             </div>
+            <button
+              disabled={!profileDirty}
+              onClick={() => alert('Tucked away safely')}
+              className={`px-4 h-10 rounded-[16px] text-[15px] font-medium transition ${
+                profileDirty
+                  ? 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)]'
+                  : 'cursor-not-allowed bg-[var(--color-surface-2)] text-[var(--color-text-subtle)]'
+              }`}
+            >
+              Save changes
+            </button>
           </div>
-        </SectionCard>
+        </div>
+      </SectionCard>
 
+      {/* 2×2 hub grid — Notifications · Appearance · Data & Privacy · Plan */}
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
         {/* Notifications */}
         <SectionCard index={1}>
           <SectionHeading icon={Bell} title="Notifications" />
@@ -146,7 +156,7 @@ export default function SettingsPage() {
                 <ToggleSwitch enabled={notifications[row.key]} onToggle={() => toggleNotification(row.key)} />
               </div>
             ))}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
               <span className="text-[15px] leading-[22px] text-[var(--color-text)]">
                 Remind me{' '}
                 <input
@@ -174,10 +184,10 @@ export default function SettingsPage() {
               <span className="text-[15px] leading-[22px] text-[var(--color-text)]">Dark mode</span>
               <ToggleSwitch enabled={isDark} onToggle={() => setTheme(isDark ? 'light' : 'dark')} />
             </div>
-            <div>
-              <p className="text-[15px] leading-[22px] text-[var(--color-text)]">Brand accent</p>
+            <div className="rounded-[16px] bg-[var(--color-surface-2)] p-4">
+              <p className="text-[15px] leading-[22px] font-medium text-[var(--color-text)]">Brand accent</p>
               <p className="mt-1 text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                Bumblebee gold is the only sanctioned accent.
+                Bumblebee gold. The only sanctioned accent.
               </p>
               <div className="mt-3 flex items-center gap-3">
                 <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)]">
@@ -192,20 +202,26 @@ export default function SettingsPage() {
         <SectionCard index={3}>
           <SectionHeading icon={Shield} title="Data & Privacy" />
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3">
               <button
                 onClick={() => alert('Your data export has been requested. You will receive a download link via email shortly.')}
-                className="inline-flex items-center gap-2 rounded-[16px] border border-[var(--color-border-strong)] px-4 h-10 text-[15px] font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
+                className="inline-flex items-center justify-between gap-2 rounded-[16px] border border-[var(--color-border-strong)] px-4 h-11 text-[15px] font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
               >
-                <Download className="h-4 w-4" strokeWidth={1.75} />
-                Export My Data
+                <span className="flex items-center gap-2">
+                  <Download className="h-4 w-4" strokeWidth={1.75} />
+                  Export my data
+                </span>
+                <ChevronRight className="h-4 w-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
               </button>
               <button
                 onClick={() => alert('AI chat history has been cleared successfully.')}
-                className="inline-flex items-center gap-2 rounded-[16px] border border-[var(--color-danger)]/40 px-4 h-10 text-[15px] font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-surface-hover)]"
+                className="inline-flex items-center justify-between gap-2 rounded-[16px] border border-[var(--color-danger)]/40 px-4 h-11 text-[15px] font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-surface-hover)]"
               >
-                <Trash2 className="h-4 w-4" strokeWidth={1.75} />
-                Clear AI Chat History
+                <span className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                  Clear AI chat history
+                </span>
+                <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </div>
             <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)]">
@@ -216,60 +232,48 @@ export default function SettingsPage() {
 
         {/* Subscription */}
         <SectionCard index={4}>
-          <SectionHeading icon={Crown} title="Your Plan" />
-          <div className="mb-5">
+          <SectionHeading icon={Crown} title="Your plan" />
+          <div className="mb-5 flex items-center justify-between">
             <span className="inline-block rounded-[8px] bg-[var(--color-surface-2)] px-3 py-1 text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
               Free
             </span>
+            <span className="text-[13px] leading-[18px] text-[var(--color-text-muted)]">25 tasks · 10 docs · 10 bills</span>
           </div>
-          <div className="mb-6 grid grid-cols-2 gap-4">
-            <div className="rounded-[16px] border border-[var(--color-border)] p-4">
-              <h3 className="mb-3 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">Free</h3>
-              <ul className="space-y-2 text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-                {['25 tasks', '10 documents', '10 bills', 'Basic reminders', '10 AI chats/day'].map((f) => (
-                  <li key={f} className="flex items-start gap-1.5">
-                    <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-[16px] border-2 border-[var(--color-accent)]/30 bg-[var(--color-accent-soft)] p-4">
-              <h3 className="mb-3 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">Premium</h3>
-              <ul className="space-y-2 text-[13px] leading-[18px] text-[var(--color-text)]">
-                {['Unlimited everything', 'Advanced AI', 'Smart summaries', 'Priority support'].map((f) => (
-                  <li key={f} className="flex items-start gap-1.5">
-                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--color-accent)]" strokeWidth={1.75} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="rounded-[16px] border-2 border-[var(--color-accent)]/30 bg-[var(--color-accent-soft)] p-4 mb-4">
+            <h3 className="mb-2 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">Premium — $9.99/mo</h3>
+            <ul className="space-y-1.5 text-[13px] leading-[18px] text-[var(--color-text)]">
+              {['Unlimited everything', 'Advanced AI summaries', 'Priority support'].map((f) => (
+                <li key={f} className="flex items-start gap-1.5">
+                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--color-accent)]" strokeWidth={2} />
+                  {f}
+                </li>
+              ))}
+            </ul>
           </div>
           <button
             onClick={() => alert('Upgrade flow coming soon!')}
             className="w-full rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] py-3 text-[15px] font-semibold text-[var(--color-text-on-accent)] transition"
           >
-            Upgrade to Premium — $9.99/mo
+            Upgrade to Premium
           </button>
-          <p className="mt-2 text-center text-[13px] leading-[18px] text-[var(--color-text-muted)]">
-            No credit card required to start
-          </p>
         </SectionCard>
+      </div>
 
-        {/* About */}
+      {/* About — footer row */}
+      <div className="mt-6">
         <SectionCard index={5}>
           <SectionHeading icon={Info} title="About" />
-          <div className="space-y-3 text-[15px] leading-[22px] text-[var(--color-text-muted)]">
-            <div className="flex justify-between">
-              <span>App version</span>
-              <span className="font-medium text-[var(--color-text)]">1.0.0</span>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3 text-[15px] leading-[22px] text-[var(--color-text-muted)]">
+              <div className="flex justify-between">
+                <span>App version</span>
+                <span className="font-medium text-[var(--color-text)]">1.0.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Build</span>
+                <span className="font-medium text-[var(--color-text)]">2026.04</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span>Build</span>
-              <span className="font-medium text-[var(--color-text)]">2026.04</span>
-            </div>
-            <hr className="border-[var(--color-border)]" />
             <div className="flex flex-col gap-2">
               {['Terms of Service', 'Privacy Policy', 'Help Center'].map((label) => (
                 <button key={label} className="inline-flex items-center gap-1.5 text-left text-[13px] leading-[18px] text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]">
@@ -278,10 +282,10 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <p className="pt-2 text-center text-[13px] leading-[18px] text-[var(--color-text-subtle)]">
-              Made with care by the Laylo team
-            </p>
           </div>
+          <p className="mt-4 text-center text-[12px] leading-[16px] text-[var(--color-text-subtle)]">
+            Made with care by the Laylo team. 🐝
+          </p>
         </SectionCard>
       </div>
     </div>
