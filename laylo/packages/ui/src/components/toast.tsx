@@ -4,21 +4,26 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Toast — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.13. Top-anchored. 4 s auto-dismiss.
+ * 6 px gold left-border for `info`, semantic colours for the rest.
+ * Auto-dismiss timing tightened from 5 s → 4 s per Brief §5.8.
+ */
 const toastVariants = cva(
   [
-    'pointer-events-auto w-full max-w-sm rounded-[10px] border p-4 shadow-lg',
+    'pointer-events-auto w-full max-w-sm rounded-[16px] border p-4 shadow-[var(--shadow-md)]',
     'flex items-start gap-3 transition-all duration-200',
+    'border-[var(--color-border)] bg-[var(--color-surface)]',
+    'border-l-[6px]',
   ].join(' '),
   {
     variants: {
       type: {
-        success:
-          'bg-white border-[#22C55E]/30 dark:bg-[#1A1A1A] dark:border-[#22C55E]/20',
-        error:
-          'bg-white border-[#EF4444]/30 dark:bg-[#1A1A1A] dark:border-[#EF4444]/20',
-        warning:
-          'bg-white border-[#F59E0B]/30 dark:bg-[#1A1A1A] dark:border-[#F59E0B]/20',
-        info: 'bg-white border-gray-200 dark:bg-[#1A1A1A] dark:border-[#2A2A2A]',
+        success: 'border-l-[var(--color-success)]',
+        error: 'border-l-[var(--color-danger)]',
+        warning: 'border-l-[var(--color-warning)]',
+        info: 'border-l-[var(--color-accent)]',
       },
     },
     defaultVariants: {
@@ -27,11 +32,11 @@ const toastVariants = cva(
   }
 );
 
-const toastIconColors = {
-  success: 'text-[#22C55E]',
-  error: 'text-[#EF4444]',
-  warning: 'text-[#F59E0B]',
-  info: 'text-[#6366F1]',
+const toastIconColors: Record<ToastType, string> = {
+  success: 'text-[var(--color-success)]',
+  error: 'text-[var(--color-danger)]',
+  warning: 'text-[var(--color-warning)]',
+  info: 'text-[var(--color-accent)]',
 };
 
 const toastIcons: Record<ToastType, React.ReactNode> = {
@@ -40,7 +45,7 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
       <path
         d="M16.667 5L7.5 14.167 3.333 10"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -51,11 +56,11 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
       <path
         d="M12.5 7.5L7.5 12.5M7.5 7.5L12.5 12.5"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.75" />
     </svg>
   ),
   warning: (
@@ -63,14 +68,14 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
       <path
         d="M10 7V10.5M10 13H10.01"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M8.57 3.222L1.517 15.556A1.667 1.667 0 003.002 18h14.053a1.667 1.667 0 001.43-2.444L11.43 3.222a1.667 1.667 0 00-2.86 0z"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -78,11 +83,11 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
   ),
   info: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.75" />
       <path
         d="M10 9V14M10 7H10.01"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -114,7 +119,7 @@ function useToast(): ToastContextValue {
 }
 
 const MAX_TOASTS = 3;
-const AUTO_DISMISS_MS = 5000;
+const AUTO_DISMISS_MS = 4000;
 
 function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
@@ -141,7 +146,6 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
 
       setToasts((prev) => {
         const next = [...prev, newToast];
-        // Trim to max
         if (next.length > MAX_TOASTS) {
           const removed = next.shift()!;
           const timer = timersRef.current.get(removed.id);
@@ -175,7 +179,8 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={contextValue}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-[100] flex flex-col-reverse gap-2 pointer-events-none"
+        // Top-anchored per Brief §5.8.
+        className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"
         aria-live="polite"
         aria-label="Notifications"
       >
@@ -185,18 +190,18 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
               {toastIcons[t.type]}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-medium text-gray-900 dark:text-gray-50">
+              <p className="text-[15px] leading-[22px] font-medium text-[var(--color-text)]">
                 {t.title}
               </p>
               {t.description && (
-                <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
+                <p className="mt-0.5 text-[13px] leading-[18px] text-[var(--color-text-muted)]">
                   {t.description}
                 </p>
               )}
             </div>
             <button
               onClick={() => removeToast(t.id)}
-              className="shrink-0 rounded-[6px] p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-[#2A2A2A] dark:hover:text-gray-300 transition-colors"
+              className="shrink-0 rounded-[8px] p-1 text-[var(--color-text-subtle)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors"
               aria-label="Dismiss"
               type="button"
             >
@@ -210,7 +215,7 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
                 <path
                   d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5"
                   stroke="currentColor"
-                  strokeWidth="1.5"
+                  strokeWidth="1.75"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />

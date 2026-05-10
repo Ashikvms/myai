@@ -2,14 +2,19 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Skeleton — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.12. Surface-2 token (slightly darker than
+ * cards). animate-pulse honours prefers-reduced-motion automatically.
+ */
 const skeletonVariants = cva(
-  'animate-pulse bg-gray-200 dark:bg-[#2A2A2A]',
+  'animate-pulse bg-[var(--color-surface-2)]',
   {
     variants: {
       variant: {
-        text: 'rounded-[6px] h-4 w-full',
+        text: 'rounded-[8px] h-4 w-full',
         circle: 'rounded-full',
-        rect: 'rounded-[10px]',
+        rect: 'rounded-[16px]',
       },
     },
     defaultVariants: {

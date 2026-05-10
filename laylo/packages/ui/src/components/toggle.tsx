@@ -4,13 +4,18 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Toggle — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.14. rounded-full retained for the track
+ * and thumb (one of the two sanctioned uses of pill radius).
+ */
 const toggleTrackVariants = cva(
   [
     'relative inline-flex shrink-0 cursor-pointer rounded-full border-2 border-transparent',
     'transition-colors duration-200 ease-in-out',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1] focus-visible:ring-offset-2',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2',
+    'focus-visible:ring-offset-[var(--color-bg)]',
     'disabled:cursor-not-allowed disabled:opacity-50',
-    'dark:focus-visible:ring-offset-[#0F0F0F]',
   ].join(' '),
   {
     variants: {
@@ -19,8 +24,8 @@ const toggleTrackVariants = cva(
         md: 'h-6 w-11',
       },
       checked: {
-        true: 'bg-[#6366F1]',
-        false: 'bg-gray-200 dark:bg-[#333333]',
+        true: 'bg-[var(--color-accent)]',
+        false: 'bg-[var(--color-surface-2)]',
       },
     },
     defaultVariants: {
@@ -31,7 +36,7 @@ const toggleTrackVariants = cva(
 );
 
 const toggleThumbVariants = cva(
-  'pointer-events-none inline-block rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out',
+  'pointer-events-none inline-block rounded-full bg-white shadow-[var(--shadow-sm)] ring-0 transition-transform duration-200 ease-in-out',
   {
     variants: {
       size: {
@@ -99,7 +104,7 @@ function Toggle({
         <label
           htmlFor={toggleId}
           className={cn(
-            'text-[14px] text-gray-700 dark:text-gray-300 select-none',
+            'text-[15px] leading-[22px] text-[var(--color-text)] select-none',
             disabled && 'opacity-50 cursor-not-allowed',
             !disabled && 'cursor-pointer'
           )}

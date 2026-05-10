@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Life Admin AI — Your AI Assistant for Life\'s Admin',
+  title: "Laylo — Your bumblebee for life's admin",
   description:
     'Track bills, subscriptions, reminders, appointments, and documents in one calm, intelligent workspace.',
 };

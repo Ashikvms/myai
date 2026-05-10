@@ -1,3 +1,9 @@
+/**
+ * Transactions — Phase 3b restyle.
+ *
+ * Black + gold tokens. Inflows tinted success-green; outflows neutral.
+ * AskAi sparkle on every row + a hero pill in the header.
+ */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -11,8 +17,15 @@ import {
   TextInput,
   Modal,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import {
   listAccounts,
   listTransactions,
@@ -22,19 +35,9 @@ import type {
   Transaction,
   TransactionsQuery,
 } from '../src/lib/api/types';
-
-const COLORS = {
-  primary: '#6366F1',
-  bg: '#FAFAFA',
-  surface: '#FFFFFF',
-  text: '#111',
-  textSecondary: '#666',
-  textMuted: '#9CA3AF',
-  border: '#F3F4F6',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-};
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
+import { BeeMagnifying } from '../src/components/illustrations/bee';
 
 const PAGE_SIZE = 50;
 
@@ -61,12 +64,16 @@ function formatCurrency(value: number, currency = 'USD'): string {
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
   return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const sheet = useAiSheet('Help me understand this transaction.');
 
   // Filters
   const [accountId, setAccountId] = useState('');
@@ -99,7 +106,6 @@ export default function TransactionsScreen() {
     return map;
   }, [accounts]);
 
-  // Load accounts once.
   useEffect(() => {
     let cancelled = false;
     listAccounts()
@@ -107,21 +113,20 @@ export default function TransactionsScreen() {
         if (!cancelled) setAccounts(data);
       })
       .catch(() => {
-        // Non-fatal — filter just won't have account options.
+        // non-fatal
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Reload page 1 whenever filters change.
   const loadPageOne = useCallback(async () => {
     try {
       const res = await listTransactions(baseQuery);
       setItems(res.items);
       setNextCursor(res.nextCursor);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not load transactions';
+      const msg = err instanceof Error ? err.message : 'Hmm, something stung. Try again?';
       Alert.alert('Error', msg);
       setItems([]);
       setNextCursor(null);
@@ -173,7 +178,14 @@ export default function TransactionsScreen() {
         ? acct.name + (acct.mask ? ` ····${acct.mask}` : '')
         : '';
       return (
-        <View style={[styles.row, t.pending && { opacity: 0.6 }]}>
+        <PressableTxnRow
+          onLongPress={() =>
+            sheet.open(
+              `Why did the "${t.merchantName || t.name}" transaction repeat?`,
+            )
+          }
+          dim={t.pending ?? false}
+        >
           <View style={styles.rowIcon}>
             <Text style={styles.rowIconText}>{isInflow ? '↓' : '↑'}</Text>
           </View>
@@ -198,10 +210,18 @@ export default function TransactionsScreen() {
             {isInflow ? '+' : '−'}
             {formatCurrency(Math.abs(amt), t.isoCurrencyCode || 'USD')}
           </Text>
-        </View>
+          <AskAiButton
+            variant="icon"
+            onPress={() =>
+              sheet.open(
+                `Why did the "${t.merchantName || t.name}" transaction repeat?`,
+              )
+            }
+          />
+        </PressableTxnRow>
       );
     },
-    [accountById],
+    [accountById, sheet],
   );
 
   const keyExtractor = useCallback((t: Transaction) => t.id, []);
@@ -212,9 +232,12 @@ export default function TransactionsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backIcon}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transactions</Text>
+        <View>
+          <Text style={styles.eyebrow}>YOUR MONEY</Text>
+          <Text style={styles.headerTitle}>Transactions</Text>
+        </View>
         <TouchableOpacity onPress={() => setShowFilters(true)} style={styles.filterButton}>
-          <Text style={styles.filterIcon}>⚙</Text>
+          <Text style={styles.filterIcon}>≡</Text>
         </TouchableOpacity>
       </View>
 
@@ -226,14 +249,15 @@ export default function TransactionsScreen() {
           onChangeText={setSearchInput}
           onSubmitEditing={submitSearch}
           returnKeyType="search"
-          placeholder="Search merchant or description..."
-          placeholderTextColor={COLORS.textMuted}
+          placeholder="Search merchant or description…"
+          placeholderTextColor={tokens.textSubtle}
         />
       </View>
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={COLORS.primary} />
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={styles.loadingHint}>Following the honey trail…</Text>
         </View>
       ) : (
         <FlatList
@@ -243,23 +267,38 @@ export default function TransactionsScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={tokens.accent}
+            />
           }
           onEndReached={onEndReached}
           onEndReachedThreshold={0.4}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyEmoji}>🧾</Text>
-              <Text style={styles.emptyTitle}>No transactions yet</Text>
-              <Text style={styles.emptyDesc}>
-                Connect a bank from Settings → Banks to start syncing.
+              <BeeMagnifying size={120} />
+              <Text style={styles.emptyTitle}>
+                {q
+                  ? "Couldn't find anything"
+                  : 'Connect a bank to see what’s been flowing'}
               </Text>
+              <Text style={styles.emptyDesc}>
+                Pull down to refresh, or ask Laylo to dig deeper.
+              </Text>
+              <View style={{ marginTop: spacing.lg }}>
+                <AskAiButton
+                  variant="chip"
+                  label="Ask Laylo"
+                  onPress={() => sheet.open('Help me understand my transactions.')}
+                />
+              </View>
             </View>
           }
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator color={COLORS.primary} />
+                <ActivityIndicator color={tokens.accent} />
               </View>
             ) : null
           }
@@ -310,12 +349,51 @@ export default function TransactionsScreen() {
           </View>
         </View>
       </Modal>
+
+      <AiBottomSheet
+        visible={sheet.visible}
+        onClose={sheet.close}
+        initialPrompt={sheet.prompt}
+      />
     </View>
   );
 }
 
-// Tiny pill row for the bottom-sheet filter — avoids pulling in a real
-// dropdown lib.
+function PressableTxnRow({
+  children,
+  onLongPress,
+  dim,
+}: {
+  children: React.ReactNode;
+  onLongPress?: () => void;
+  dim?: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    scale.value = withSpring(0.98, { stiffness: 320, damping: 22 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { stiffness: 320, damping: 22 });
+  };
+  return (
+    <Pressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onLongPress={onLongPress}
+      delayLongPress={420}
+    >
+      <Animated.View style={[styles.row, dim && { opacity: 0.6 }, animatedStyle]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 function ScrollableRow({
   options,
   activeId,
@@ -335,7 +413,9 @@ function ScrollableRow({
             onPress={() => onSelect(o.id)}
             style={[styles.pill, active && styles.pillActive]}
           >
-            <Text style={[styles.pillText, active && styles.pillTextActive]}>{o.label}</Text>
+            <Text style={[styles.pillText, active && styles.pillTextActive]}>
+              {o.label}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -344,139 +424,187 @@ function ScrollableRow({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 44,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: '#374151' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
+    textAlign: 'center',
+  },
+  headerTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
+  },
   filterButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterIcon: { fontSize: 18, color: '#374151' },
-  searchWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, backgroundColor: COLORS.surface },
+  filterIcon: { fontSize: 18, color: tokens.text },
+  searchWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md - 2,
+    paddingBottom: spacing.sm,
+  },
   searchInput: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    backgroundColor: tokens.surface2,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md + 2,
     paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     fontSize: 14,
-    color: COLORS.text,
+    color: tokens.text,
   },
-  loadingWrap: { paddingTop: 60, alignItems: 'center' },
-  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  loadingWrap: { paddingTop: 60, alignItems: 'center', gap: spacing.sm },
+  loadingHint: {
+    fontSize: 12,
+    color: tokens.textMuted,
+    fontWeight: '500',
+  },
+  listContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 40 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 10,
+    backgroundColor: tokens.surface,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    gap: spacing.md - 2,
+    borderWidth: 1,
+    borderColor: tokens.border,
   },
   rowIcon: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowIconText: { fontSize: 14, fontWeight: '700', color: COLORS.textSecondary },
-  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowMerchant: { fontSize: 14, fontWeight: '600', color: COLORS.text, flex: 1 },
-  rowMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  rowAmount: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-  amountInflow: { color: COLORS.success },
+  rowIconText: { fontSize: 14, fontWeight: '700', color: tokens.textMuted },
+  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rowMerchant: { fontSize: 14, fontWeight: '600', color: tokens.text, flex: 1 },
+  rowMeta: { fontSize: 11, color: tokens.textSubtle, marginTop: 2 },
+  rowAmount: { fontSize: 14, fontWeight: '700', color: tokens.text },
+  amountInflow: { color: tokens.success },
   pendingBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: '#FEF3C7',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
   },
-  pendingText: { fontSize: 10, fontWeight: '700', color: COLORS.warning },
-  separator: { height: 8 },
+  pendingText: { fontSize: 10, fontWeight: '700', color: tokens.warning },
+  separator: { height: spacing.sm },
   emptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 32,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    marginTop: 24,
+    borderColor: tokens.border,
+    marginTop: spacing.xl,
   },
-  emptyEmoji: { fontSize: 32, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  emptyDesc: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', maxWidth: 260 },
+  emptyTitle: {
+    marginTop: spacing.lg,
+    fontSize: 16,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    marginTop: spacing.xs,
+    fontSize: 13,
+    color: tokens.textMuted,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+    backgroundColor: tokens.surface,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+    padding: spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xxl + 4 : spacing.xl,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: tokens.borderStrong,
   },
   sheetHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: tokens.border,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  sheetTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 16 },
-  sheetLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8, textTransform: 'uppercase' },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: tokens.text,
+    marginBottom: spacing.lg,
+  },
+  sheetLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: tokens.textMuted,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   pill: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
   },
-  pillActive: { backgroundColor: COLORS.primary },
-  pillText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  pillTextActive: { color: '#FFF' },
-  sheetButtons: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  pillActive: { backgroundColor: tokens.text },
+  pillText: { fontSize: 12, fontWeight: '600', color: tokens.textMuted },
+  pillTextActive: { color: tokens.bg },
+  sheetButtons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   sheetClearButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
   },
-  sheetClearText: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  sheetClearText: { fontSize: 14, fontWeight: '600', color: tokens.text },
   sheetApplyButton: {
     flex: 2,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: tokens.accent,
     alignItems: 'center',
   },
-  sheetApplyText: { fontSize: 14, fontWeight: '700', color: '#FFF' },
+  sheetApplyText: { fontSize: 14, fontWeight: '700', color: tokens.textOnAccent },
 });

@@ -2,18 +2,28 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Card — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.2. radius-md (16 px), surface tokens.
+ */
 const cardVariants = cva(
-  'rounded-[16px] border transition-colors duration-150',
+  [
+    'rounded-[16px] border bg-[var(--color-surface)] border-[var(--color-border)]',
+    'transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]',
+  ].join(' '),
   {
     variants: {
       variant: {
-        default:
-          'bg-white border-gray-200 dark:bg-[#1A1A1A] dark:border-[#2A2A2A]',
-        glass:
-          'bg-white/70 border-gray-200/50 backdrop-blur-xl dark:bg-[#1A1A1A]/70 dark:border-[#2A2A2A]/50',
+        default: '',
+        glass: 'bg-[color-mix(in_oklab,var(--color-surface)_70%,transparent)] backdrop-blur-xl',
       },
       hoverable: {
-        true: 'hover:shadow-md hover:border-gray-300 dark:hover:border-[#333333] cursor-pointer',
+        true: [
+          'cursor-pointer',
+          'hover:border-[var(--color-border-strong)]',
+          'hover:shadow-[var(--shadow-pop)]',
+          'hover:-translate-y-[2px]',
+        ].join(' '),
         false: '',
       },
     },
@@ -58,7 +68,8 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-[18px] font-semibold leading-tight text-gray-900 dark:text-gray-50',
+      // h3 token: 16/22/600.
+      'text-[16px] leading-[22px] font-semibold text-[var(--color-text)]',
       className
     )}
     {...props}
@@ -72,7 +83,11 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-[14px] text-gray-500 dark:text-gray-400', className)}
+    className={cn(
+      // body-sm with muted text.
+      'text-[13px] leading-[18px] text-[var(--color-text-muted)]',
+      className
+    )}
     {...props}
   />
 ));
@@ -93,7 +108,7 @@ const CardFooter = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'flex items-center p-6 pt-0 border-t border-gray-100 dark:border-[#2A2A2A]',
+      'flex items-center p-6 pt-0 border-t border-[var(--color-border)]',
       className
     )}
     {...props}

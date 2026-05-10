@@ -1,3 +1,9 @@
+/**
+ * Banks — Phase 3b restyle.
+ *
+ * Plaid behaviour preserved verbatim — only colour tokens changed.
+ * Empty state uses the standing bee + copy-bank line.
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
@@ -11,9 +17,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-// react-native-plaid-link-sdk requires a custom dev client.
-// `create()` initialises the SDK with a server-issued link token,
-// then `open()` presents the Plaid Link UI.
 import {
   create,
   open,
@@ -28,25 +31,14 @@ import {
   triggerSync,
 } from '../src/lib/api/plaid';
 import type { PlaidItem, PlaidItemStatus } from '../src/lib/api/types';
-
-const COLORS = {
-  primary: '#6366F1',
-  bg: '#FAFAFA',
-  surface: '#FFFFFF',
-  text: '#111',
-  textSecondary: '#666',
-  textMuted: '#9CA3AF',
-  border: '#F3F4F6',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-};
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import { BeeStanding } from '../src/components/illustrations/bee';
 
 const STATUS_LABEL: Record<PlaidItemStatus, { label: string; color: string }> = {
-  ACTIVE: { label: 'Active', color: COLORS.success },
-  LOGIN_REQUIRED: { label: 'Re-auth', color: COLORS.warning },
-  ERROR: { label: 'Error', color: COLORS.danger },
-  DISCONNECTED: { label: 'Off', color: COLORS.textMuted },
+  ACTIVE: { label: 'Active', color: tokens.success },
+  LOGIN_REQUIRED: { label: 'Re-auth', color: tokens.warning },
+  ERROR: { label: 'Error', color: tokens.danger },
+  DISCONNECTED: { label: 'Off', color: tokens.textSubtle },
 };
 
 function formatLastSync(iso: string | null): string {
@@ -77,7 +69,7 @@ export default function BanksScreen() {
       const data = await listItems();
       setItems(data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not load banks';
+      const msg = err instanceof Error ? err.message : 'Hmm, something stung. Try again?';
       Alert.alert('Error', msg);
     }
   }, []);
@@ -96,12 +88,6 @@ export default function BanksScreen() {
     setRefreshing(false);
   }, [load]);
 
-  // Plaid Link flow:
-  //   1) request a fresh link_token from our API
-  //   2) hand it to Plaid SDK via `create()`
-  //   3) `open()` presents native UI
-  //   4) onSuccess returns a public_token + metadata — POST straight to /exchange
-  // The public_token is short-lived and never persisted client-side.
   const handleConnect = useCallback(async () => {
     if (linking) return;
     setLinking(true);
@@ -166,7 +152,7 @@ export default function BanksScreen() {
   const handleDisconnect = useCallback(
     (id: string) => {
       Alert.alert(
-        'Disconnect bank?',
+        'Send this one out of the hive?',
         'Historical transactions stay, but no new data will sync.',
         [
           { text: 'Cancel', style: 'cancel' },
@@ -199,19 +185,25 @@ export default function BanksScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backIcon}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Connected Banks</Text>
+        <View>
+          <Text style={styles.eyebrow}>YOUR MONEY</Text>
+          <Text style={styles.headerTitle}>Connected Banks</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={tokens.accent}
+          />
         }
       >
         {/* Connect CTA */}
@@ -222,7 +214,7 @@ export default function BanksScreen() {
           onPress={handleConnect}
         >
           {linking ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={tokens.textOnAccent} />
           ) : (
             <Text style={styles.connectButtonText}>+ Connect a bank</Text>
           )}
@@ -231,17 +223,19 @@ export default function BanksScreen() {
           Read-only Plaid connection. We never store your bank login.
         </Text>
 
-        {/* Body */}
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={tokens.accent} />
+            <Text style={styles.loadingHint}>Hang on, organising your hive…</Text>
           </View>
         ) : !items || items.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🏦</Text>
-            <Text style={styles.emptyTitle}>No banks connected yet</Text>
+            <BeeStanding size={120} />
+            <Text style={styles.emptyTitle}>
+              Connect a bank — we&apos;ll handle the honey trail.
+            </Text>
             <Text style={styles.emptyDesc}>
-              Connect a bank to automatically sync your transactions and balances.
+              Link an institution to automatically sync transactions and balances.
             </Text>
           </View>
         ) : (
@@ -262,14 +256,20 @@ export default function BanksScreen() {
                       <Text style={styles.itemName} numberOfLines={1}>
                         {item.institutionName}
                       </Text>
-                      <View style={[styles.badge, { backgroundColor: status.color + '20' }]}>
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: status.color + '20' },
+                        ]}
+                      >
                         <Text style={[styles.badgeText, { color: status.color }]}>
                           {status.label}
                         </Text>
                       </View>
                     </View>
                     <Text style={styles.itemSubtitle}>
-                      {accountsCount} {accountsCount === 1 ? 'account' : 'accounts'} · {formatLastSync(item.lastSyncAt)}
+                      {accountsCount} {accountsCount === 1 ? 'account' : 'accounts'}{' '}
+                      · {formatLastSync(item.lastSyncAt)}
                     </Text>
                     {!!item.errorMessage && (
                       <Text style={styles.errorMsg}>{item.errorMessage}</Text>
@@ -283,7 +283,7 @@ export default function BanksScreen() {
                     onPress={() => handleSync(item.id)}
                   >
                     {busy === 'sync' ? (
-                      <ActivityIndicator size="small" color={COLORS.text} />
+                      <ActivityIndicator size="small" color={tokens.text} />
                     ) : (
                       <Text style={styles.actionSecondaryText}>Sync</Text>
                     )}
@@ -294,7 +294,7 @@ export default function BanksScreen() {
                     onPress={() => handleDisconnect(item.id)}
                   >
                     {busy === 'disconnect' ? (
-                      <ActivityIndicator size="small" color={COLORS.danger} />
+                      <ActivityIndicator size="small" color={tokens.danger} />
                     ) : (
                       <Text style={styles.actionDangerText}>Disconnect</Text>
                     )}
@@ -310,106 +310,119 @@ export default function BanksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 44,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: '#374151' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  connectButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
-  },
-  connectButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  helperText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 8,
-    marginBottom: 16,
+  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
     textAlign: 'center',
   },
-  loadingWrap: { paddingTop: 40, alignItems: 'center' },
+  headerTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
+  },
+  scroll: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: 40,
+  },
+  connectButton: {
+    backgroundColor: tokens.accent,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  connectButtonText: { color: tokens.textOnAccent, fontSize: 16, fontWeight: '700' },
+  helperText: {
+    fontSize: 12,
+    color: tokens.textSubtle,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  loadingWrap: { paddingTop: 40, alignItems: 'center', gap: spacing.sm },
+  loadingHint: { fontSize: 12, color: tokens.textMuted, fontWeight: '500' },
   emptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 32,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: tokens.border,
   },
-  emptyEmoji: { fontSize: 32, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  emptyDesc: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', maxWidth: 260 },
+  emptyTitle: {
+    marginTop: spacing.lg,
+    fontSize: 16,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    marginTop: spacing.xs,
+    fontSize: 13,
+    color: tokens.textMuted,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
   itemCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: tokens.border,
   },
-  itemHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   itemAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemAvatarText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
-  itemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  itemName: { fontSize: 15, fontWeight: '600', color: COLORS.text, flex: 1 },
-  itemSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
-  errorMsg: { fontSize: 11, color: COLORS.danger, marginTop: 4 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  itemAvatarText: { color: tokens.text, fontSize: 13, fontWeight: '700' },
+  itemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  itemName: { fontSize: 15, fontWeight: '600', color: tokens.text, flex: 1 },
+  itemSubtitle: { fontSize: 12, color: tokens.textSubtle, marginTop: 4 },
+  errorMsg: { fontSize: 11, color: tokens.danger, marginTop: 4 },
+  badge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
   badgeText: { fontSize: 11, fontWeight: '600' },
-  itemActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  itemActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md + 2 },
   actionButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
-  actionSecondary: { backgroundColor: '#F3F4F6' },
-  actionSecondaryText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  actionDanger: { backgroundColor: '#FEE2E2' },
-  actionDangerText: { color: COLORS.danger, fontSize: 13, fontWeight: '600' },
+  actionSecondary: { backgroundColor: tokens.surface2 },
+  actionSecondaryText: { color: tokens.text, fontSize: 13, fontWeight: '600' },
+  actionDanger: { backgroundColor: 'rgba(239,68,68,0.10)' },
+  actionDangerText: { color: tokens.danger, fontSize: 13, fontWeight: '600' },
 });

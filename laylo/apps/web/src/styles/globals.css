@@ -2,18 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Laylo design tokens — Phase 2.
+ * Light mode lives at :root. Dark mode overrides come in via .dark
+ * (Tailwind darkMode: 'class'). Components consume via Tailwind
+ * arbitrary values, e.g. bg-[var(--color-accent)].
+ *
+ * Source of truth: /DESIGN_SYSTEM.md §1.
+ */
+:root {
+  --color-bg: #FFFFFF;
+  --color-surface: #FAFAFA;
+  --color-surface-2: #F4F4F5;
+  --color-surface-hover: #EFEFEF;
+
+  --color-text: #0A0A0A;
+  --color-text-muted: #525252;
+  --color-text-subtle: #737373;
+  --color-text-on-accent: #0A0A0A;
+
+  --color-accent: #FFD700;
+  --color-accent-hover: #FFCA1A;
+  --color-accent-dim: #8A7400;
+  --color-accent-soft: #FFF4B8;
+
+  --color-border: #E5E5E5;
+  --color-border-strong: #D4D4D4;
+  --color-focus-ring: #FFD700;
+
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  --color-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Shadow tokens (used by Tailwind extension as well) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 0 3px rgba(255, 215, 0, 0.25);
+}
+
+.dark {
+  --color-bg: #000000;
+  --color-surface: #0A0A0A;
+  --color-surface-2: #141414;
+  --color-surface-hover: #1A1A1A;
+
+  --color-text: #FFFFFF;
+  --color-text-muted: #A3A3A3;
+  --color-text-subtle: #737373;
+  --color-text-on-accent: #0A0A0A;
+
+  --color-accent: #FFD700;
+  --color-accent-hover: #FFCA1A;
+  --color-accent-dim: #8A7400;
+  --color-accent-soft: #3D3300;
+
+  --color-border: #1F1F1F;
+  --color-border-strong: #2A2A2A;
+
+  --color-overlay: rgba(0, 0, 0, 0.65);
+
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-glow: 0 0 0 3px rgba(255, 215, 0, 0.35);
+}
+
 @layer base {
   body {
-    @apply bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-gray-100;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-feature-settings: "ss01", "cv11";
   }
 
-  /* Smooth theme transition — fade with gradient wash */
+  /* Theme transition overlay — recoloured to gold/black wash. */
   .theme-fade-overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
     pointer-events: none;
     opacity: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 215, 0, 0.18) 0%,
+      rgba(0, 0, 0, 0.85) 70%
+    );
     animation: theme-fade 0.7s ease-in-out forwards;
   }
 
@@ -32,26 +109,52 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .theme-fade-overlay {
+      animation: none;
+      display: none;
+    }
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+    background: var(--color-border-strong);
+    border-radius: 9999px;
+  }
+
+  /* Focus ring — keyboard nav only. Always gold. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/70 dark:bg-card-dark/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/30;
+    background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in oklab, var(--color-border) 60%, transparent);
   }
 }
 
 @layer utilities {
+  /*
+   * .gradient-text retained as a flat-gold utility for backward compatibility
+   * with any callsite that still references it. Brief §4.1 forbids gradients,
+   * so this is now a solid colour. Engineers in Phase 3a may migrate callsites
+   * to plain `text-[var(--color-accent)]` and delete this rule.
+   */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-500 to-purple-500 bg-clip-text text-transparent;
+    color: var(--color-accent);
+  }
+
+  .text-on-accent {
+    color: var(--color-text-on-accent);
   }
 }

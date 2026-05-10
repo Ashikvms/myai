@@ -1,3 +1,9 @@
+/**
+ * Appointments — Phase 3b restyle.
+ *
+ * Reached from the Vault hub. Black + gold tokens, neutral category
+ * chips, AskAi sparkle on every card. Empty state uses the standing bee.
+ */
 import React from 'react';
 import {
   View,
@@ -7,10 +13,18 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
+import { BeeStanding } from '../src/components/illustrations/bee';
 
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
 
@@ -25,18 +39,14 @@ interface Appointment {
   notes?: string;
 }
 
-// ─── Category Config ────────────────────────────────────────────────────────
-
-const CATEGORY_CONFIG: Record<ApptCategory, { bg: string; text: string; emoji: string }> = {
-  Health:   { bg: '#FEE2E2', text: '#DC2626', emoji: '🏥' },
-  Finance:  { bg: '#DCFCE7', text: '#16A34A', emoji: '💰' },
-  Car:      { bg: '#FEF3C7', text: '#D97706', emoji: '🚗' },
-  Personal: { bg: '#F3E8FF', text: '#7C3AED', emoji: '👤' },
-  Work:     { bg: '#DBEAFE', text: '#2563EB', emoji: '💼' },
-  Other:    { bg: '#F3F4F6', text: '#6B7280', emoji: '📅' },
+const CATEGORY_GLYPH: Record<ApptCategory, string> = {
+  Health: 'M',
+  Finance: '$',
+  Car: 'C',
+  Personal: 'P',
+  Work: 'W',
+  Other: 'O',
 };
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -55,7 +65,10 @@ function setTime(date: Date, hours: number, minutes: number): Date {
 }
 
 function formatDateTime(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const h = date.getHours();
   const m = date.getMinutes();
@@ -80,102 +93,114 @@ function getReminderLabel(minutes: number): string {
   return `${hrs} hr${hrs > 1 ? 's' : ''} before`;
 }
 
-// ─── Demo Data ──────────────────────────────────────────────────────────────
-
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-const APPOINTMENTS: Appointment[] = ([
-  {
-    id: 'a1',
-    title: 'Tax Consultation',
-    dateTime: setTime(addWeeks(today, 2), 10, 0),
-    endTime: setTime(addWeeks(today, 2), 11, 0),
-    location: 'H&R Block \u2014 123 Main St',
-    category: 'Finance',
-    reminderMinutes: 60,
-    notes: 'Bring W-2, 1099 forms, and last year\'s return.',
-  },
-  {
-    id: 'a2',
-    title: 'Dentist Cleaning',
-    dateTime: setTime(addWeeks(today, 3), 14, 30),
-    endTime: setTime(addWeeks(today, 3), 15, 30),
-    location: 'Bright Smile Dental \u2014 456 Oak Ave',
-    category: 'Health',
-    reminderMinutes: 60,
-    notes: 'Regular 6-month checkup and cleaning.',
-  },
-  {
-    id: 'a3',
-    title: 'Eye Exam',
-    dateTime: setTime(addDays(today, 24), 9, 0),
-    endTime: setTime(addDays(today, 24), 10, 0),
-    location: 'Vision Center \u2014 789 Elm Blvd',
-    category: 'Health',
-    reminderMinutes: 120,
-    notes: 'Annual eye exam. Bring current glasses.',
-  },
-  {
-    id: 'a4',
-    title: 'Car Service \u2014 Oil Change',
-    dateTime: setTime(addWeeks(today, 6), 8, 0),
-    endTime: setTime(addWeeks(today, 6), 9, 30),
-    location: 'Quick Lube \u2014 321 Auto Way',
-    category: 'Car',
-    reminderMinutes: 60,
-    notes: 'Oil change + tire rotation. 30k mile service.',
-  },
-] as Appointment[]).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-
-// ─── Component ──────────────────────────────────────────────────────────────
+const APPOINTMENTS: Appointment[] = (
+  [
+    {
+      id: 'a1',
+      title: 'Tax Consultation',
+      dateTime: setTime(addWeeks(today, 2), 10, 0),
+      endTime: setTime(addWeeks(today, 2), 11, 0),
+      location: 'H&R Block — 123 Main St',
+      category: 'Finance',
+      reminderMinutes: 60,
+      notes: "Bring W-2, 1099 forms, and last year's return.",
+    },
+    {
+      id: 'a2',
+      title: 'Dentist Cleaning',
+      dateTime: setTime(addWeeks(today, 3), 14, 30),
+      endTime: setTime(addWeeks(today, 3), 15, 30),
+      location: 'Bright Smile Dental — 456 Oak Ave',
+      category: 'Health',
+      reminderMinutes: 60,
+      notes: 'Regular 6-month checkup and cleaning.',
+    },
+    {
+      id: 'a3',
+      title: 'Eye Exam',
+      dateTime: setTime(addDays(today, 24), 9, 0),
+      endTime: setTime(addDays(today, 24), 10, 0),
+      location: 'Vision Center — 789 Elm Blvd',
+      category: 'Health',
+      reminderMinutes: 120,
+      notes: 'Annual eye exam. Bring current glasses.',
+    },
+    {
+      id: 'a4',
+      title: 'Car Service — Oil Change',
+      dateTime: setTime(addWeeks(today, 6), 8, 0),
+      endTime: setTime(addWeeks(today, 6), 9, 30),
+      location: 'Quick Lube — 321 Auto Way',
+      category: 'Car',
+      reminderMinutes: 60,
+      notes: 'Oil change + tire rotation. 30k mile service.',
+    },
+  ] as Appointment[]
+).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
 export default function AppointmentsScreen() {
   const router = useRouter();
+  const sheet = useAiSheet('Help me prep for my next appointment.');
 
-  const renderAppointment = ({ item, index }: { item: Appointment; index: number }) => {
-    const cat = CATEGORY_CONFIG[item.category];
+  const renderAppointment = ({
+    item,
+    index,
+  }: {
+    item: Appointment;
+    index: number;
+  }) => {
     const isLast = index === APPOINTMENTS.length - 1;
-
     return (
       <View style={styles.timelineItem}>
-        {/* Timeline dot + line */}
         <View style={styles.timelineLeft}>
           <View style={styles.timelineDot} />
           {!isLast && <View style={styles.timelineLine} />}
         </View>
 
-        {/* Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-
-          <Text style={styles.cardDateTime}>
-            {formatDateTime(item.dateTime)}
-            {item.endTime ? ` \u2013 ${formatTimeOnly(item.endTime)}` : ''}
-          </Text>
-
-          <View style={styles.locationRow}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText} numberOfLines={1}>{item.location}</Text>
-          </View>
-
-          <View style={styles.badgeRow}>
-            <View style={[styles.badge, { backgroundColor: cat.bg }]}>
-              <Text style={[styles.badgeText, { color: cat.text }]}>
-                {cat.emoji} {item.category}
+        <PressableApptCard
+          onLongPress={() => sheet.open(`Help me prep for "${item.title}".`)}
+        >
+          <View style={styles.cardTopRow}>
+            <View style={styles.cardAvatar}>
+              <Text style={styles.cardAvatarText}>
+                {CATEGORY_GLYPH[item.category]}
               </Text>
             </View>
-            <View style={[styles.badge, { backgroundColor: '#F3F4F6' }]}>
-              <Text style={[styles.badgeText, { color: '#6B7280' }]}>
-                🔔 {getReminderLabel(item.reminderMinutes)}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDateTime}>
+                {formatDateTime(item.dateTime)}
+                {item.endTime ? ` – ${formatTimeOnly(item.endTime)}` : ''}
               </Text>
+            </View>
+            <AskAiButton
+              variant="icon"
+              onPress={() => sheet.open(`Help me prep for "${item.title}".`)}
+            />
+          </View>
+
+          <Text style={styles.locationText} numberOfLines={1}>
+            📍 {item.location}
+          </Text>
+
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.category}</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{getReminderLabel(item.reminderMinutes)}</Text>
             </View>
           </View>
 
           {item.notes && (
-            <Text style={styles.notes} numberOfLines={2}>{item.notes}</Text>
+            <Text style={styles.notes} numberOfLines={2}>
+              {item.notes}
+            </Text>
           )}
-        </View>
+        </PressableApptCard>
       </View>
     );
   };
@@ -184,213 +209,238 @@ export default function AppointmentsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backIcon}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Appointments</Text>
+        <View>
+          <Text style={styles.eyebrow}>YOUR VAULT</Text>
+          <Text style={styles.headerTitle}>Appointments</Text>
+        </View>
         <TouchableOpacity style={styles.addButton}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Subtitle */}
-      <View style={styles.subtitleRow}>
-        <Text style={styles.subtitleEmoji}>📅</Text>
-        <Text style={styles.subtitle}>{APPOINTMENTS.length} upcoming appointments</Text>
-      </View>
+      {APPOINTMENTS.length === 0 ? (
+        <View style={styles.emptyState}>
+          <BeeStanding size={120} />
+          <Text style={styles.emptyTitle}>
+            Calendar&apos;s clear. Enjoy the open hive.
+          </Text>
+          <View style={{ marginTop: spacing.lg }}>
+            <AskAiButton
+              variant="chip"
+              label="Ask Laylo to add something"
+              onPress={() => sheet.open('Help me schedule a new appointment.')}
+            />
+          </View>
+        </View>
+      ) : (
+        <FlatList
+          data={APPOINTMENTS}
+          keyExtractor={(item) => item.id}
+          renderItem={renderAppointment}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
-      {/* Timeline List */}
-      <FlatList
-        data={APPOINTMENTS}
-        keyExtractor={(item) => item.id}
-        renderItem={renderAppointment}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
+      <AiBottomSheet
+        visible={sheet.visible}
+        onClose={sheet.close}
+        initialPrompt={sheet.prompt}
       />
     </View>
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
+function PressableApptCard({
+  children,
+  onLongPress,
+}: {
+  children: React.ReactNode;
+  onLongPress?: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    scale.value = withSpring(0.98, { stiffness: 320, damping: 22 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { stiffness: 320, damping: 22 });
+  };
+  return (
+    <Pressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onLongPress={onLongPress}
+      delayLongPress={420}
+      style={{ flex: 1 }}
+    >
+      <Animated.View style={[styles.card, animatedStyle]}>{children}</Animated.View>
+    </Pressable>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 44,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 18,
+  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
+    textAlign: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
   },
   addButtonText: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.textOnAccent,
     marginTop: -1,
   },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  subtitleEmoji: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6366F1',
-  },
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: 32,
   },
-  timelineItem: {
-    flexDirection: 'row',
-  },
+  timelineItem: { flexDirection: 'row' },
   timelineLeft: {
     alignItems: 'center',
-    width: 28,
-    marginRight: 12,
+    width: 24,
+    marginRight: spacing.md,
   },
   timelineDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#6366F1',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: tokens.accent,
     marginTop: 20,
-    borderWidth: 3,
-    borderColor: '#C7D2FE',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+    borderWidth: 2,
+    borderColor: tokens.bg,
   },
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: tokens.border,
     marginTop: 4,
   },
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: tokens.border,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  cardAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardAvatarText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: tokens.text,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    color: tokens.text,
+    marginBottom: 2,
   },
   cardDateTime: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6366F1',
-    marginBottom: 8,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 10,
-  },
-  locationIcon: {
     fontSize: 12,
+    fontWeight: '500',
+    color: tokens.textMuted,
   },
   locationText: {
     fontSize: 13,
-    color: '#9CA3AF',
-    flex: 1,
+    color: tokens.textSubtle,
+    marginBottom: spacing.sm,
   },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 8,
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
+    color: tokens.text,
   },
   notes: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: tokens.textMuted,
     lineHeight: 18,
-    marginTop: 4,
+    marginTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
-    paddingTop: 8,
+    borderTopColor: tokens.border,
+    paddingTop: spacing.sm,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  emptyTitle: {
+    marginTop: spacing.lg,
+    fontSize: 16,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
   },
 });

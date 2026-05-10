@@ -1,3 +1,9 @@
+/**
+ * Onboarding — Phase 3b restyle.
+ *
+ * Black + gold tokens. Bee mascot fronts the hero slide. Copy
+ * rebranded from "AI assistant" → "your bumblebee for life's admin".
+ */
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -11,20 +17,33 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import {
+  BeeStanding,
+  BeeLooking,
+  BeeMagnifying,
+} from '../src/components/illustrations/bee';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const SLIDES = [
+type Slide = {
+  Pose: React.ComponentType<{ size?: number }>;
+  title: string;
+  subtitle: string;
+  features?: string[];
+};
+
+const SLIDES: Slide[] = [
   {
-    icon: '\u2728',
-    title: 'Your AI assistant\nfor life\u2019s admin',
-    subtitle: 'Manage bills, subscriptions, appointments, documents, and reminders \u2014 all in one place.',
-    gradient: true,
+    Pose: BeeStanding,
+    title: 'Your bumblebee\nfor life’s admin',
+    subtitle:
+      'Manage bills, subscriptions, appointments, documents, and reminders — all in one place.',
   },
   {
-    icon: '\uD83D\uDCB3',
-    title: 'Track bills,\nsubscriptions & more',
-    subtitle: 'Stay on top of everything that matters.',
+    Pose: BeeLooking,
+    title: 'Track everything\nthat matters',
+    subtitle: 'Stay on top of bills, subs, and calendar in one breath.',
     features: [
       'Bills & payments',
       'Subscriptions',
@@ -34,9 +53,10 @@ const SLIDES = [
     ],
   },
   {
-    icon: '\uD83E\uDDE0',
-    title: 'Powered by AI',
-    subtitle: 'Your intelligent assistant provides insights, sends timely reminders, and keeps everything organised automatically.',
+    Pose: BeeMagnifying,
+    title: 'Powered by Laylo',
+    subtitle:
+      'Spot patterns, surface savings, and surface what needs your attention today.',
   },
 ];
 
@@ -63,9 +83,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const skip = () => {
-    router.replace('/auth');
-  };
+  const skip = () => router.replace('/auth');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,32 +102,29 @@ export default function OnboardingScreen() {
         scrollEventThrottle={16}
         style={styles.scrollView}
       >
-        {SLIDES.map((slide, index) => (
-          <View key={index} style={styles.slide}>
-            <View
-              style={[
-                styles.iconContainer,
-                index === 0 && styles.iconContainerPrimary,
-              ]}
-            >
-              <Text style={styles.icon}>{slide.icon}</Text>
-            </View>
-
-            <Text style={styles.title}>{slide.title}</Text>
-            <Text style={styles.subtitle}>{slide.subtitle}</Text>
-
-            {slide.features && (
-              <View style={styles.featureList}>
-                {slide.features.map((feature, i) => (
-                  <View key={i} style={styles.featureItem}>
-                    <View style={styles.featureDot} />
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
+        {SLIDES.map((slide, index) => {
+          const Pose = slide.Pose;
+          return (
+            <View key={index} style={styles.slide}>
+              <View style={styles.poseWrap}>
+                <Pose size={120} />
               </View>
-            )}
-          </View>
-        ))}
+              <Text style={styles.title}>{slide.title}</Text>
+              <Text style={styles.subtitle}>{slide.subtitle}</Text>
+
+              {slide.features && (
+                <View style={styles.featureList}>
+                  {slide.features.map((feature, i) => (
+                    <View key={i} style={styles.featureItem}>
+                      <View style={styles.featureDot} />
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -117,10 +132,7 @@ export default function OnboardingScreen() {
           {SLIDES.map((_, index) => (
             <View
               key={index}
-              style={[
-                styles.dot,
-                index === activeIndex && styles.dotActive,
-              ]}
+              style={[styles.dot, index === activeIndex && styles.dotActive]}
             />
           ))}
         </View>
@@ -128,10 +140,10 @@ export default function OnboardingScreen() {
         <TouchableOpacity
           style={styles.nextButton}
           onPress={goToNext}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           <Text style={styles.nextButtonText}>
-            {activeIndex === SLIDES.length - 1 ? 'Get Started' : 'Next'}
+            {activeIndex === SLIDES.length - 1 ? 'Join the hive' : 'Next'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -142,25 +154,23 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: tokens.bg,
   },
   skipContainer: {
     alignItems: 'flex-end',
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
   skipButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   skipText: {
-    fontSize: 16,
-    color: '#6366F1',
+    fontSize: 15,
+    color: tokens.textMuted,
     fontWeight: '500',
   },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   slide: {
     width: SCREEN_WIDTH,
     flex: 1,
@@ -168,93 +178,82 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 40,
   },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#EEF2FF',
+  poseWrap: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 40,
   },
-  iconContainerPrimary: {
-    backgroundColor: '#6366F1',
-  },
-  icon: {
-    fontSize: 48,
-  },
   title: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#111827',
-    textAlign: 'center',
     lineHeight: 40,
-    marginBottom: 16,
+    fontWeight: '700',
+    color: tokens.text,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 17,
-    color: '#6B7280',
+    fontSize: 15,
+    lineHeight: 22,
+    color: tokens.textMuted,
     textAlign: 'center',
-    lineHeight: 26,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
   },
   featureList: {
-    marginTop: 32,
+    marginTop: spacing.xxl,
     alignSelf: 'stretch',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: spacing.md + 2,
   },
   featureDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6366F1',
-    marginRight: 14,
+    backgroundColor: tokens.accent,
+    marginRight: spacing.md + 2,
   },
   featureText: {
-    fontSize: 17,
-    color: '#374151',
+    fontSize: 15,
+    color: tokens.text,
     fontWeight: '500',
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 24,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
+    gap: spacing.xl,
   },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
+    gap: spacing.md - 2,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: tokens.border,
   },
   dotActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: tokens.accent,
     width: 24,
   },
   nextButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 16,
-    paddingVertical: 18,
+    backgroundColor: tokens.accent,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg + 2,
     alignItems: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
   nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: tokens.textOnAccent,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
   },

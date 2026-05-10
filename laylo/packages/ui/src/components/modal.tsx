@@ -3,6 +3,13 @@
 import * as React from 'react';
 import { cn } from '../utils';
 
+/**
+ * Modal — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.9. radius-md (16 px). Max-width 640 px.
+ * Backdrop blur retained. Animation contract per §6 #6 — engineers
+ * wrap with Framer Motion at the callsite if entering animation needed;
+ * this component itself stays presentational.
+ */
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -73,8 +80,7 @@ function Modal({ open, onClose, children, className }: ModalProps) {
       ref={overlayRef}
       className={cn(
         'fixed inset-0 z-50 flex items-center justify-center p-4',
-        'bg-black/50 backdrop-blur-sm',
-        // Animation-ready classes
+        'bg-[var(--color-overlay)] backdrop-blur-sm',
         'data-[state=open]:animate-in data-[state=closed]:animate-out'
       )}
       data-state={open ? 'open' : 'closed'}
@@ -89,9 +95,9 @@ function Modal({ open, onClose, children, className }: ModalProps) {
         aria-modal="true"
         tabIndex={-1}
         className={cn(
-          'relative w-full max-w-lg rounded-[16px] bg-white p-6 shadow-xl outline-none',
-          'dark:bg-[#1A1A1A] dark:border dark:border-[#2A2A2A]',
-          // Animation-ready classes
+          'relative w-full max-w-[640px] rounded-[16px] p-8 outline-none',
+          'bg-[var(--color-surface)] border border-[var(--color-border-strong)]',
+          'shadow-[var(--shadow-lg)]',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           className
         )}
@@ -114,10 +120,9 @@ function ModalClose({
     <button
       onClick={onClose}
       className={cn(
-        'absolute right-4 top-4 rounded-[6px] p-1 text-gray-400 transition-colors',
-        'hover:bg-gray-100 hover:text-gray-600',
-        'dark:hover:bg-[#2A2A2A] dark:hover:text-gray-300',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1]',
+        'absolute right-4 top-4 rounded-[8px] p-1 text-[var(--color-text-subtle)] transition-colors',
+        'hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]',
         className
       )}
       aria-label="Close"
@@ -134,7 +139,7 @@ function ModalClose({
         <path
           d="M12 4L4 12M4 4L12 12"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -151,7 +156,8 @@ function ModalTitle({
   return (
     <h2
       className={cn(
-        'text-[18px] font-semibold text-gray-900 dark:text-gray-50',
+        // h2 token: 22/28/600.
+        'text-[22px] leading-[28px] font-semibold text-[var(--color-text)]',
         className
       )}
       {...props}
@@ -169,7 +175,7 @@ function ModalDescription({
   return (
     <p
       className={cn(
-        'mt-1 text-[14px] text-gray-500 dark:text-gray-400',
+        'mt-1 text-[15px] leading-[22px] text-[var(--color-text-muted)]',
         className
       )}
       {...props}

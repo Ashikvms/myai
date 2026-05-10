@@ -1,3 +1,9 @@
+/**
+ * Reminders — Phase 3b restyle.
+ *
+ * Reached from the Vault hub. Black + gold tokens, neutral category
+ * chips, AskAi sparkle on every card, BeeMail empty state.
+ */
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -7,13 +13,27 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
+import { BeeMail } from '../src/components/illustrations/bee';
 
 type ReminderStatus = 'pending' | 'dismissed';
-type LinkedType = 'Document' | 'Appointment' | 'Bill' | 'Subscription' | 'Task' | 'None';
+type LinkedType =
+  | 'Document'
+  | 'Appointment'
+  | 'Bill'
+  | 'Subscription'
+  | 'Task'
+  | 'None';
 type FilterTab = 'Pending' | 'Dismissed' | 'All';
 
 interface Reminder {
@@ -26,18 +46,14 @@ interface Reminder {
   status: ReminderStatus;
 }
 
-// ─── Linked Type Config ─────────────────────────────────────────────────────
-
-const LINKED_CONFIG: Record<LinkedType, { bg: string; text: string; emoji: string }> = {
-  Document:     { bg: '#E0E7FF', text: '#4F46E5', emoji: '📄' },
-  Appointment:  { bg: '#F3E8FF', text: '#7C3AED', emoji: '📅' },
-  Bill:         { bg: '#FEF3C7', text: '#D97706', emoji: '💳' },
-  Subscription: { bg: '#FCE7F3', text: '#DB2777', emoji: '🔄' },
-  Task:         { bg: '#DCFCE7', text: '#16A34A', emoji: '✅' },
-  None:         { bg: '#F3F4F6', text: '#6B7280', emoji: '🔔' },
+const LINKED_GLYPH: Record<LinkedType, string> = {
+  Document: 'D',
+  Appointment: 'A',
+  Bill: '$',
+  Subscription: 'S',
+  Task: 'T',
+  None: '·',
 };
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -58,17 +74,18 @@ function setTime(date: Date, hours: number, minutes: number): Date {
 }
 
 function formatDateTime(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const h = date.getHours();
   const m = date.getMinutes();
   const ampm = h >= 12 ? 'PM' : 'AM';
   const hour = h % 12 || 12;
   const min = m.toString().padStart(2, '0');
-  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()} \u2014 ${hour}:${min} ${ampm}`;
+  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()} — ${hour}:${min} ${ampm}`;
 }
-
-// ─── Demo Data ──────────────────────────────────────────────────────────────
 
 const today = new Date();
 
@@ -116,12 +133,11 @@ const INITIAL_REMINDERS: Reminder[] = [
   },
 ];
 
-// ─── Component ──────────────────────────────────────────────────────────────
-
 export default function RemindersScreen() {
   const router = useRouter();
   const [reminders, setReminders] = useState<Reminder[]>(INITIAL_REMINDERS);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('Pending');
+  const sheet = useAiSheet('Help me with my reminders.');
 
   const filteredReminders = useMemo(() => {
     let filtered = reminders;
@@ -130,11 +146,19 @@ export default function RemindersScreen() {
     } else if (activeFilter === 'Dismissed') {
       filtered = reminders.filter((r) => r.status === 'dismissed');
     }
-    return [...filtered].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+    return [...filtered].sort(
+      (a, b) => a.dateTime.getTime() - b.dateTime.getTime(),
+    );
   }, [reminders, activeFilter]);
 
-  const pendingCount = useMemo(() => reminders.filter((r) => r.status === 'pending').length, [reminders]);
-  const dismissedCount = useMemo(() => reminders.filter((r) => r.status === 'dismissed').length, [reminders]);
+  const pendingCount = useMemo(
+    () => reminders.filter((r) => r.status === 'pending').length,
+    [reminders],
+  );
+  const dismissedCount = useMemo(
+    () => reminders.filter((r) => r.status === 'dismissed').length,
+    [reminders],
+  );
 
   const filterCounts: Record<FilterTab, number> = {
     Pending: pendingCount,
@@ -144,70 +168,68 @@ export default function RemindersScreen() {
 
   const dismissReminder = (id: string) => {
     setReminders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'dismissed' as ReminderStatus } : r))
+      prev.map((r) => (r.id === id ? { ...r, status: 'dismissed' as ReminderStatus } : r)),
     );
   };
 
   const renderReminder = ({ item }: { item: Reminder }) => {
-    const config = LINKED_CONFIG[item.linkedType];
     const isPending = item.status === 'pending';
-
     return (
-      <View style={[styles.card, !isPending && styles.cardDismissed]}>
+      <PressableReminderCard
+        dismissed={!isPending}
+        onLongPress={() => sheet.open(`Why was the reminder "${item.title}" set?`)}
+      >
         <View style={styles.cardRow}>
-          {/* Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: config.bg }]}>
-            <Text style={styles.iconEmoji}>{config.emoji}</Text>
+          <View style={styles.iconContainer}>
+            <Text style={styles.iconText}>{LINKED_GLYPH[item.linkedType]}</Text>
           </View>
-
-          {/* Content */}
           <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, !isPending && styles.cardTitleDismissed]}>
+            <Text
+              style={[
+                styles.cardTitle,
+                !isPending && styles.cardTitleDismissed,
+              ]}
+            >
               {item.title}
             </Text>
-
-            <Text style={styles.cardDateTime}>
-              {formatDateTime(item.dateTime)}
-            </Text>
-
+            <Text style={styles.cardDateTime}>{formatDateTime(item.dateTime)}</Text>
             <View style={styles.badgeRow}>
               {item.recurring && (
-                <View style={[styles.badge, { backgroundColor: '#CCFBF1' }]}>
-                  <Text style={[styles.badgeText, { color: '#0D9488' }]}>
-                    🔁 {item.recurrenceRule}
-                  </Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>↻ {item.recurrenceRule}</Text>
                 </View>
               )}
               {item.linkedType !== 'None' && (
-                <View style={[styles.badge, { backgroundColor: config.bg }]}>
-                  <Text style={[styles.badgeText, { color: config.text }]}>
-                    {config.emoji} {item.linkedType}
-                  </Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{item.linkedType}</Text>
                 </View>
               )}
-              <View style={[styles.badge, {
-                backgroundColor: isPending ? '#FEF3C7' : '#DCFCE7',
-              }]}>
-                <Text style={[styles.badgeText, {
-                  color: isPending ? '#D97706' : '#16A34A',
-                }]}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
                   {isPending ? 'Pending' : 'Dismissed'}
                 </Text>
               </View>
             </View>
           </View>
-
-          {/* Dismiss button */}
-          {isPending && (
+          {isPending ? (
             <TouchableOpacity
               onPress={() => dismissReminder(item.id)}
               style={styles.dismissButton}
+              hitSlop={8}
+              accessibilityLabel="Mark as done"
             >
               <Text style={styles.dismissIcon}>✓</Text>
             </TouchableOpacity>
+          ) : (
+            <AskAiButton
+              variant="icon"
+              onPress={() =>
+                sheet.open(`Why was the reminder "${item.title}" set?`)
+              }
+            />
           )}
         </View>
-      </View>
+      </PressableReminderCard>
     );
   };
 
@@ -215,21 +237,17 @@ export default function RemindersScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backIconText}>{'<'}</Text>
+          <Text style={styles.backIcon}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reminders</Text>
+        <View>
+          <Text style={styles.eyebrow}>YOUR VAULT</Text>
+          <Text style={styles.headerTitle}>Reminders</Text>
+        </View>
         <TouchableOpacity style={styles.addButton}>
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Subtitle */}
-      <View style={styles.subtitleRow}>
-        <Text style={styles.subtitleEmoji}>🔔</Text>
-        <Text style={styles.subtitle}>{pendingCount} pending reminder{pendingCount !== 1 ? 's' : ''}</Text>
       </View>
 
       {/* Filter Chips */}
@@ -242,11 +260,23 @@ export default function RemindersScreen() {
               style={[styles.filterChip, isActive && styles.filterChipActive]}
               onPress={() => setActiveFilter(tab)}
             >
-              <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  isActive && styles.filterChipTextActive,
+                ]}
+              >
                 {tab}
               </Text>
-              <View style={[styles.filterCount, isActive && styles.filterCountActive]}>
-                <Text style={[styles.filterCountText, isActive && styles.filterCountTextActive]}>
+              <View
+                style={[styles.filterCount, isActive && styles.filterCountActive]}
+              >
+                <Text
+                  style={[
+                    styles.filterCountText,
+                    isActive && styles.filterCountTextActive,
+                  ]}
+                >
                   {filterCounts[tab]}
                 </Text>
               </View>
@@ -255,22 +285,22 @@ export default function RemindersScreen() {
         })}
       </View>
 
-      {/* Empty State */}
       {filteredReminders.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📭</Text>
+          <BeeMail size={120} />
           <Text style={styles.emptyTitle}>
-            {activeFilter === 'Pending'
-              ? 'No pending reminders'
-              : activeFilter === 'Dismissed'
-              ? 'No dismissed reminders'
-              : 'No reminders yet'}
+            All quiet on the notification front
           </Text>
           <Text style={styles.emptySubtitle}>
-            {activeFilter === 'Pending'
-              ? "You're all caught up!"
-              : 'Create a reminder to get started.'}
+            We&apos;ll buzz you when something needs attention.
           </Text>
+          <View style={{ marginTop: spacing.lg }}>
+            <AskAiButton
+              variant="chip"
+              label="Ask Laylo to add something"
+              onPress={() => sheet.open('Help me set a new reminder.')}
+            />
+          </View>
         </View>
       ) : (
         <FlatList
@@ -281,126 +311,136 @@ export default function RemindersScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <AiBottomSheet
+        visible={sheet.visible}
+        onClose={sheet.close}
+        initialPrompt={sheet.prompt}
+      />
     </View>
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
+function PressableReminderCard({
+  children,
+  onLongPress,
+  dismissed,
+}: {
+  children: React.ReactNode;
+  onLongPress?: () => void;
+  dismissed?: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    scale.value = withSpring(0.98, { stiffness: 320, damping: 22 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { stiffness: 320, damping: 22 });
+  };
+  return (
+    <Pressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onLongPress={onLongPress}
+      delayLongPress={420}
+    >
+      <Animated.View
+        style={[styles.card, dismissed && styles.cardDismissed, animatedStyle]}
+      >
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
+  container: { flex: 1, backgroundColor: tokens.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 44,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIconText: {
-    fontSize: 18,
+  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
+    textAlign: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#6366F1',
+    borderRadius: radius.sm,
+    backgroundColor: tokens.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
   },
   addButtonText: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: tokens.textOnAccent,
     marginTop: -1,
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 4,
-  },
-  subtitleEmoji: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6366F1',
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md - 2,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: tokens.border,
   },
   filterChipActive: {
-    backgroundColor: '#6366F1',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    backgroundColor: tokens.text,
+    borderColor: tokens.text,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: tokens.textMuted,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: tokens.bg,
   },
   filterCount: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: tokens.border,
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   filterCountActive: {
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -408,32 +448,23 @@ const styles = StyleSheet.create({
   filterCountText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: tokens.textMuted,
   },
   filterCountTextActive: {
-    color: '#FFFFFF',
+    color: tokens.bg,
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md - 2,
     paddingBottom: 32,
+    gap: spacing.md,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: tokens.border,
   },
   cardDismissed: {
     opacity: 0.55,
@@ -441,36 +472,37 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: spacing.md,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconEmoji: {
-    fontSize: 20,
+  iconText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: tokens.text,
   },
-  cardContent: {
-    flex: 1,
-  },
+  cardContent: { flex: 1 },
   cardTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    color: tokens.text,
+    marginBottom: spacing.xs,
   },
   cardTitleDismissed: {
     textDecorationLine: 'line-through',
-    color: '#9CA3AF',
+    color: tokens.textMuted,
   },
   cardDateTime: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    color: '#6366F1',
-    marginBottom: 8,
+    color: tokens.textMuted,
+    marginBottom: spacing.sm,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -478,48 +510,47 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
+    color: tokens.text,
   },
   dismissButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#DCFCE7',
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dismissIcon: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#16A34A',
+    color: tokens.textOnAccent,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
+    paddingHorizontal: spacing.xxxl,
   },
   emptyTitle: {
-    fontSize: 18,
+    marginTop: spacing.lg,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    color: tokens.text,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
+    marginTop: spacing.xs,
+    fontSize: 13,
+    color: tokens.textMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

@@ -17,13 +17,13 @@ export function useThemeTransition() {
       const overlay = document.createElement('div');
       overlay.className = 'theme-fade-overlay';
 
-      // Use a gradient that blends between old and new theme
+      // Gold-on-black radial wash blends between themes (Brief §5.9 / DS §6 #9).
       if (nextTheme === 'dark') {
         overlay.style.background =
-          'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(15,15,15,0.98) 40%, #0F0F0F 100%)';
+          'radial-gradient(circle at center, rgba(255,215,0,0.18) 0%, rgba(0,0,0,0.98) 60%, #000000 100%)';
       } else {
         overlay.style.background =
-          'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(250,250,250,0.98) 40%, #FAFAFA 100%)';
+          'radial-gradient(circle at center, rgba(255,215,0,0.22) 0%, rgba(255,255,255,0.98) 60%, #FFFFFF 100%)';
       }
 
       document.body.appendChild(overlay);

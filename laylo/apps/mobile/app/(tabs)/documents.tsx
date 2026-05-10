@@ -1,3 +1,10 @@
+/**
+ * Documents — Phase 3b restyle.
+ *
+ * Reachable from the Vault hub, no longer a top-level tab. Categories
+ * differentiated by Lucide-style glyph + neutral chip background per
+ * Brief §4.1 ("category differentiation = icon, not colour").
+ */
 import React, { useState } from 'react';
 import {
   View,
@@ -7,136 +14,110 @@ import {
   FlatList,
   StyleSheet,
   Platform,
+  Pressable,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { tokens, radius, spacing } from '../../src/lib/tokens';
+import {
+  AiBottomSheet,
+  AskAiButton,
+  useAiSheet,
+} from '../../src/components/ai';
+import {
+  BeeMagnifying,
+  BeeStanding,
+} from '../../src/components/illustrations/bee';
 
-const COLORS = {
-  primary: '#6366F1',
-  bg: '#FAFAFA',
-  surface: '#FFFFFF',
-  text: '#111',
-  textSecondary: '#666',
-};
-
-const CATEGORIES = ['All', 'Tax', 'Insurance', 'Medical', 'Housing', 'Identity', 'Finance'];
+const CATEGORIES = [
+  'All',
+  'Tax',
+  'Insurance',
+  'Medical',
+  'Housing',
+  'Identity',
+  'Finance',
+] as const;
+type Category = (typeof CATEGORIES)[number];
 
 interface Document {
   id: string;
   title: string;
-  category: string;
+  category: Exclude<Category, 'All'>;
   date: string;
   size: string;
-  emoji: string;
+  glyph: string;
 }
 
 const DOCUMENTS: Document[] = [
-  {
-    id: '1',
-    title: 'W-2 Form 2025',
-    category: 'Tax',
-    date: 'Feb 15, 2026',
-    size: '245 KB',
-    emoji: '📊',
-  },
-  {
-    id: '2',
-    title: 'Car Insurance Policy',
-    category: 'Insurance',
-    date: 'Jan 10, 2026',
-    size: '1.2 MB',
-    emoji: '🚗',
-  },
-  {
-    id: '3',
-    title: 'Annual Health Checkup',
-    category: 'Medical',
-    date: 'Dec 8, 2025',
-    size: '890 KB',
-    emoji: '🏥',
-  },
-  {
-    id: '4',
-    title: 'Lease Agreement',
-    category: 'Housing',
-    date: 'Nov 1, 2025',
-    size: '2.1 MB',
-    emoji: '🏠',
-  },
-  {
-    id: '5',
-    title: 'Passport Scan',
-    category: 'Identity',
-    date: 'Oct 15, 2025',
-    size: '3.4 MB',
-    emoji: '🛂',
-  },
-  {
-    id: '6',
-    title: '1099-INT Tax Form',
-    category: 'Tax',
-    date: 'Feb 1, 2026',
-    size: '156 KB',
-    emoji: '📊',
-  },
-  {
-    id: '7',
-    title: 'Home Insurance Renewal',
-    category: 'Insurance',
-    date: 'Mar 5, 2026',
-    size: '980 KB',
-    emoji: '🏡',
-  },
+  { id: '1', title: 'W-2 Form 2025', category: 'Tax', date: 'Feb 15, 2026', size: '245 KB', glyph: 'T' },
+  { id: '2', title: 'Car Insurance Policy', category: 'Insurance', date: 'Jan 10, 2026', size: '1.2 MB', glyph: 'I' },
+  { id: '3', title: 'Annual Health Checkup', category: 'Medical', date: 'Dec 8, 2025', size: '890 KB', glyph: 'M' },
+  { id: '4', title: 'Lease Agreement', category: 'Housing', date: 'Nov 1, 2025', size: '2.1 MB', glyph: 'H' },
+  { id: '5', title: 'Passport Scan', category: 'Identity', date: 'Oct 15, 2025', size: '3.4 MB', glyph: 'ID' },
+  { id: '6', title: '1099-INT Tax Form', category: 'Tax', date: 'Feb 1, 2026', size: '156 KB', glyph: 'T' },
+  { id: '7', title: 'Home Insurance Renewal', category: 'Insurance', date: 'Mar 5, 2026', size: '980 KB', glyph: 'I' },
 ];
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  Tax: { bg: '#EEF2FF', text: '#6366F1' },
-  Insurance: { bg: '#FEF3C7', text: '#D97706' },
-  Medical: { bg: '#DCFCE7', text: '#16A34A' },
-  Housing: { bg: '#FEE2E2', text: '#DC2626' },
-  Identity: { bg: '#E0E7FF', text: '#4F46E5' },
-  Finance: { bg: '#F3E8FF', text: '#7C3AED' },
-};
-
 export default function DocumentsScreen() {
-  const [activeCategory, setActiveCategory] = useState('All');
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [searched, setSearched] = useState(false);
+  const sheet = useAiSheet('Help me find a document.');
 
   const filteredDocs =
     activeCategory === 'All'
       ? DOCUMENTS
       : DOCUMENTS.filter((d) => d.category === activeCategory);
 
-  const renderDocument = ({ item }: { item: Document }) => {
-    const catColor = CATEGORY_COLORS[item.category] || { bg: '#F3F4F6', text: '#666' };
-
-    return (
-      <TouchableOpacity style={styles.docCard} activeOpacity={0.7}>
-        <View style={styles.docIconWrapper}>
-          <Text style={styles.docEmoji}>{item.emoji}</Text>
-        </View>
-        <View style={styles.docContent}>
-          <Text style={styles.docTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <View style={styles.docMeta}>
-            <View style={[styles.categoryBadge, { backgroundColor: catColor.bg }]}>
-              <Text style={[styles.categoryText, { color: catColor.text }]}>
-                {item.category}
-              </Text>
-            </View>
-            <Text style={styles.docDate}>{item.date}</Text>
+  const renderDocument = ({ item }: { item: Document }) => (
+    <PressableDocCard
+      onLongPress={() => sheet.open(`Summarise the document "${item.title}".`)}
+    >
+      <View style={styles.docIconWrapper}>
+        <Text style={styles.docIconGlyph}>{item.glyph}</Text>
+      </View>
+      <View style={styles.docContent}>
+        <Text style={styles.docTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <View style={styles.docMeta}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{item.category}</Text>
           </View>
+          <Text style={styles.docDate}>{item.date}</Text>
         </View>
+      </View>
+      <View style={styles.docRight}>
         <Text style={styles.docSize}>{item.size}</Text>
-      </TouchableOpacity>
-    );
-  };
+        <AskAiButton
+          variant="icon"
+          onPress={() => sheet.open(`Summarise the document "${item.title}".`)}
+        />
+      </View>
+    </PressableDocCard>
+  );
+
+  const noResults = searched && filteredDocs.length === 0;
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Documents</Text>
-        <TouchableOpacity style={styles.uploadButton} activeOpacity={0.7}>
-          <Text style={styles.uploadButtonText}>📎 Upload</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backIcon}>{'<'}</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.eyebrow}>YOUR VAULT</Text>
+          <Text style={styles.headerTitle}>Documents</Text>
+        </View>
+        <TouchableOpacity style={styles.uploadButton} activeOpacity={0.8}>
+          <Text style={styles.uploadButtonText}>Upload</Text>
         </TouchableOpacity>
       </View>
 
@@ -153,8 +134,11 @@ export default function DocumentsScreen() {
               styles.categoryChip,
               activeCategory === cat && styles.categoryChipActive,
             ]}
-            onPress={() => setActiveCategory(cat)}
-            activeOpacity={0.7}
+            onPress={() => {
+              setActiveCategory(cat);
+              setSearched(true);
+            }}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -181,157 +165,240 @@ export default function DocumentsScreen() {
         contentContainerStyle={styles.docList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📂</Text>
-            <Text style={styles.emptyText}>No documents in this category</Text>
-          </View>
+          noResults ? (
+            <View style={styles.emptyState}>
+              <BeeMagnifying size={120} />
+              <Text style={styles.emptyTitle}>Couldn&apos;t find anything</Text>
+              <Text style={styles.emptyDesc}>
+                Try a different category — or ask Laylo to help.
+              </Text>
+              <View style={{ marginTop: spacing.lg }}>
+                <AskAiButton
+                  variant="chip"
+                  label="Ask Laylo to add something"
+                  onPress={() => sheet.open('Help me add a new document.')}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <BeeStanding size={120} />
+              <Text style={styles.emptyTitle}>
+                Your vault is empty. Drop a document in.
+              </Text>
+              <View style={{ marginTop: spacing.lg }}>
+                <AskAiButton
+                  variant="chip"
+                  label="Ask Laylo to add something"
+                  onPress={() => sheet.open('Help me add a new document.')}
+                />
+              </View>
+            </View>
+          )
         }
       />
+
+      <AiBottomSheet
+        visible={sheet.visible}
+        onClose={sheet.close}
+        initialPrompt={sheet.prompt}
+      />
     </View>
+  );
+}
+
+function PressableDocCard({
+  children,
+  onLongPress,
+}: {
+  children: React.ReactNode;
+  onLongPress?: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const onPressIn = () => {
+    if (reduceMotion) return;
+    scale.value = withSpring(0.98, { stiffness: 320, damping: 22 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { stiffness: 320, damping: 22 });
+  };
+  return (
+    <Pressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onLongPress={onLongPress}
+      delayLongPress={420}
+    >
+      <Animated.View style={[styles.docCard, animatedStyle]}>{children}</Animated.View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: tokens.bg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    backgroundColor: COLORS.surface,
+    paddingBottom: spacing.lg,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
+    textAlign: 'center',
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
   },
   uploadButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary + '12',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.md,
+    backgroundColor: tokens.text,
   },
   uploadButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: tokens.bg,
   },
   categoriesRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
   categoryChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: tokens.border,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: tokens.text,
+    borderColor: tokens.text,
   },
   categoryChipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: COLORS.textSecondary,
+    color: tokens.textMuted,
   },
   categoryChipTextActive: {
-    color: '#FFF',
+    color: tokens.bg,
   },
   countText: {
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: tokens.textSubtle,
     fontWeight: '500',
   },
   docList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 100,
+    gap: spacing.md,
   },
   docCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: tokens.border,
+    gap: spacing.md,
   },
   docIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
   },
-  docEmoji: {
-    fontSize: 22,
+  docIconGlyph: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: tokens.text,
   },
-  docContent: {
-    flex: 1,
-  },
+  docContent: { flex: 1 },
   docTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 6,
+    color: tokens.text,
+    marginBottom: spacing.xs + 2,
   },
   docMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   categoryBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
+    backgroundColor: tokens.surface2,
   },
   categoryText: {
     fontSize: 11,
     fontWeight: '600',
+    color: tokens.text,
   },
   docDate: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: tokens.textSubtle,
+  },
+  docRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   docSize: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: tokens.textSubtle,
     fontWeight: '500',
-    marginLeft: 8,
   },
   emptyState: {
     alignItems: 'center',
     paddingTop: 60,
+    paddingHorizontal: spacing.xl,
   },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
+  emptyTitle: {
+    marginTop: spacing.lg,
     fontSize: 16,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: tokens.text,
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    marginTop: spacing.xs,
+    fontSize: 13,
+    color: tokens.textMuted,
+    textAlign: 'center',
   },
 });
