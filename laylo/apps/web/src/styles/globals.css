@@ -10,38 +10,49 @@
  *
  * Source of truth: /DESIGN_SYSTEM.md §1.
  */
+/*
+ * Light mode = "black over yellow". Yellow IS the canvas; black is the
+ * stand-out (CTAs, focus, mascot). This is the symmetric inverse of dark
+ * mode (yellow over black). Both modes use the same semantic token names
+ * — only the actual hex flips. Components that consume tokens via
+ * var(--color-*) Just Work in either mode.
+ */
 :root {
-  --color-bg: #FFFFFF;
-  --color-surface: #FAFAFA;
-  --color-surface-2: #F4F4F5;
-  --color-surface-hover: #EFEFEF;
+  --color-bg: #FFD700;            /* honey canvas */
+  --color-surface: #FFE34D;       /* slightly lighter — cards stand out */
+  --color-surface-2: #FFEC80;     /* even lighter — nested cards, inputs */
+  --color-surface-hover: #FFDE26; /* hover state on cards/rows */
 
-  --color-text: #0A0A0A;
-  --color-text-muted: #525252;
-  --color-text-subtle: #737373;
-  --color-text-on-accent: #0A0A0A;
+  --color-text: #0A0A0A;          /* pure black body text */
+  --color-text-muted: #2A2A2A;    /* dark gray — still high contrast on yellow */
+  --color-text-subtle: #4A4A0A;   /* warm dark for tertiary metadata */
+  --color-text-on-accent: #FFD700; /* gold text sits on black CTAs */
 
-  --color-accent: #FFD700;
-  --color-accent-hover: #FFCA1A;
-  --color-accent-dim: #8A7400;
-  --color-accent-soft: #FFF4B8;
+  --color-accent: #0A0A0A;        /* BLACK is the accent here — the stand-out */
+  --color-accent-hover: #1F1F1F;  /* slight lift on hover */
+  --color-accent-dim: #4A4A4A;    /* subdued accent for borders/glow base */
+  --color-accent-soft: #2A2A2A;   /* tinted-black wash for chips on yellow */
 
-  --color-border: #E5E5E5;
-  --color-border-strong: #D4D4D4;
-  --color-focus-ring: #FFD700;
+  --color-border: #B89400;        /* dark amber hairlines — visible on yellow */
+  --color-border-strong: #8A7400; /* stronger amber for hover borders */
+  --color-focus-ring: #0A0A0A;    /* black ring — pops on yellow */
 
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  --color-success: #166534;       /* darker greens read better on yellow */
+  --color-warning: #9A3412;       /* darker oranges */
+  --color-danger: #991B1B;        /* darker reds */
 
-  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay: rgba(0, 0, 0, 0.55);
 
-  /* Shadow tokens (used by Tailwind extension as well) */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 0 3px rgba(255, 215, 0, 0.25);
+  /* Shadows in light mode are darker (yellow bg shows shadow well) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.18);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-glow: 0 0 0 3px rgba(10, 10, 10, 0.35); /* black glow */
+
+  /* Bee mascot — body inverts (black on yellow in light, gold on black in dark) */
+  --bee-body: #0A0A0A;
+  --bee-detail: #FFD700;
 }
 
 .dark {
@@ -70,6 +81,10 @@
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --shadow-glow: 0 0 0 3px rgba(255, 215, 0, 0.35);
+
+  /* Bee mascot — gold body on black bg in dark mode */
+  --bee-body: #FFD700;
+  --bee-detail: #0A0A0A;
 }
 
 @layer base {

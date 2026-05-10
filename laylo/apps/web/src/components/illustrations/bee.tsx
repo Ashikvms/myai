@@ -15,8 +15,10 @@ export interface BeeProps {
   className?: string;
 }
 
-const GOLD = '#FFD700';
-const BLACK = '#0A0A0A';
+// Theme-adaptive: body flips with mode (gold in dark, black in light) so the
+// bee always contrasts against the canvas. White wings stay literal.
+const GOLD = 'var(--bee-body)';
+const BLACK = 'var(--bee-detail)';
 const WHITE = '#FFFFFF';
 
 function BeeFrame({

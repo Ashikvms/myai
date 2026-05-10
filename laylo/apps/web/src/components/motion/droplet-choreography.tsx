@@ -102,17 +102,10 @@ function Droplet({ width = 32, height = 40 }: { width?: number; height?: number 
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id="droplet-gold" x1="16" y1="2" x2="16" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFE680" />
-          <stop offset="55%" stopColor="#FFD700" />
-          <stop offset="100%" stopColor="#E0AC00" />
-        </linearGradient>
-      </defs>
       <path
         d="M16 2 C 16 2, 4 22, 4 32 a 12 12 0 0 0 24 0 C 28 22, 16 2, 16 2 z"
-        fill="url(#droplet-gold)"
-        stroke="var(--color-accent)"
+        fill="var(--color-accent)"
+        stroke="var(--color-accent-hover)"
         strokeWidth="1"
       />
     </svg>

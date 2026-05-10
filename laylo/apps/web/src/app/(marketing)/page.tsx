@@ -74,13 +74,13 @@ function MiniBee({ size = 28 }: { size?: number }) {
       {/* Wings */}
       <ellipse cx="9" cy="11" rx="6" ry="3.5" fill="#FFFFFF" fillOpacity="0.55" />
       <ellipse cx="22" cy="10" rx="6" ry="3.5" fill="#FFFFFF" fillOpacity="0.55" />
-      {/* Body */}
-      <ellipse cx="16" cy="18" rx="9" ry="6" fill="#FFD700" />
-      {/* Stripes */}
-      <rect x="11" y="13" width="2" height="10" rx="1" fill="#0A0A0A" />
-      <rect x="19" y="13" width="2" height="10" rx="1" fill="#0A0A0A" />
+      {/* Body — adapts to theme via --bee-body */}
+      <ellipse cx="16" cy="18" rx="9" ry="6" fill="var(--bee-body)" />
+      {/* Stripes — adapts to theme via --bee-detail */}
+      <rect x="11" y="13" width="2" height="10" rx="1" fill="var(--bee-detail)" />
+      <rect x="19" y="13" width="2" height="10" rx="1" fill="var(--bee-detail)" />
       {/* Eye */}
-      <circle cx="9" cy="17" r="1" fill="#0A0A0A" />
+      <circle cx="9" cy="17" r="1" fill="var(--bee-detail)" />
     </svg>
   );
 }
