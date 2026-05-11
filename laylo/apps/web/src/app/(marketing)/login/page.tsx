@@ -23,6 +23,8 @@ import { BeeStanding } from '@/components/illustrations/bee';
 import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
 import { MotionButton } from '@/components/motion/motion-button';
 import { DropletChoreography } from '@/components/motion/droplet-choreography';
+import { AmbientBees } from '@/components/motion/ambient-bees';
+import { IdleBob } from '@/components/motion/idle-bob';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -70,6 +72,10 @@ export default function LoginPage() {
 
       <DropletChoreography variant="login">
         <div className="relative w-full max-w-[440px]">
+          {/* Ambient bee in the upper third — "the hive is alive". */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/3 overflow-hidden">
+            <AmbientBees count={1} speed="slow" size={22} />
+          </div>
           <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-md">
             <DropletChoreography.Logo>
               <div className="mb-8 flex flex-col items-center">
@@ -88,7 +94,10 @@ export default function LoginPage() {
                     transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     className="relative"
                   >
-                    <BeeStanding size={180} />
+                    {/* Idle bob — the bee "breathes" up/down once the droplet has landed. */}
+                    <IdleBob amplitude={2} duration={4}>
+                      <BeeStanding size={180} />
+                    </IdleBob>
                   </motion.div>
                 </div>
                 <h1 className="mt-2 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">

@@ -33,6 +33,7 @@ import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeMagnifying, BeeStanding } from '@/components/illustrations/bee';
 import { AnimatedNumber } from '@/components/motion/animated-number';
 import { TransactionDetailDrawer } from '@/components/transactions/transaction-detail-drawer';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function toNumber(amount: string | number): number {
@@ -227,8 +228,11 @@ export default function TransactionsPage() {
   return (
     <div className="max-w-[840px] mx-auto">
       {/* Header */}
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
+      <header className="relative mb-6 overflow-hidden">
+        {/* Single bee in the header band only — never over the table itself
+            (dense data → particles compete with scanning per plan §2). */}
+        <AmbientBees count={1} speed="medium" />
+        <div className="relative flex items-center gap-3">
           <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
             <Receipt className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
           </div>

@@ -37,6 +37,7 @@ import {
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
@@ -203,7 +204,9 @@ export default function AppointmentsPage() {
   return (
     <div className="max-w-[1024px] mx-auto">
       {/* Header */}
-      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+      <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
+        {/* Single ambient bee in the hero band only */}
+        <AmbientBees count={1} speed="slow" />
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">

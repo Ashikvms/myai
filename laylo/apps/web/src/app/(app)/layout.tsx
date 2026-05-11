@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { PageTransition } from '@/components/motion/page-transition';
+import { RouteProgressBar } from '@/components/motion/route-progress-bar';
+import { TabVisibilityGate } from '@/components/motion/tab-visibility-gate';
+import { PulseDot } from '@/components/motion/pulse-dot';
 import { BeeLogoMark } from '@/components/illustrations/bee';
 
 // 5-item nav per REDESIGN_BRIEF.md §3.1
@@ -94,6 +97,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex">
+      {/* Top route-change gold flash — global, single instance. */}
+      <RouteProgressBar />
       {/* Desktop Sidebar */}
       <motion.aside
         initial={false}
@@ -232,7 +237,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-accent)] rounded-full" />
+              <span className="absolute top-1.5 right-1.5">
+                <PulseDot size={8} />
+              </span>
             </button>
             <div className="relative">
               <button
@@ -364,5 +371,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <TabVisibilityGate>
+      <AppShell>{children}</AppShell>
+    </TabVisibilityGate>
+  );
 }

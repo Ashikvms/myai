@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { AnimatedNumber } from '@/components/motion/animated-number';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 import { Sparkline } from '@/components/layout/sparkline';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 
@@ -108,6 +109,8 @@ export default function MoneyPage() {
                 'radial-gradient(circle at 70% 30%, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0) 60%)',
             }}
           />
+          {/* Single bee crossing the outflow tile — "checking on the honey". */}
+          <AmbientBees count={1} speed="medium" />
           <div className="relative">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown

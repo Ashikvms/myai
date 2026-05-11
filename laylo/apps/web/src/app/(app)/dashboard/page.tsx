@@ -40,6 +40,7 @@ import {
   BeeSleeping,
 } from '@/components/illustrations/bee';
 import { AnimatedNumber } from '@/components/motion/animated-number';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 import { getGreeting, getBeePoseForHour } from '@/lib/greeting';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 
@@ -127,6 +128,8 @@ export default function DashboardPage() {
                 'radial-gradient(circle at 30% 50%, rgba(255,215,0,0.18) 0%, rgba(255,215,0,0) 65%)',
             }}
           />
+          {/* Ambient bees — "the hive is alive" — confined to hero tile only */}
+          <AmbientBees count={2} speed="slow" />
           <div className="relative p-6 lg:p-8 flex flex-col h-full min-h-[220px]">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>

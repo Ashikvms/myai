@@ -36,6 +36,7 @@ import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
 import { HiveHeader, type HivePip } from '@/components/layout/hive-header';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type ActiveTab = 'bills' | 'subscriptions';
@@ -721,8 +722,10 @@ export default function BillsPage() {
 
   return (
     <div className="max-w-[1024px] mx-auto">
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
+      <header className="relative mb-6 overflow-hidden">
+        {/* Ambient bees over the hero band only — bills feel alive */}
+        <AmbientBees count={2} speed="slow" />
+        <div className="relative flex items-center gap-3">
           <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
             <CreditCard className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
           </div>

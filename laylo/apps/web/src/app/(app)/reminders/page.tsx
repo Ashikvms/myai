@@ -25,6 +25,8 @@ import { format, addDays, addMonths, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
+import { AmbientBees } from '@/components/motion/ambient-bees';
+import { PulseDot } from '@/components/motion/pulse-dot';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ReminderStatus = 'pending' | 'dismissed';
@@ -205,8 +207,13 @@ export default function RemindersPage() {
       <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
               <Bell className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+              {pendingReminders.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5">
+                  <PulseDot size={8} />
+                </span>
+              )}
             </div>
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Reminders</h1>
           </div>
@@ -225,7 +232,9 @@ export default function RemindersPage() {
 
       {/* Empty */}
       {pendingReminders.length === 0 && dismissedReminders.length === 0 && (
-        <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
+        <div className="relative overflow-hidden rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
+          {/* "Nothing to remind you of" — one slow bee says it for us. */}
+          <AmbientBees count={1} speed="slow" />
           <BeeStanding size={96} />
           <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
             All quiet on the notification front

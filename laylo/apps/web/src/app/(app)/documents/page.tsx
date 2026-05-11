@@ -33,6 +33,7 @@ import { format, addDays, addMonths, differenceInDays } from 'date-fns';
 import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding, BeeMagnifying } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 
 const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
@@ -154,8 +155,10 @@ export default function DocumentsPage() {
   return (
     <div className="max-w-[1024px] mx-auto">
       {/* Header */}
-      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-        <div>
+      <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
+        {/* Single ambient bee in the header band only */}
+        <AmbientBees count={1} speed="slow" />
+        <div className="relative">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
               <FileText className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />

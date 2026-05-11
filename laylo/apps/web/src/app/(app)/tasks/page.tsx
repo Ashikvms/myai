@@ -29,6 +29,7 @@ import { SparkleBurst } from '@/components/motion/sparkle-burst';
 import { MotionButton } from '@/components/motion/motion-button';
 import { InboxZeroOverlay } from '@/components/celebrations/inbox-zero-overlay';
 import { ProgressHive } from '@/components/layout/progress-hive';
+import { AmbientBees } from '@/components/motion/ambient-bees';
 
 const INBOX_ZERO_FLAG = 'billbee:tasks:hadTasks';
 
@@ -244,7 +245,9 @@ export default function TasksPage() {
   return (
     <div className="max-w-[760px] mx-auto">
       {/* Header */}
-      <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+      <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
+        {/* Ambient bees — light density only, header-scoped (per perf budget) */}
+        <AmbientBees count={1} speed="slow" />
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
