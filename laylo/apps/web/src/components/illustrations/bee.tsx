@@ -62,19 +62,21 @@ export function BeeStanding(props: BeeProps) {
       {/* Antenna dots — chunky yellow orbs with black outline */}
       <circle cx={28} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
       <circle cx={68} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
-      {/* Wings — outlined ovals tucked behind face, visible on both bgs */}
+      {/* Wings — outlined ovals tucked behind face. Black stroke at high
+          opacity so they read clearly on both yellow + black canvases. */}
       <ellipse
         cx={16} cy={48} rx={13} ry={8}
-        fill={WHITE} fillOpacity={0.18}
-        stroke={BLACK} strokeOpacity={0.7} strokeWidth={2.2}
+        fill={WHITE} fillOpacity={0.22}
+        stroke={BLACK} strokeOpacity={0.85} strokeWidth={2.4}
       />
       <ellipse
         cx={80} cy={48} rx={13} ry={8}
-        fill={WHITE} fillOpacity={0.18}
-        stroke={BLACK} strokeOpacity={0.7} strokeWidth={2.2}
+        fill={WHITE} fillOpacity={0.22}
+        stroke={BLACK} strokeOpacity={0.85} strokeWidth={2.4}
       />
-      {/* Face — round body with thick black outline */}
-      <circle cx={48} cy={52} r={30} fill={GOLD} stroke={BLACK} strokeWidth={3.5} />
+      {/* Face — round body with bold black outline (4px gives strong
+          silhouette in light mode where face matches the canvas yellow). */}
+      <circle cx={48} cy={52} r={30} fill={GOLD} stroke={BLACK} strokeWidth={4} />
 
       {/* Two angled eyebrows — outer ends HIGH, inner ends LOW (cool look) */}
       <path
@@ -455,20 +457,20 @@ export function BeeLogoMark({ size = 40, className }: BeeProps) {
       <circle cx={19} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
       <circle cx={45} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
 
-      {/* Wings — outlined ovals tucked behind the face */}
+      {/* Wings — black stroke at high opacity for visibility on both bgs */}
       <ellipse
         cx={11} cy={32} rx={9} ry={5.5}
-        fill="#FFFFFF" fillOpacity={0.12}
-        stroke="#0A0A0A" strokeOpacity={0.7} strokeWidth={1.8}
+        fill="#FFFFFF" fillOpacity={0.18}
+        stroke="#0A0A0A" strokeOpacity={0.85} strokeWidth={2}
       />
       <ellipse
         cx={53} cy={32} rx={9} ry={5.5}
-        fill="#FFFFFF" fillOpacity={0.12}
-        stroke="#0A0A0A" strokeOpacity={0.7} strokeWidth={1.8}
+        fill="#FFFFFF" fillOpacity={0.18}
+        stroke="#0A0A0A" strokeOpacity={0.85} strokeWidth={2}
       />
 
-      {/* Face — round body with thick black outline (works on yellow OR black bg) */}
-      <circle cx={32} cy={34} r={20} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={2.8} />
+      {/* Face — bold black outline so silhouette holds on yellow bg in light mode */}
+      <circle cx={32} cy={34} r={20} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={3.2} />
 
       {/* Two angled eyebrows — outer ends HIGH, inner ends LOW
           (the cool/confident look from the reference image) */}
