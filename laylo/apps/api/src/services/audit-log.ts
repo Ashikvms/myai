@@ -45,6 +45,50 @@ export async function writeAccessLog(params: AuditLogParams): Promise<void> {
 }
 
 /**
+ * Write an authentication-failure audit row.
+ *
+ * Used for failed logins, registration attempts against existing
+ * accounts, and similar pre-auth events where we don't yet have a real
+ * `userId`. The schema requires `actorUserId` to be non-null, so we use
+ * the sentinel string `'anonymous'` (length-bounded under 80 chars) — this
+ * lets SOC2/breach-detection queries filter on
+ * `actorUserId = 'anonymous' AND resource = 'AuthFailure'`.
+ *
+ * Never throws — audit failure must not break the auth flow.
+ */
+export async function writeAuthFailureLog(params: {
+  email?: string;
+  reason: string;
+  ipAddress?: string;
+  userAgent?: string;
+  context?: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await prisma.bankDataAccessLog.create({
+      data: {
+        userId: null,
+        actorUserId: 'anonymous',
+        action: 'WRITE',
+        resource: 'AuthFailure',
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        context: {
+          email: params.email,
+          reason: params.reason,
+          ...(params.context ?? {}),
+        } as never,
+      },
+    });
+  } catch (err) {
+    logger.error('Failed to write auth-failure audit log', {
+      reason: params.reason,
+      error: (err as Error).message,
+    });
+    // swallow — audit failure must not block auth response
+  }
+}
+
+/**
  * Pull IP + UA from an Express request, falling back to undefined.
  */
 export function extractRequestMeta(req: Request): { ipAddress?: string; userAgent?: string } {

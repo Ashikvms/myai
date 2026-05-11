@@ -1,0 +1,48 @@
+# Dependency dirs — re-installed inside the image via `npm ci`
+node_modules
+**/node_modules
+
+# Local environment + secrets — must NEVER end up in an image layer
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Build artefacts (the image rebuilds them)
+dist
+**/dist
+build
+**/build
+.next
+**/.next
+.turbo
+**/.turbo
+coverage
+**/coverage
+
+# Test + cache outputs
+*.log
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache
+**/.cache
+
+# VCS + editor + OS junk
+.git
+.gitignore
+.github
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs that bloat the build context
+*.md
+LICENSE
+docs
+
+# Mobile-only artefacts (keep API image lean)
+apps/mobile
+apps/web/.next

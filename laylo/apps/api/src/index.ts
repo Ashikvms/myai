@@ -4,6 +4,7 @@ import { logger } from './config/logger';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import passport from 'passport';
 import { errorHandler } from './middleware/errorHandler';
 import { globalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
@@ -69,6 +70,14 @@ app.use(globalLimiter);
 // ── Health check ───────────────────────
 
 app.use('/health', healthRouter);
+
+// ── Passport (Google OAuth) ────────────
+//
+// Required by passport.authenticate('google', ...) middleware mounted
+// inside /api/auth. Sessions are NOT used (we issue our own JWTs), so we
+// only call .initialize() — no .session().
+
+app.use(passport.initialize());
 
 // ── Routes ─────────────────────────────
 
