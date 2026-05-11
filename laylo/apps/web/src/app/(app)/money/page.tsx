@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { FallIntoPlace } from '@/components/motion/fall-into-place';
 import {
   CreditCard,
   RefreshCw,
@@ -80,10 +81,11 @@ export default function MoneyPage() {
   );
 
   return (
-    <div className="relative max-w-[1024px] mx-auto">
+    <FallIntoPlace className="relative max-w-[1024px] mx-auto">
       {/* Hive-theme honeycomb wash — sits behind the bento tiles, breathes between them */}
       <HoneycombPattern opacity={0.04} />
       {/* Header + Ask chip */}
+      <FallIntoPlace.Item from="top" delay={0}>
       <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Money</h1>
@@ -96,14 +98,16 @@ export default function MoneyPage() {
           label="Ask BillBee"
         />
       </header>
+      </FallIntoPlace.Item>
 
-      {/* Bento — 1 hero + 4 hub */}
+      {/* Bento — 1 hero + 4 hub. Each tile drops in top → bottom, ~80ms apart. */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
         {/* Hero outflow tile (right 7 cols, full row 1) */}
+        <FallIntoPlace.Item from="top" delay={0.12} className="lg:col-span-7 lg:row-span-2">
         <motion.div
           whileHover={reduce ? undefined : { y: -2, rotate: 0.4, scale: 1.005 }}
           transition={{ duration: 0.25 }}
-          className="lg:col-span-7 lg:row-span-2 relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 lg:p-8 overflow-hidden hover:shadow-pop transition-shadow"
+          className="relative rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 lg:p-8 overflow-hidden hover:shadow-pop transition-shadow h-full"
         >
           <div
             aria-hidden="true"
@@ -152,18 +156,23 @@ export default function MoneyPage() {
             </div>
           </div>
         </motion.div>
+        </FallIntoPlace.Item>
 
         {/* Four hub cards — 5 cols wide, 2 per row over 2 rows */}
-        {HUB_CARDS.map((card) => {
+        {HUB_CARDS.map((card, i) => {
           const isHovered = hovered === card.href;
           return (
-            <motion.div
+            <FallIntoPlace.Item
               key={card.href}
+              from="top"
+              delay={0.2 + i * 0.08}
+              className="lg:col-span-5 sm:col-span-1 sm:[&:nth-child(2n)]:col-start-1"
+            >
+            <motion.div
               onHoverStart={() => setHovered(card.href)}
               onHoverEnd={() => setHovered(null)}
               whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
               transition={{ duration: 0.2 }}
-              className="lg:col-span-5 sm:col-span-1 sm:[&:nth-child(2n)]:col-start-1"
             >
               <Link
                 href={card.href}
@@ -218,6 +227,7 @@ export default function MoneyPage() {
                 </motion.div>
               </Link>
             </motion.div>
+            </FallIntoPlace.Item>
           );
         })}
       </div>
@@ -228,6 +238,6 @@ export default function MoneyPage() {
         <span>Need a deeper view? Ask BillBee to break it down.</span>
         <AskAiChip prompt="Break down this month's spending" label="Try a prompt" />
       </div>
-    </div>
+    </FallIntoPlace>
   );
 }

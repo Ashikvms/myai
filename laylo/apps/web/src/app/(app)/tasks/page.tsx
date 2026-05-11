@@ -15,6 +15,7 @@
  */
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { FallIntoPlace } from '@/components/motion/fall-into-place';
 import {
   CheckSquare,
   Plus,
@@ -245,10 +246,11 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="relative max-w-[760px] mx-auto">
+    <FallIntoPlace className="relative max-w-[760px] mx-auto">
       {/* Hive theme — honeycomb wash sits behind the header / progress hive */}
       <HoneycombPattern opacity={0.04} />
-      {/* Header */}
+      {/* Header — drops from top */}
+      <FallIntoPlace.Item from="top" delay={0}>
       <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
         {/* Ambient bees — light density only, header-scoped (per perf budget) */}
         <AmbientBees count={1} speed="slow" />
@@ -286,9 +288,14 @@ export default function TasksPage() {
           </MotionButton>
         </div>
       </header>
+      </FallIntoPlace.Item>
 
-      {/* Progress Hive */}
-      {tasks.length > 0 && <ProgressHive pips={hivePips} onSelect={scrollToTask} />}
+      {/* Progress Hive — slides in from the left right after the header. */}
+      {tasks.length > 0 && (
+        <FallIntoPlace.Item from="left" delay={0.12}>
+          <ProgressHive pips={hivePips} onSelect={scrollToTask} />
+        </FallIntoPlace.Item>
+      )}
 
       {/* Empty */}
       {filteredTasks.length === 0 && (
@@ -315,8 +322,13 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Conversational Stack — the list itself */}
+      {/* Conversational Stack — the list itself.
+          The list as a whole slides in from the left after the header +
+          progress hive have settled. Individual rows still get their per-row
+          enter/exit animation from AnimatePresence below — we don't stagger
+          every single row (could be 100+); the list as a unit settles. */}
       {filteredTasks.length > 0 && (
+        <FallIntoPlace.Item from="left" delay={0.22}>
         <ul className="space-y-2">
           <AnimatePresence mode="popLayout">
             {filteredTasks.map((task) => {
@@ -483,6 +495,7 @@ export default function TasksPage() {
             })}
           </AnimatePresence>
         </ul>
+        </FallIntoPlace.Item>
       )}
 
       {/* Bee whisper — peeks from bottom-right corner on long-hover */}
@@ -615,6 +628,6 @@ export default function TasksPage() {
 
       {/* Inbox-zero earned celebration */}
       <InboxZeroOverlay open={inboxZeroOpen} onClose={() => setInboxZeroOpen(false)} />
-    </div>
+    </FallIntoPlace>
   );
 }

@@ -11,6 +11,7 @@
  */
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { FallIntoPlace } from '@/components/motion/fall-into-place';
 import {
   CreditCard,
   AlertCircle,
@@ -723,9 +724,10 @@ export default function BillsPage() {
   };
 
   return (
-    <div className="relative max-w-[1024px] mx-auto">
+    <FallIntoPlace className="relative max-w-[1024px] mx-auto">
       {/* Hive theme — subtle honeycomb wash behind the bills page */}
       <HoneycombPattern opacity={0.04} />
+      <FallIntoPlace.Item from="top" delay={0}>
       <header className="relative mb-6 overflow-hidden">
         {/* Ambient bees over the hero band only — bills feel alive */}
         <AmbientBees count={2} speed="slow" />
@@ -741,6 +743,7 @@ export default function BillsPage() {
           </div>
         </div>
       </header>
+      </FallIntoPlace.Item>
 
       {/* Hive Header — answers "how much is left this month?" visually */}
       {activeTab === 'bills' && hivePips.length > 0 && (
@@ -814,7 +817,12 @@ export default function BillsPage() {
               />
             ) : (
               <>
-                {/* Origami 2-col grid */}
+                {/* Origami 2-col grid — wrapped so the first cards rise from
+                    the bottom right after the header has settled. We don't
+                    stagger every card (could be many); the grid as a whole
+                    settles, individual rows still get their own list-stagger
+                    from the existing AnimatePresence behaviour. */}
+                <FallIntoPlace.Item from="bottom" delay={0.18}>
                 <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <AnimatePresence>
                     {activeBills.map((bill) => (
@@ -828,6 +836,7 @@ export default function BillsPage() {
                     ))}
                   </AnimatePresence>
                 </motion.div>
+                </FallIntoPlace.Item>
                 {activeBills.length === 0 && paidBills.length > 0 && (
                   <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center mt-4">
                     <BeeStanding size={72} />
@@ -943,7 +952,7 @@ export default function BillsPage() {
 
       <AddBillModal open={showAddBill} onClose={() => setShowAddBill(false)} onAdd={addBill} />
       <AddSubModal open={showAddSub} onClose={() => setShowAddSub(false)} onAdd={addSub} />
-    </div>
+    </FallIntoPlace>
   );
 }
 

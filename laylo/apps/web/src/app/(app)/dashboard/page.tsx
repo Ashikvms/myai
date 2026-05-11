@@ -14,6 +14,8 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { FallIntoPlace } from '@/components/motion/fall-into-place';
+import { useAuth } from '@/lib/auth-context';
 import {
   CheckSquare,
   CreditCard,
@@ -88,9 +90,41 @@ const TASK_BURSTS = [
   'Look at you go.',
 ];
 
+// ─── First-login session detection ──────────────────────────────────
+// We mark the welcome flag on first dashboard mount per session so the
+// "fall into place" plays slowly on the first visit and quickly on every
+// subsequent visit.
+const SESSION_WELCOME_KEY = 'billbee:welcomed';
+
+function useFirstDashboardVisit(): { isFirstVisit: boolean; ready: boolean } {
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let alreadyWelcomed = '1';
+    try {
+      alreadyWelcomed = window.sessionStorage.getItem(SESSION_WELCOME_KEY) ?? '0';
+    } catch {
+      alreadyWelcomed = '1'; // fail-soft → treat as already welcomed
+    }
+    if (alreadyWelcomed !== '1') {
+      setIsFirstVisit(true);
+      try {
+        window.sessionStorage.setItem(SESSION_WELCOME_KEY, '1');
+      } catch {
+        /* fail-soft */
+      }
+    }
+    setReady(true);
+  }, []);
+  return { isFirstVisit, ready };
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────
 export default function DashboardPage() {
   const reduce = useReducedMotion();
+  const { user } = useAuth();
+  const { isFirstVisit, ready: visitReady } = useFirstDashboardVisit();
   const [taskChecked, setTaskChecked] = useState<Record<string, boolean>>({ '3': true });
   const [insightIndex, setInsightIndex] = useState(0);
   // Easter egg: tap the bee 5x in 2.5s → bee complains.
@@ -99,6 +133,29 @@ export default function DashboardPage() {
   const beeTapTimerRef = useRef<number | null>(null);
   // Random one-liner shown briefly when a task is checked off.
   const [bursts, setBursts] = useState<{ id: number; text: string } | null>(null);
+  // Welcome bee speech — shown once per session near the avatar.
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // First-visit-of-session: trigger the welcome bee speech bubble once.
+  useEffect(() => {
+    if (!visitReady) return;
+    if (!isFirstVisit) return;
+    if (reduce) return;
+    setShowWelcome(true);
+    const t = window.setTimeout(() => setShowWelcome(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [visitReady, isFirstVisit, reduce]);
+
+  // Tighter cascade on subsequent visits; slower, more theatrical on first
+  // visit per the "first login of session" requirement.
+  // Stagger between siblings — applied as `delay = base + i * step` below.
+  const staggerStep = isFirstVisit ? 0.12 : 0.06;
+  // Where the entrance "fall" begins, in seconds.
+  const heroDelay = isFirstVisit ? 0.3 : 0;
+  const insightBaseDelay = heroDelay + 0.18;
+  const taskBillsDelay = heroDelay + 0.5;
+  const bankingDelay = heroDelay + 0.7;
+  const ambientDelay = heroDelay + 1.0;
 
   // Reset tap counter if quiet for 2.5s.
   useEffect(() => {
@@ -173,13 +230,23 @@ export default function DashboardPage() {
   const wideInsight = DEMO_INSIGHTS[insightIndex] ?? DEMO_INSIGHTS[0]!;
   const sideInsight = DEMO_INSIGHTS[(insightIndex + 1) % DEMO_INSIGHTS.length]!;
 
+  // Ambient bees fade in once everything has settled. Drives a small
+  // separate fade so they don't compete with the FallIntoPlace cascade.
+  const [showAmbientBees, setShowAmbientBees] = useState(reduce ? true : false);
+  useEffect(() => {
+    if (reduce) {
+      setShowAmbientBees(true);
+      return;
+    }
+    const t = window.setTimeout(() => setShowAmbientBees(true), ambientDelay * 1000);
+    return () => window.clearTimeout(t);
+  }, [reduce, ambientDelay]);
+
+  // Welcome name — fall back to "back" if no name available.
+  const welcomeName = (user?.name?.split(' ')[0]) || 'back';
+
   return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="relative max-w-[1280px] mx-auto"
-    >
+    <FallIntoPlace className="relative max-w-[1280px] mx-auto">
       {/* Subtle hive-theme honeycomb wash — 4% opacity, behind everything */}
       <HoneycombPattern opacity={0.04} />
       {/* Bee one-liner toast — fires when a dashboard task is completed */}
@@ -201,12 +268,33 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Welcome bee — first dashboard mount per session, near the avatar. */}
+      <AnimatePresence>
+        {showWelcome && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            className="fixed top-16 right-16 z-[80] pointer-events-none"
+            role="status"
+            aria-live="polite"
+          >
+            <BeeSpeechBubble tail="right" ariaLabel="Welcome">
+              Welcome {welcomeName} 🐝
+            </BeeSpeechBubble>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* ── Bento Grid ─────────────────────────────────────────────────
-          Mobile = single column; ≥lg = 12-col / multi-row layout. */}
+          Mobile = single column; ≥lg = 12-col / multi-row layout.
+          Each tile is wrapped in <FallIntoPlace.Item> so the whole grid
+          settles into place rather than appearing all at once. */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
         {/* ── HERO (1–8, row 1) ─────────────────────────────── */}
+        <FallIntoPlace.Item from="top" delay={heroDelay} className="lg:col-span-8">
         <BentoTile
-          className="lg:col-span-8 relative overflow-hidden"
+          className="relative overflow-hidden"
           padded={false}
         >
           <div
@@ -217,8 +305,9 @@ export default function DashboardPage() {
                 'radial-gradient(circle at 30% 50%, rgba(255,215,0,0.18) 0%, rgba(255,215,0,0) 65%)',
             }}
           />
-          {/* Ambient bees — "the hive is alive" — confined to hero tile only */}
-          <AmbientBees count={2} speed="slow" />
+          {/* Ambient bees — "the hive is alive". Fade in only after the
+              dashboard has fully settled so they don't fight with the cascade. */}
+          {showAmbientBees && <AmbientBees count={2} speed="slow" />}
           <div className="relative p-6 lg:p-8 flex flex-col h-full min-h-[220px]">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
@@ -258,9 +347,11 @@ export default function DashboardPage() {
             </div>
           </div>
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── HERO STAT (9–12, row 1) — the day's headline ──── */}
-        <BentoTile className="lg:col-span-4 flex flex-col justify-between">
+        <FallIntoPlace.Item from="top" delay={heroDelay + staggerStep} className="lg:col-span-4">
+        <BentoTile className="flex flex-col justify-between h-full">
           <div>
             <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
               Next up
@@ -281,9 +372,11 @@ export default function DashboardPage() {
             </div>
           </div>
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── INSIGHT WIDE (1–5, row 2) ──────────────────────── */}
-        <BentoTile className="lg:col-span-5 relative overflow-hidden">
+        <FallIntoPlace.Item from="top" delay={insightBaseDelay} className="lg:col-span-5">
+        <BentoTile className="relative overflow-hidden h-full">
           <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)] mb-3">
             Insight
           </p>
@@ -325,9 +418,11 @@ export default function DashboardPage() {
             />
           )}
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── INSIGHT NARROW (6–8, row 2) ────────────────────── */}
-        <BentoTile className="lg:col-span-3">
+        <FallIntoPlace.Item from="top" delay={insightBaseDelay + staggerStep} className="lg:col-span-3">
+        <BentoTile className="h-full">
           <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)] mb-3">
             Spotted
           </p>
@@ -341,9 +436,11 @@ export default function DashboardPage() {
             </p>
           </div>
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── STREAK (9–12, row 2) ────────────────────────────── */}
-        <BentoTile className="lg:col-span-4 relative overflow-hidden">
+        <FallIntoPlace.Item from="top" delay={insightBaseDelay + 2 * staggerStep} className="lg:col-span-4">
+        <BentoTile className="relative overflow-hidden h-full">
           <div className="flex items-start gap-3">
             <Flame
               className="w-5 h-5 text-[var(--color-accent)] mt-0.5"
@@ -373,9 +470,11 @@ export default function DashboardPage() {
             ))}
           </div>
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── BILLS (1–7, row 3) — horizontal pair ─────────── */}
-        <BentoTile className="lg:col-span-7" padded={false}>
+        <FallIntoPlace.Item from="bottom" delay={taskBillsDelay} className="lg:col-span-7">
+        <BentoTile className="h-full" padded={false}>
           <div className="p-6 pb-3">
             <div className="flex items-center justify-between">
               <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
@@ -428,9 +527,11 @@ export default function DashboardPage() {
             ))}
           </div>
         </BentoTile>
+        </FallIntoPlace.Item>
 
         {/* ── TASK (8–12, row 3) — single most-urgent task ─── */}
-        <BentoTile className="lg:col-span-5 flex flex-col">
+        <FallIntoPlace.Item from="bottom" delay={taskBillsDelay + staggerStep} className="lg:col-span-5">
+        <BentoTile className="flex flex-col h-full">
           <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)] mb-3">
             Today&apos;s task
           </p>
@@ -482,16 +583,17 @@ export default function DashboardPage() {
             </div>
           )}
         </BentoTile>
+        </FallIntoPlace.Item>
       </div>
 
       {/* ── Footer banking row (live data) ──────────────────────── */}
       <section className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-1">
+        <FallIntoPlace.Item from="bottom" delay={bankingDelay} className="lg:col-span-1">
           <ConnectedAccountsCard />
-        </div>
-        <div className="lg:col-span-2">
+        </FallIntoPlace.Item>
+        <FallIntoPlace.Item from="bottom" delay={bankingDelay + staggerStep} className="lg:col-span-2">
           <RecentTransactionsCard />
-        </div>
+        </FallIntoPlace.Item>
       </section>
 
       {/* ── Empty hint ──────────────────────────────────────── */}
@@ -502,7 +604,7 @@ export default function DashboardPage() {
           <AskAiChip prompt="Help me add my first bill" label="Try a prompt" />
         </div>
       </section>
-    </motion.div>
+    </FallIntoPlace>
   );
 }
 

@@ -1,98 +1,41 @@
 'use client';
 
 /**
- * PageTransition — directional spring slide + bee fly-through.
+ * PageTransition — gentle fade + tiny scale, with a single corner-bee.
  *
- * Headline rewrite: tabs feel ALIVE.
- *   - Track previous + current pathname; derive direction from NAV_ORDER
- *     (sibling tabs = horizontal slide; sub-route = vertical slide).
- *   - Spring physics ({ stiffness: 380, damping: 32 }) → organic, not mechanical.
- *   - Subtle scale-in: incoming page enters at 0.985 → 1 (depth, not theatre).
- *   - Bee fly-through: a single MiniBee briefly streaks across the viewport
- *     in the same direction as the incoming page (under content, fades at edges).
- *   - mode="popLayout" preserved.
- *   - useReducedMotion() → renders children straight, no animation.
+ * Headline rewrite (post-feedback): the previous directional-slide felt
+ * jittery — a 18px lateral jerk on every nav. We replaced it entirely.
  *
- * Performance contract:
- *   - Max 1 fly-through per transition.
+ * What this version does:
+ *   1. Drop the directional slide entirely. New page enters via FADE +
+ *      subtle scale (0.97 → 1). No x/y offset.
+ *   2. Soften the spring: { stiffness: 220, damping: 28 } — a settling
+ *      feel, not a snap.
+ *   3. mode="wait" instead of "popLayout" so we never get the dual-render
+ *      shift. To compensate for the perceived slowness, exit is short
+ *      (80ms ease-out).
+ *   4. Bee fly-through is reworked: instead of streaking across the whole
+ *      viewport, a single small bee enters from the upper-right corner,
+ *      decelerates, settles for 200ms ("delivered the page"), then fades.
+ *      Total ~600ms. Behind content.
+ *
+ * Reduce-motion: render children straight, no animation, no bee.
+ *
+ * Performance:
  *   - GPU-only transforms + opacity.
- *   - Bee auto-cleans on animation complete; no intervals.
+ *   - One bee per nav, auto-cleans on completion.
  */
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'framer-motion';
 
-// Order matches AppLayout NAV_ITEMS (Dashboard → Money → Tasks → Vault → Settings).
-const NAV_ORDER: string[] = [
-  '/dashboard',
-  '/money',
-  '/tasks',
-  '/vault',
-  '/settings',
-];
+// Gentle settling spring — no overshoot, no jitter.
+const SETTLE: Transition = { type: 'spring', stiffness: 220, damping: 28 };
+// Short exit so mode="wait" doesn't feel slow.
+const EXIT: Transition = { duration: 0.08, ease: [0.4, 0, 1, 1] };
 
-// Sub-routes that nest under a hub. When entering one of these from the hub
-// (or vice-versa), the transition reads as vertical (drill-down / drill-up).
-const SUB_ROUTES: Record<string, string> = {
-  '/bills': '/money',
-  '/transactions': '/money',
-  '/settings/banks': '/settings',
-  '/documents': '/vault',
-  '/reminders': '/vault',
-  '/appointments': '/vault',
-};
-
-function rootOf(pathname: string): string {
-  // Match longest known nav root.
-  for (const sub of Object.keys(SUB_ROUTES)) {
-    if (pathname === sub || pathname.startsWith(sub + '/')) return sub;
-  }
-  for (const root of NAV_ORDER) {
-    if (pathname === root || pathname.startsWith(root + '/')) return root;
-  }
-  return pathname;
-}
-
-type Direction = 'left' | 'right' | 'up' | 'down' | 'none';
-
-function deriveDirection(prev: string | null, next: string): Direction {
-  if (!prev || prev === next) return 'none';
-  const prevRoot = rootOf(prev);
-  const nextRoot = rootOf(next);
-  // Drill-down: hub → sub of same hub.
-  if (SUB_ROUTES[nextRoot] && SUB_ROUTES[nextRoot] === prevRoot) return 'up';
-  // Drill-up: sub → its hub.
-  if (SUB_ROUTES[prevRoot] && SUB_ROUTES[prevRoot] === nextRoot) return 'down';
-  // Sibling tabs in NAV_ORDER → horizontal.
-  const prevIdx = NAV_ORDER.indexOf(prevRoot);
-  const nextIdx = NAV_ORDER.indexOf(nextRoot);
-  if (prevIdx >= 0 && nextIdx >= 0 && prevIdx !== nextIdx) {
-    return nextIdx > prevIdx ? 'right' : 'left';
-  }
-  return 'none';
-}
-
-const SPRING = { type: 'spring' as const, stiffness: 380, damping: 32 };
-const SLIDE_PX = 18; // Subtle — feels organic, not aggressive.
-
-function offsetFor(dir: Direction): { x: number; y: number } {
-  switch (dir) {
-    case 'right':
-      return { x: SLIDE_PX, y: 0 }; // incoming from right
-    case 'left':
-      return { x: -SLIDE_PX, y: 0 }; // incoming from left
-    case 'up':
-      return { x: 0, y: SLIDE_PX }; // drilling into a sub — slides up from below
-    case 'down':
-      return { x: 0, y: -SLIDE_PX }; // surfacing back to hub — slides down from above
-    default:
-      return { x: 0, y: 0 };
-  }
-}
-
-// Inline mini-bee silhouette for the fly-through accent.
-// Same shape used elsewhere — kept inline so the transition has zero cross-file deps.
-function MiniBee({ size = 20 }: { size?: number }) {
+// Inline mini-bee silhouette for the corner accent.
+function MiniBee({ size = 22 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -112,89 +55,34 @@ function MiniBee({ size = 20 }: { size?: number }) {
 }
 
 /**
- * BeeFlyThrough — one tiny bee streaks in the direction of the incoming page.
- * Lives behind content (z-0 inside the parent stacking context),
- * fixed-positioned to the viewport. Auto-unmounts on completion.
+ * CornerDeliveryBee — the bee "delivers" the new page.
+ *
+ * Storyboard (600ms total):
+ *   0 → 320ms   Enter from upper-right (offscreen +80px / -40px) and
+ *               decelerate toward the resting position near the corner.
+ *   320 → 520ms Settle in place (no movement, just sitting).
+ *   520 → 600ms Fade out (opacity → 0).
+ *
+ * Lives top-right of the viewport, behind content (z-0). Auto-unmounts.
  */
-function BeeFlyThrough({
-  direction,
-  onDone,
-}: {
-  direction: Direction;
-  onDone: () => void;
-}) {
-  // Choose a sensible y-band so the bee doesn't run through the user's centre of attention.
-  // Top quarter for horizontal moves; biased y for vertical moves.
-  const yBand = React.useMemo(() => {
-    if (direction === 'left' || direction === 'right') {
-      // 18–28% from top — peripheral but visible.
-      return `${20 + Math.floor(Math.random() * 8)}%`;
-    }
-    return '50%';
-  }, [direction]);
-
-  // Compute start/end based on direction (translate via x/y vw values).
-  const { from, to, sineY } = React.useMemo(() => {
-    switch (direction) {
-      case 'right':
-        return {
-          from: { x: '-12vw', y: 0 },
-          to: { x: '112vw', y: 0 },
-          sineY: [0, -8, 6, -4, 0],
-        };
-      case 'left':
-        return {
-          from: { x: '112vw', y: 0 },
-          to: { x: '-12vw', y: 0 },
-          sineY: [0, 6, -8, 4, 0],
-        };
-      case 'up':
-        return {
-          from: { x: '50vw', y: '105vh' },
-          to: { x: '50vw', y: '-10vh' },
-          sineY: undefined as unknown as number[],
-        };
-      case 'down':
-        return {
-          from: { x: '50vw', y: '-10vh' },
-          to: { x: '50vw', y: '105vh' },
-          sineY: undefined as unknown as number[],
-        };
-      default:
-        return {
-          from: { x: 0, y: 0 },
-          to: { x: 0, y: 0 },
-          sineY: undefined as unknown as number[],
-        };
-    }
-  }, [direction]);
-
-  const isHorizontal = direction === 'left' || direction === 'right';
-
+function CornerDeliveryBee({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
       aria-hidden="true"
-      initial={{ ...from, opacity: 0 }}
-      animate={
-        isHorizontal
-          ? {
-              x: to.x,
-              y: sineY,
-              opacity: [0, 0.7, 0.7, 0],
-            }
-          : { x: to.x, y: to.y, opacity: [0, 0.6, 0.6, 0] }
-      }
+      initial={{ x: 80, y: -40, opacity: 0 }}
+      animate={{
+        x: [80, 0, 0, 0],
+        y: [-40, 0, 0, 0],
+        opacity: [0, 1, 1, 0],
+      }}
       transition={{
         duration: 0.6,
-        ease: [0.4, 0, 0.2, 1],
-        times: isHorizontal ? [0, 0.18, 0.82, 1] : [0, 0.2, 0.8, 1],
+        times: [0, 0.55, 0.85, 1],
+        ease: [0.16, 0.84, 0.24, 1], // decelerating arrival; hold + fade ride out the same curve
       }}
       onAnimationComplete={onDone}
-      className="pointer-events-none fixed left-0 z-0"
-      style={{
-        top: yBand,
-        willChange: 'transform, opacity',
-      }}
+      className="pointer-events-none fixed right-6 top-20 z-0"
+      style={{ willChange: 'transform, opacity' }}
     >
       <MiniBee size={22} />
     </motion.div>
@@ -203,73 +91,54 @@ function BeeFlyThrough({
 
 /**
  * <PageTransition> — drop-in for the (app)/layout.tsx wrapper.
- * Tracks the previous pathname via a ref so the FIRST transition after
- * navigation can derive a direction; on the first paint, no direction
- * (no fly-through, no slide — just the content).
+ *
+ * On every pathname change:
+ *   - Old page exits via fade-out in 80ms.
+ *   - New page enters via fade + tiny scale via the SETTLE spring.
+ *   - A single corner-bee delivers the page from the upper-right.
+ *
+ * The first paint (no previous pathname) skips the bee — there's nothing
+ * to "deliver from".
  */
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const reduce = useReducedMotion();
   const prevRef = React.useRef<string | null>(null);
 
-  // Track direction for the CURRENT pathname mount.
-  const direction = React.useMemo<Direction>(() => {
-    return deriveDirection(prevRef.current, pathname);
-  }, [pathname]);
-
-  // Bee fly-through is one-shot per transition. Keyed by pathname so each
-  // navigation triggers exactly one render.
-  const [flyKey, setFlyKey] = React.useState<string | null>(null);
+  // Bee delivery is one-shot per transition. Keyed by pathname.
+  const [beeKey, setBeeKey] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (reduce) return;
-    if (direction === 'none') return;
-    setFlyKey(pathname);
-  }, [pathname, direction, reduce]);
-
-  React.useEffect(() => {
+    // Skip first mount — there was no previous page to be "delivered from".
+    if (prevRef.current === null) {
+      prevRef.current = pathname;
+      return;
+    }
+    if (prevRef.current === pathname) return;
+    setBeeKey(pathname);
     prevRef.current = pathname;
-  }, [pathname]);
+  }, [pathname, reduce]);
 
   if (reduce) return <>{children}</>;
 
-  const off = offsetFor(direction);
-
   return (
     <>
-      {/* Bee fly-through — fixed to viewport, behind content. */}
+      {/* Corner-delivery bee — fixed to viewport, behind content. */}
       <AnimatePresence>
-        {flyKey && direction !== 'none' && (
-          <BeeFlyThrough
-            key={flyKey}
-            direction={direction}
-            onDone={() => setFlyKey(null)}
+        {beeKey && (
+          <CornerDeliveryBee
+            key={beeKey}
+            onDone={() => setBeeKey(null)}
           />
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={pathname}
-          initial={{
-            opacity: 0,
-            x: off.x,
-            y: off.y,
-            scale: 0.985,
-          }}
-          animate={{
-            opacity: 1,
-            x: 0,
-            y: 0,
-            scale: 1,
-            transition: SPRING,
-          }}
-          exit={{
-            opacity: 0,
-            x: -off.x * 0.4,
-            y: -off.y * 0.4,
-            scale: 0.99,
-            transition: { duration: 0.12, ease: [0.4, 0, 1, 1] },
-          }}
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1, transition: SETTLE }}
+          exit={{ opacity: 0, transition: EXIT }}
           style={{ willChange: 'transform, opacity' }}
           className="relative"
         >
