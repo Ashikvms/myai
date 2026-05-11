@@ -35,6 +35,8 @@ import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
 import { HiveHeader, type HivePip } from '@/components/layout/hive-header';
+import { HexFrame } from '@/components/layout/hex-frame';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 
@@ -194,9 +196,9 @@ function BillCard({
         )}
         <div className="p-5">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+            <HexFrame size={40} className="flex-shrink-0">
               <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-            </div>
+            </HexFrame>
             <div className="flex-1 min-w-0">
               <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
                 {bill.name}
@@ -331,9 +333,9 @@ function SubscriptionTile({ sub }: { sub: Subscription }) {
         />
       </svg>
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+        <HexFrame size={32}>
           <Icon className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
-        </div>
+        </HexFrame>
       </div>
       <h3 className="text-[18px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
         {sub.name}
@@ -353,9 +355,9 @@ function SubscriptionRow({ sub, onDelete }: { sub: Subscription; onDelete: (id: 
   const daysUntil = getDaysUntil(sub.renewalDate);
   return (
     <div className="group flex items-center gap-4 p-4 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] hover:shadow-pop transition-shadow">
-      <div className="w-9 h-9 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+      <HexFrame size={36} className="flex-shrink-0">
         <Icon className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.75} />
-      </div>
+      </HexFrame>
       <div className="flex-1 min-w-0">
         <p className="text-[15px] leading-[22px] font-semibold text-[var(--color-text)]">{sub.name}</p>
         <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)]">
@@ -515,7 +517,7 @@ function AddBillModal({
                   disabled={!name || !amount}
                   className="px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Bill
+                  Add it to the hive
                 </MotionButton>
               </div>
             </motion.div>
@@ -645,7 +647,7 @@ function AddSubModal({
                   disabled={!name || !amount}
                   className="px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Subscription
+                  Add it to the hive
                 </MotionButton>
               </div>
             </motion.div>
@@ -721,14 +723,16 @@ export default function BillsPage() {
   };
 
   return (
-    <div className="max-w-[1024px] mx-auto">
+    <div className="relative max-w-[1024px] mx-auto">
+      {/* Hive theme — subtle honeycomb wash behind the bills page */}
+      <HoneycombPattern opacity={0.04} />
       <header className="relative mb-6 overflow-hidden">
         {/* Ambient bees over the hero band only — bills feel alive */}
         <AmbientBees count={2} speed="slow" />
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+          <HexFrame size={40}>
             <CreditCard className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-          </div>
+          </HexFrame>
           <div>
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Bills &amp; Subs</h1>
             <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1 tabular-nums">

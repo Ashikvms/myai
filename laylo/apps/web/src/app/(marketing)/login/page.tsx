@@ -25,12 +25,13 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { DropletChoreography } from '@/components/motion/droplet-choreography';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { IdleBob } from '@/components/motion/idle-bob';
+import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().min(1, "Pop your email in here").email("That doesn't look quite right"),
+  password: z.string().min(1, "Password's required to get in"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -103,6 +104,12 @@ export default function LoginPage() {
                 <h1 className="mt-2 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
                   Welcome back
                 </h1>
+                {/* Bee says hi — D: conversational helper */}
+                <div className="mt-3">
+                  <BeeSpeechBubble tail="bottom" ariaLabel="Bee says: missed you">
+                    Missed you 🐝
+                  </BeeSpeechBubble>
+                </div>
               </div>
             </DropletChoreography.Logo>
 

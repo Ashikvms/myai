@@ -78,6 +78,11 @@ Recommended approach when picked up:
 **Status:** Deferred at Item 27 Phase 7 (Designer flagged this needs separate engineering)
 **Why:** Current mobile uses simpler layouts. Web has bento grids, hex tiles, origami fold for paid bills. Mobile parity adds polish. ~2-3 hours.
 
+### Mobile iOS Simulator local boot
+**Status:** Blocked on Mac dev environment 2026-05-12
+**Why:** `expo prebuild` succeeded and `app.json` is rebranded (BillBee + black splash), but `pod install` fails because the user's Homebrew is x86 (`/usr/local/bin`) instead of native arm64 (`/opt/homebrew/bin`). Pod runs under Rosetta and tar fails to extract `boost_1_83_0`. Two ways to unblock: (1) install arm64 Homebrew alongside the existing x86 one, then `arch -arm64 brew install cocoapods`; (2) use `rbenv` to install a native arm64 Ruby and `gem install cocoapods` from there. Either is ~15 min of one-time Mac setup.
+Other gotchas already worked around: Podfile had `:privacy_file_aggregation_enabled` (RN 0.75+ feature on a 0.74 project — commented out) and iOS deployment target was 13.4 (Plaid SDK needs 14+ — bumped to 14.0).
+
 ### Mobile dark-mode runtime token swap
 **Status:** Deferred at Item 27 Phase 6
 **Why:** Mobile token map exists in `apps/mobile/src/lib/tokens.ts` but is not wired to `useColorScheme()`. Light mode only on mobile right now. ~1 hour.

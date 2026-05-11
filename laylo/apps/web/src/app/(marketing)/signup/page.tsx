@@ -33,23 +33,24 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { DropletChoreography } from '@/components/motion/droplet-choreography';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { IdleBob } from '@/components/motion/idle-bob';
+import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const signupSchema = z
   .object({
-    name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters'),
-    email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+    name: z.string().min(1, "What should we call you?").min(2, "Just a little longer please"),
+    email: z.string().min(1, "Pop your email in here").email("That doesn't look quite right"),
     password: z
       .string()
-      .min(1, 'Password is required')
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+      .min(1, "Pick a password to lock things down")
+      .min(8, "Just a few more characters please")
+      .regex(/[A-Z]/, "Sneak in an uppercase letter")
+      .regex(/[0-9]/, "And one number, please"),
+    confirmPassword: z.string().min(1, "Type that one more time"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: "Hmm, those don't match yet",
     path: ['confirmPassword'],
   });
 
@@ -161,6 +162,12 @@ export default function SignupPage() {
                 <h1 className="mt-2 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
                   Join the hive
                 </h1>
+                {/* Bee greets new arrivals — D: conversational helper */}
+                <div className="mt-3">
+                  <BeeSpeechBubble tail="bottom" ariaLabel="Bee says: let's get you set up">
+                    Let&apos;s get you set up 🐝
+                  </BeeSpeechBubble>
+                </div>
               </div>
             </DropletChoreography.Logo>
 

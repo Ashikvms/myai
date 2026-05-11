@@ -144,10 +144,10 @@ export function InboxZeroOverlay({
             />
             <BeeSleeping size={160} />
             <h2 className="mt-6 text-[32px] leading-[40px] font-bold text-white">
-              Inbox zero unlocked
+              Inbox zero unlocked! 🐝
             </h2>
             <p className="mt-2 text-[15px] leading-[22px] text-white/70">
-              Free as a bee. Tap anywhere to dismiss.
+              Free as a bee. Tap anywhere to wake me up.
             </p>
           </motion.div>
         </motion.div>

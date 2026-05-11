@@ -81,7 +81,7 @@ export function MilestoneToastHost() {
             <BeeStanding size={28} />
             <div className="flex-1 min-w-0">
               <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-accent-dim)]">
-                Milestone unlocked
+                On a roll
               </p>
               <p className="text-[13px] leading-[18px] font-medium text-[var(--color-text)]">
                 {state.message}

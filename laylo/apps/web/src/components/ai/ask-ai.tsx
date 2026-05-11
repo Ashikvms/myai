@@ -172,7 +172,7 @@ export function AskAiModal({
                     role={submitted ? 'status' : undefined}
                   >
                     {submitted
-                      ? "We'll wire this up next."
+                      ? "Got it — I'll buzz back in a sec."
                       : 'Press send when you’re ready.'}
                   </p>
                   <button
@@ -180,7 +180,7 @@ export function AskAiModal({
                     className="inline-flex items-center gap-2 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] px-4 h-10 text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50"
                     disabled={!value.trim()}
                   >
-                    Send
+                    Send it
                     <ArrowUp className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 </div>

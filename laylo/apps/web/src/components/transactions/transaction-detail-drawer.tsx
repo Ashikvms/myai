@@ -251,7 +251,7 @@ function DrawerBody({
       setSavedAt(Date.now());
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : 'Could not save note';
+        err instanceof ApiError ? err.message : "Hmm, couldn't save that note. Try again?";
       setNoteError(msg);
     } finally {
       setSaving(false);
@@ -685,6 +685,25 @@ export function TransactionDetailDrawer({
             aria-hidden="true"
             className="fixed inset-0 z-40 bg-[var(--color-overlay)] backdrop-blur-sm"
           />
+
+          {/* Gold "fwoosh" streak — leads the drawer in from the right edge.
+              Friend micro-interaction (one-shot, ~280ms, then unmounts via AnimatePresence). */}
+          {!reduceMotion && (
+            <motion.div
+              key="drawer-fwoosh"
+              aria-hidden="true"
+              initial={{ x: '110vw', opacity: 0 }}
+              animate={{ x: '0vw', opacity: [0, 0.55, 0] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+              className="pointer-events-none fixed top-0 right-0 z-[55] h-full w-[200px]"
+              style={{
+                background:
+                  'linear-gradient(270deg, rgba(255,215,0,0.45) 0%, rgba(255,215,0,0) 100%)',
+                willChange: 'transform, opacity',
+              }}
+            />
+          )}
 
           {/* Panel */}
           <motion.aside

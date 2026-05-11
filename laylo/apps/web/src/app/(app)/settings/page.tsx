@@ -23,6 +23,7 @@ import {
   ExternalLink,
   ChevronRight,
 } from 'lucide-react';
+import { HexFrame } from '@/components/layout/hex-frame';
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -115,9 +116,10 @@ export default function SettingsPage() {
       <SectionCard index={0}>
         <SectionHeading icon={User} title="Profile" />
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[28px] font-semibold text-[var(--color-text)]">
-            AJ
-          </div>
+          {/* Hex-clipped profile avatar — single hive touch on this otherwise utilitarian page */}
+          <HexFrame size={96} fill="var(--color-accent-soft)" className="flex-shrink-0">
+            <span className="text-[28px] font-semibold text-[var(--color-text)]">AJ</span>
+          </HexFrame>
           <div className="w-full space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -131,14 +133,14 @@ export default function SettingsPage() {
             </div>
             <button
               disabled={!profileDirty}
-              onClick={() => alert('Tucked away safely')}
+              onClick={() => alert('Got it, saved! 🐝')}
               className={`px-4 h-10 rounded-[16px] text-[15px] font-medium transition ${
                 profileDirty
                   ? 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-text-on-accent)]'
                   : 'cursor-not-allowed bg-[var(--color-surface-2)] text-[var(--color-text-subtle)]'
               }`}
             >
-              Save changes
+              Lock it in
             </button>
           </div>
         </div>
@@ -204,7 +206,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => alert('Your data export has been requested. You will receive a download link via email shortly.')}
+                onClick={() => alert("On it. We'll email you the download link in a sec 🐝")}
                 className="inline-flex items-center justify-between gap-2 rounded-[16px] border border-[var(--color-border-strong)] px-4 h-11 text-[15px] font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
               >
                 <span className="flex items-center gap-2">
@@ -214,7 +216,7 @@ export default function SettingsPage() {
                 <ChevronRight className="h-4 w-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
               </button>
               <button
-                onClick={() => alert('AI chat history has been cleared successfully.')}
+                onClick={() => alert("Cleared. The hive forgets, you go on 🐝")}
                 className="inline-flex items-center justify-between gap-2 rounded-[16px] border border-[var(--color-danger)]/40 px-4 h-11 text-[15px] font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-surface-hover)]"
               >
                 <span className="flex items-center gap-2">
@@ -251,7 +253,7 @@ export default function SettingsPage() {
             </ul>
           </div>
           <button
-            onClick={() => alert('Upgrade flow coming soon!')}
+            onClick={() => alert("Upgrade flow's on the way — almost there!")}
             className="w-full rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] py-3 text-[15px] font-semibold text-[var(--color-text-on-accent)] transition"
           >
             Upgrade to Premium

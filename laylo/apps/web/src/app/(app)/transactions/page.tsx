@@ -34,6 +34,8 @@ import { BeeMagnifying, BeeStanding } from '@/components/illustrations/bee';
 import { AnimatedNumber } from '@/components/motion/animated-number';
 import { TransactionDetailDrawer } from '@/components/transactions/transaction-detail-drawer';
 import { AmbientBees } from '@/components/motion/ambient-bees';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function toNumber(amount: string | number): number {
@@ -152,7 +154,7 @@ export default function TransactionsPage() {
       setItems((prev) => [...prev, ...res.items]);
       setNextCursor(res.nextCursor);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Could not load more transactions';
+      const msg = err instanceof ApiError ? err.message : "Couldn't pull more — try once more?";
       setError(msg);
     } finally {
       setLoadingMore(false);
@@ -229,13 +231,15 @@ export default function TransactionsPage() {
     <div className="max-w-[840px] mx-auto">
       {/* Header */}
       <header className="relative mb-6 overflow-hidden">
+        {/* Hive theme — honeycomb confined to the header band so the table stays scannable */}
+        <HoneycombPattern opacity={0.04} />
         {/* Single bee in the header band only — never over the table itself
             (dense data → particles compete with scanning per plan §2). */}
         <AmbientBees count={1} speed="medium" />
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+          <HexFrame size={40}>
             <Receipt className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-          </div>
+          </HexFrame>
           <div>
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Transactions</h1>
             <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1">
@@ -277,8 +281,17 @@ export default function TransactionsPage() {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search…"
+              placeholder="What are you looking for?"
               className="w-full pl-9 pr-3 py-1.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            />
+            {/* Gold underline grows from left as you type — friend micro-interaction */}
+            <motion.div
+              aria-hidden="true"
+              className="absolute bottom-0 left-2 right-2 h-[1.5px] rounded-full bg-[var(--color-accent)]"
+              initial={false}
+              animate={{ scaleX: Math.min(1, searchInput.length / 24), opacity: searchInput.length > 0 ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ transformOrigin: 'left center' }}
             />
           </form>
         </div>
@@ -462,7 +475,7 @@ export default function TransactionsPage() {
             className="inline-flex items-center gap-2 px-5 h-10 rounded-[16px] text-[13px] font-semibold text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
           >
             {loadingMore && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />}
-            Load more
+            {loadingMore ? "Buzzing through more…" : "Show me more"}
           </button>
         </div>
       )}

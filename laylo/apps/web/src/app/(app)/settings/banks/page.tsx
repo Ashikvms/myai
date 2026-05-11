@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2,
   Plus,
@@ -35,6 +35,7 @@ import {
 import type { PlaidItem, PlaidItemStatus } from '@/lib/api/types';
 import { ApiError } from '@/lib/api';
 import { BeeStanding } from '@/components/illustrations/bee';
+import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
 
 // ─── Status badge ────────────────────────────────────────────────────
 const STATUS_STYLES: Record<
@@ -91,6 +92,13 @@ function ConnectBankButton({
 }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Bee wave: shown briefly before Plaid Link launches.
+  const [waving, setWaving] = useState(false);
+  useEffect(() => {
+    if (!waving) return;
+    const t = window.setTimeout(() => setWaving(false), 1800);
+    return () => window.clearTimeout(t);
+  }, [waving]);
 
   const onSuccess = useCallback<PlaidLinkOnSuccess>(
     async (publicToken: string, metadata: PlaidLinkOnSuccessMetadata) => {
@@ -138,12 +146,13 @@ function ConnectBankButton({
 
   const handleClick = useCallback(async () => {
     if (creating) return;
+    setWaving(true);
     setCreating(true);
     try {
       const { linkToken: t } = await createLinkToken();
       setLinkToken(t);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Could not start Plaid Link';
+      const msg = err instanceof ApiError ? err.message : "Couldn't open the connection — try once more?";
       onError(msg);
     } finally {
       setCreating(false);
@@ -151,18 +160,27 @@ function ConnectBankButton({
   }, [creating, onError]);
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={creating}
-      className="inline-flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50"
-    >
-      {creating ? (
-        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
-      ) : (
-        <Plus className="w-4 h-4" strokeWidth={1.75} />
+    <div className="relative inline-flex items-center gap-3">
+      {waving && (
+        <div className="hidden sm:block">
+          <BeeSpeechBubble tail="right" ariaLabel="Bee says: warming up your bank link">
+            One sec — getting it ready 🐝
+          </BeeSpeechBubble>
+        </div>
       )}
-      Connect a bank
-    </button>
+      <button
+        onClick={handleClick}
+        disabled={creating}
+        className="inline-flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50"
+      >
+        {creating ? (
+          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
+        ) : (
+          <Plus className="w-4 h-4" strokeWidth={1.75} />
+        )}
+        Connect a bank
+      </button>
+    </div>
   );
 }
 
@@ -295,7 +313,7 @@ export default function BanksSettingsPage() {
       try {
         await triggerSync(id);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Sync failed';
+        const msg = err instanceof ApiError ? err.message : "Hmm, sync stalled. Try again?";
         setError(msg);
       } finally {
         setBusy(id, 'sync', false);
@@ -308,7 +326,7 @@ export default function BanksSettingsPage() {
     async (id: string) => {
       const confirmed =
         typeof window !== 'undefined'
-          ? window.confirm('Send this one out of the hive? Historical transactions stay; no new data syncs.')
+          ? window.confirm("Send this one out of the hive? Historical transactions stay — we just stop syncing new ones.")
           : true;
       if (!confirmed) return;
       setBusy(id, 'disconnect', true);
@@ -316,7 +334,7 @@ export default function BanksSettingsPage() {
         await disconnectItem(id);
         await loadItems();
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : 'Disconnect failed';
+        const msg = err instanceof ApiError ? err.message : "Couldn't disconnect just now. Give it another go?";
         setError(msg);
       } finally {
         setBusy(id, 'disconnect', false);

@@ -24,6 +24,8 @@ import { AskAiChip } from '@/components/ai/ask-ai';
 import { AnimatedNumber } from '@/components/motion/animated-number';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { Sparkline } from '@/components/layout/sparkline';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 
 // Demo numbers — would be live tRPC reads in production.
@@ -79,6 +81,8 @@ export default function MoneyPage() {
 
   return (
     <div className="relative max-w-[1024px] mx-auto">
+      {/* Hive-theme honeycomb wash — sits behind the bento tiles, breathes between them */}
+      <HoneycombPattern opacity={0.04} />
       {/* Header + Ask chip */}
       <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -166,12 +170,12 @@ export default function MoneyPage() {
                 className="group relative block rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-5 hover:shadow-pop transition-all overflow-hidden h-full"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+                  <HexFrame size={40} className="flex-shrink-0">
                     <card.icon
                       className="w-5 h-5 text-[var(--color-accent)]"
                       strokeWidth={1.75}
                     />
-                  </div>
+                  </HexFrame>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">

@@ -11,6 +11,7 @@ import { Menu, X, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeTransition } from '@/lib/use-theme-transition';
 import { BeeLogoMark } from '@/components/illustrations/bee';
+import { CursorBee } from '@/components/motion/cursor-bee';
 
 function ThemeToggleButton() {
   const { isDark, mounted, toggleTheme } = useThemeTransition();
@@ -166,6 +167,9 @@ function Footer() {
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
+      {/* Pokémon-trail bee — landing pages only. Reduces to nothing for
+          coarse pointers + reduced motion. */}
+      <CursorBee />
       <Header />
       <main>{children}</main>
       <Footer />

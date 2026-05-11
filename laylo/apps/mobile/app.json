@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Life Admin AI",
+    "name": "BillBee",
     "slug": "life-admin-ai",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#6366F1"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,

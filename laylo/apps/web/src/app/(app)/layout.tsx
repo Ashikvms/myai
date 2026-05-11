@@ -25,6 +25,7 @@ import { RouteProgressBar } from '@/components/motion/route-progress-bar';
 import { TabVisibilityGate } from '@/components/motion/tab-visibility-gate';
 import { PulseDot } from '@/components/motion/pulse-dot';
 import { BeeLogoMark } from '@/components/illustrations/bee';
+import { HexFrame } from '@/components/layout/hex-frame';
 
 // 5-item nav per REDESIGN_BRIEF.md §3.1
 const NAV_ITEMS = [
@@ -225,7 +226,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
               <input
                 type="text"
-                placeholder="Search anything..."
+                placeholder="What are you looking for?"
                 className="w-64 pl-10 pr-4 py-2 text-[13px] bg-[var(--color-surface-2)] border-0 rounded-[8px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
               />
             </div>
@@ -244,10 +245,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-8 h-8 rounded-full bg-[var(--color-surface-2)] flex items-center justify-center ml-1"
+                className="ml-1 inline-flex focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] rounded-[8px]"
                 aria-label="User menu"
+                title="That's you 🐝"
               >
-                <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{initials}</span>
+                <HexFrame size={32}>
+                  <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{initials}</span>
+                </HexFrame>
               </button>
               <AnimatePresence>
                 {userMenuOpen && (

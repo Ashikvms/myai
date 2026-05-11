@@ -12,7 +12,7 @@
  * Mobile = single column (greeting → hero stat → insight → today's task →
  * bills horizontal scroll → banking).
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   CheckSquare,
@@ -41,8 +41,11 @@ import {
 } from '@/components/illustrations/bee';
 import { AnimatedNumber } from '@/components/motion/animated-number';
 import { AmbientBees } from '@/components/motion/ambient-bees';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
 import { getGreeting, getBeePoseForHour } from '@/lib/greeting';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
+import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
 
 // ─── Demo Data ───────────────────────────────────────────────────────
 const DEMO_TASKS = [
@@ -73,11 +76,76 @@ function HourlyBee({ size = 56 }: { size?: number }) {
   return <BeeStanding size={size} />;
 }
 
+// Pool of one-liners to fire when a task gets completed.
+// Picked at random — shown via a transient bee speech bubble.
+const TASK_BURSTS = [
+  'Done! 🐝',
+  'Crushed it.',
+  'One down.',
+  'Buzz buzz.',
+  'Honey-do done.',
+  'That was quick.',
+  'Look at you go.',
+];
+
 // ─── Main Page ───────────────────────────────────────────────────────
 export default function DashboardPage() {
   const reduce = useReducedMotion();
   const [taskChecked, setTaskChecked] = useState<Record<string, boolean>>({ '3': true });
   const [insightIndex, setInsightIndex] = useState(0);
+  // Easter egg: tap the bee 5x in 2.5s → bee complains.
+  const [beeTaps, setBeeTaps] = useState(0);
+  const [beeAnnoyed, setBeeAnnoyed] = useState(false);
+  const beeTapTimerRef = useRef<number | null>(null);
+  // Random one-liner shown briefly when a task is checked off.
+  const [bursts, setBursts] = useState<{ id: number; text: string } | null>(null);
+
+  // Reset tap counter if quiet for 2.5s.
+  useEffect(() => {
+    if (beeTaps === 0) return;
+    if (beeTapTimerRef.current) window.clearTimeout(beeTapTimerRef.current);
+    beeTapTimerRef.current = window.setTimeout(() => {
+      setBeeTaps(0);
+      beeTapTimerRef.current = null;
+    }, 2500);
+    return () => {
+      if (beeTapTimerRef.current) {
+        window.clearTimeout(beeTapTimerRef.current);
+        beeTapTimerRef.current = null;
+      }
+    };
+  }, [beeTaps]);
+
+  // Auto-clear the burst after 1.6s.
+  useEffect(() => {
+    if (!bursts) return;
+    const t = window.setTimeout(() => setBursts(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [bursts]);
+
+  // Auto-clear annoyed bee after 2.5s.
+  useEffect(() => {
+    if (!beeAnnoyed) return;
+    const t = window.setTimeout(() => setBeeAnnoyed(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [beeAnnoyed]);
+
+  const onBeePoke = () => {
+    setBeeTaps((n) => {
+      const next = n + 1;
+      if (next >= 5) {
+        setBeeAnnoyed(true);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const completeTodayTask = (id: string) => {
+    setTaskChecked((p) => ({ ...p, [id]: true }));
+    const text = TASK_BURSTS[Math.floor(Math.random() * TASK_BURSTS.length)] ?? 'Done!';
+    setBursts({ id: Date.now(), text });
+  };
 
   // Insight roulette — wide insight rotates every 8s.
   useEffect(() => {
@@ -110,8 +178,29 @@ export default function DashboardPage() {
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="max-w-[1280px] mx-auto"
+      className="relative max-w-[1280px] mx-auto"
     >
+      {/* Subtle hive-theme honeycomb wash — 4% opacity, behind everything */}
+      <HoneycombPattern opacity={0.04} />
+      {/* Bee one-liner toast — fires when a dashboard task is completed */}
+      <AnimatePresence>
+        {bursts && (
+          <motion.div
+            key={bursts.id}
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            className="fixed top-20 right-6 z-[80] pointer-events-none"
+            role="status"
+            aria-live="polite"
+          >
+            <BeeSpeechBubble tail="left" ariaLabel="Bee reaction">
+              {bursts.text}
+            </BeeSpeechBubble>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* ── Bento Grid ─────────────────────────────────────────────────
           Mobile = single column; ≥lg = 12-col / multi-row layout. */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
@@ -143,8 +232,25 @@ export default function DashboardPage() {
                   What&apos;s worth your time?
                 </p>
               </div>
-              <div className="hidden sm:block flex-shrink-0">
-                <HourlyBee size={64} />
+              <div className="hidden sm:block flex-shrink-0 relative">
+                {/* Tap-the-bee easter egg — pokes 5x in 2.5s = bee complains */}
+                <button
+                  type="button"
+                  onClick={onBeePoke}
+                  aria-label="Poke the bee"
+                  title="That's me 🐝"
+                  className="rounded-[16px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
+                >
+                  <HourlyBee size={64} />
+                </button>
+                {/* Annoyed reaction bubble */}
+                {beeAnnoyed && (
+                  <div className="absolute -bottom-3 right-0 translate-y-full">
+                    <BeeSpeechBubble tail="top" ariaLabel="Bee says: stop poking me">
+                      Stop poking me!
+                    </BeeSpeechBubble>
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-auto">
@@ -287,12 +393,12 @@ export default function DashboardPage() {
                 className="rounded-[16px] bg-[var(--color-surface-2)] p-4"
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-9 h-9 rounded-[8px] bg-[var(--color-surface)] flex items-center justify-center">
+                  <HexFrame size={36} fill="var(--color-surface)">
                     <DollarSign
                       className="w-4 h-4 text-[var(--color-accent)]"
                       strokeWidth={1.75}
                     />
-                  </div>
+                  </HexFrame>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] leading-[18px] font-semibold text-[var(--color-text)] truncate">
                       {bill.name}
@@ -342,9 +448,7 @@ export default function DashboardPage() {
                 className="flex items-start gap-4"
               >
                 <button
-                  onClick={() =>
-                    setTaskChecked((p) => ({ ...p, [todayTask.id]: true }))
-                  }
+                  onClick={() => completeTodayTask(todayTask.id)}
                   aria-label="Mark complete"
                   className="w-7 h-7 rounded-[8px] border-2 border-[var(--color-border-strong)] hover:border-[var(--color-accent)] flex items-center justify-center transition-colors flex-shrink-0 mt-0.5"
                 >

@@ -27,6 +27,10 @@ import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { PulseDot } from '@/components/motion/pulse-dot';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
+
+const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ReminderStatus = 'pending' | 'dismissed';
@@ -202,13 +206,17 @@ export default function RemindersPage() {
   };
 
   return (
-    <div className="max-w-[760px] mx-auto">
+    <div className="relative max-w-[760px] mx-auto">
+      {/* Hive theme — honeycomb wash sits behind the page */}
+      <HoneycombPattern opacity={0.04} />
       {/* Header */}
       <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="relative w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
-              <Bell className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+            <div className="relative">
+              <HexFrame size={40}>
+                <Bell className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+              </HexFrame>
               {pendingReminders.length > 0 && (
                 <span className="absolute -top-0.5 -right-0.5">
                   <PulseDot size={8} />
@@ -296,7 +304,7 @@ export default function RemindersPage() {
                         className="relative overflow-hidden"
                       >
                         <div className="relative flex items-start gap-3 py-2 group">
-                          {/* Gold dot — opacity decays with time-out */}
+                          {/* Tiny gold hex bullet — opacity decays with time-out */}
                           <div className="relative w-3 flex-shrink-0 mt-2">
                             <motion.div
                               animate={
@@ -305,8 +313,10 @@ export default function RemindersPage() {
                                   : undefined
                               }
                               transition={{ duration: 0.4 }}
-                              className="absolute -left-[7px] top-0 w-3 h-3 rounded-full"
+                              className="absolute -left-[7px] top-0 w-3 h-3"
                               style={{
+                                clipPath: HEX_CLIP,
+                                WebkitClipPath: HEX_CLIP,
                                 background: 'var(--color-accent)',
                                 opacity: dotOpacity(r),
                               }}
@@ -557,7 +567,7 @@ export default function RemindersPage() {
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
-                    Add Reminder
+                    Lock it in
                   </MotionButton>
                 </div>
               </motion.div>

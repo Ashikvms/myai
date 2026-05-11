@@ -206,12 +206,12 @@ export default function DocumentsPage() {
         <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
           {activeCategory === 'All' ? <BeeStanding size={96} /> : <BeeMagnifying size={96} />}
           <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
-            {activeCategory === 'All' ? 'Your vault is empty. Drop a document in.' : `No ${activeCategory} documents`}
+            {activeCategory === 'All' ? "Vault's empty — drop something in" : `Nothing buzzing under ${activeCategory} yet`}
           </h3>
           <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
             {activeCategory === 'All'
-              ? 'Upload your important papers and BillBee will keep them tidy.'
-              : `You don't have any ${activeCategory.toLowerCase()} documents yet.`}
+              ? "Upload your important papers and I'll keep them tidy."
+              : "Different category? Or drop your first one — I'll file it."}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
             <MotionButton
@@ -456,7 +456,7 @@ export default function DocumentsPage() {
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Upload className="w-4 h-4" strokeWidth={1.75} />
-                    Upload
+                    Tuck it in
                   </MotionButton>
                 </div>
               </motion.div>

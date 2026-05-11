@@ -30,6 +30,8 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { InboxZeroOverlay } from '@/components/celebrations/inbox-zero-overlay';
 import { ProgressHive } from '@/components/layout/progress-hive';
 import { AmbientBees } from '@/components/motion/ambient-bees';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
 
 const INBOX_ZERO_FLAG = 'billbee:tasks:hadTasks';
 
@@ -243,16 +245,18 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="max-w-[760px] mx-auto">
+    <div className="relative max-w-[760px] mx-auto">
+      {/* Hive theme — honeycomb wash sits behind the header / progress hive */}
+      <HoneycombPattern opacity={0.04} />
       {/* Header */}
       <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
         {/* Ambient bees — light density only, header-scoped (per perf budget) */}
         <AmbientBees count={1} speed="slow" />
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+            <HexFrame size={40}>
               <CheckSquare className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-            </div>
+            </HexFrame>
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Tasks</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
@@ -291,12 +295,12 @@ export default function TasksPage() {
         <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
           <BeeSleeping size={96} />
           <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
-            {activeFilter === 'All' ? 'Inbox zero unlocked' : `No ${activeFilter.toLowerCase()} tasks`}
+            {activeFilter === 'All' ? 'Inbox zero unlocked! 🐝' : `Nothing buzzing under "${activeFilter.toLowerCase()}" yet`}
           </h3>
           <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
             {activeFilter === 'All'
-              ? 'Nothing on the to-do list. Free as a bee.'
-              : `You don't have any ${activeFilter.toLowerCase()} tasks right now.`}
+              ? "Nothing to do — free as a bee."
+              : `Hop over to another filter or add something fresh.`}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
             <MotionButton
@@ -364,6 +368,21 @@ export default function TasksPage() {
                       }}
                     />
                   )}
+                  {/* Hex-burst — single gold hex scales out + fades on completion */}
+                  {burstingTaskId === task.id && !reduce && (
+                    <motion.div
+                      aria-hidden="true"
+                      initial={{ scale: 0.4, opacity: 0.7 }}
+                      animate={{ scale: 2.2, opacity: 0 }}
+                      transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                      className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 w-6 h-6"
+                      style={{
+                        clipPath: HEX_CLIP,
+                        WebkitClipPath: HEX_CLIP,
+                        background: 'var(--color-accent)',
+                      }}
+                    />
+                  )}
 
                   <div className="relative flex items-center gap-4 p-4">
                     {/* Hexagon checkbox */}
@@ -422,6 +441,21 @@ export default function TasksPage() {
                         {voiceLine}
                       </p>
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        {/* Tiny hex priority indicator — gold for high, dim for medium, hollow for low */}
+                        <span
+                          aria-label={`${task.priority} priority`}
+                          className="inline-block w-2.5 h-2.5"
+                          style={{
+                            clipPath: HEX_CLIP,
+                            WebkitClipPath: HEX_CLIP,
+                            background:
+                              task.priority === 'High'
+                                ? 'var(--color-accent)'
+                                : task.priority === 'Medium'
+                                ? 'var(--color-accent-dim)'
+                                : 'var(--color-border-strong)',
+                          }}
+                        />
                         <span className="text-[11px] leading-[14px] font-medium px-1.5 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
                           {task.category}
                         </span>
@@ -570,7 +604,7 @@ export default function TasksPage() {
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
-                    Add Task
+                    Add it to the hive
                   </MotionButton>
                 </div>
               </motion.div>

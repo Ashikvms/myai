@@ -38,6 +38,10 @@ import { AskAiChip } from '@/components/ai/ask-ai';
 import { BeeStanding } from '@/components/illustrations/bee';
 import { MotionButton } from '@/components/motion/motion-button';
 import { AmbientBees } from '@/components/motion/ambient-bees';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
+
+const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
@@ -202,16 +206,18 @@ export default function AppointmentsPage() {
   };
 
   return (
-    <div className="max-w-[1024px] mx-auto">
+    <div className="relative max-w-[1024px] mx-auto">
+      {/* Hive theme — honeycomb wash sits behind the page */}
+      <HoneycombPattern opacity={0.04} />
       {/* Header */}
       <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
         {/* Single ambient bee in the hero band only */}
         <AmbientBees count={1} speed="slow" />
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+            <HexFrame size={40}>
               <CalendarDays className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
-            </div>
+            </HexFrame>
             <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Appointments</h1>
           </div>
           <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
@@ -281,11 +287,23 @@ export default function AppointmentsPage() {
                       {items.slice(0, 3).map((_, i) => (
                         <div
                           key={i}
-                          className="w-1 h-1 rounded-full bg-[var(--color-accent)]"
+                          className="w-1.5 h-1.5"
+                          style={{
+                            clipPath: HEX_CLIP,
+                            WebkitClipPath: HEX_CLIP,
+                            background: 'var(--color-accent)',
+                          }}
                         />
                       ))}
                       {items.length === 0 && (
-                        <div className="w-1 h-1 rounded-full bg-[var(--color-border-strong)]" />
+                        <div
+                          className="w-1.5 h-1.5"
+                          style={{
+                            clipPath: HEX_CLIP,
+                            WebkitClipPath: HEX_CLIP,
+                            background: 'var(--color-border-strong)',
+                          }}
+                        />
                       )}
                     </div>
                     {isToday && (
@@ -371,8 +389,10 @@ export default function AppointmentsPage() {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="inline-flex items-center gap-1 text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
-                            <Icon className="w-3 h-3 text-[var(--color-accent)]" strokeWidth={1.75} />
+                          <HexFrame size={28} fill="var(--color-surface-2)">
+                            <Icon className="w-3.5 h-3.5 text-[var(--color-accent)]" strokeWidth={1.75} />
+                          </HexFrame>
+                          <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
                             {appt.category}
                           </span>
                         </div>
@@ -541,7 +561,7 @@ export default function AppointmentsPage() {
                     className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" strokeWidth={1.75} />
-                    Add Appointment
+                    Lock it in
                   </MotionButton>
                 </div>
               </motion.div>
