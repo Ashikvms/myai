@@ -4,19 +4,128 @@
 
 ---
 
-## 🔄 Current State (read this first, every session)
-- **Session:** 3 (resumed after session-limit reset on 2026-05-10)
-- **Active item:** Item 27 — Black/Yellow Redesign
-- **Phase status:**
-  - Phase 0 ✅ (Strategist) — `REDESIGN_BRIEF.md` saved
-  - Phase 1 ✅ (UI Designer) — `DESIGN_SYSTEM.md` saved + 14 packages/ui components migrated
-  - Phase 2 partial ✅ — bee mascot (5 poses) and web `<AskAi>` component built
-  - Phase 3a ✅ DONE (Frontend continuation, 13 web pages restyled, 5-item nav, /assistant deleted, theme bugs fixed, ThemeProvider consolidated, web typecheck + build clean — 15 routes incl. /money + /vault hubs)
-  - Phase 3b ✅ DONE (Mobile continuation, 14 screens, 5 tabs, 11+ AI touchpoints, all 5 bee poses, typecheck clean)
-  - Phase 4 ✅ DONE (QA — REDESIGN_QA_REPORT.md, 0H/1M/2L/4I findings, GO recommendation)
-  - Phase 5 ✅ DONE (PR #16 opened: https://github.com/Ashikvms/myai/pull/16)
-  - Phase 6 ✅ DONE (Playfulness boost B+D + Fraunces typography — pushed to PR #16 as additional commit)
-- **Item 27 STATUS: PR opened + playfulness layered in. Awaiting user review/merge.**
+## 🔄 Current State (read this first, every session) — UPDATED 2026-05-12
+
+**Session paused for laptop restart.** Working tree clean. Resume any time.
+
+### Where we are
+- **Branch:** `feat/redesign-black-yellow` (still open as **PR #16**)
+- **Latest commit:** `6f93b48` (motion polish: smoother transitions + dashboard fall-into-place)
+- **Item 26 (Plaid):** ✅ MERGED to main (PR #15)
+- **Item 27 (Redesign + everything since):** PR #16 open, ~13 commits accumulated, **production-ready for closed beta**
+
+### Active blocker (resume from here)
+**Mobile iOS Simulator boot — blocked on disk space.**
+- All prerequisite work complete: arm64 Homebrew installed, arm64 CocoaPods installed, `pod install` succeeded with 74 deps, `app.json` rebranded (BillBee + black splash), Podfile patched (RN 0.74 + iOS 14.0 + use_modular_headers + privacy_file_aggregation removed)
+- Xcode build via `expo run:ios` failed twice with "No space left on device" — disk is at 100% (1.4GB free; need ~5-10GB for DerivedData + Hermes engine + RCT-Folly compile)
+- User said they will restart the laptop and resume later — restart frees temp + macOS recovers some space
+
+### To resume after restart
+1. `df -h /Users` — verify ≥8GB free
+2. If still tight: clear browser caches manually (`~/Library/Caches/Google`, `~/Library/Caches/Mozilla`, `~/Library/Caches/Firefox`, `~/Library/Caches/com.microsoft.VSCode.ShipIt`, `~/Library/Caches/com.anthropic.claudefordesktop.ShipIt`, `~/Library/Caches/Comet`) + empty Trash
+3. `cd /Users/ashiks/Desktop/myai/laylo/apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios` (foreground, ~5 min first build) — Simulator should pop with BillBee installed
+4. If localhost:3001 isn't reachable from sim, the API URL in `apps/mobile/src/lib/api.ts` may need to be `http://<Mac LAN IP>:3001` instead of `http://localhost:3001` (Simulator can usually reach localhost but device cannot)
+
+### What's shipped + working RIGHT NOW (visit http://localhost:3000 after restart)
+| Area | Status |
+|---|---|
+| Plaid (Item 26) | Merged, production-grade after F1 fix |
+| Item 27 redesign (palette, layouts, typography, AI affordances) | All shipped, PR #16 |
+| Animation rollout (transitions, route progress, ambient bees, page choreography) | Shipped commits 2784287 + 6f93b48 |
+| Hive theme (HoneycombPattern + HexFrame) | Shipped commit df1ff6b |
+| Liveliness + personality (CursorBee, BeeSpeechBubble, easter egg, conversational copy) | Shipped commit df1ff6b |
+| Motion polish (gentler springs, FallIntoPlace, first-login welcome bee) | Shipped commit 6f93b48 |
+| Comprehensive security audit (6 specialists + coordinator) | Shipped commit a69c4d2 — `COMPREHENSIVE_SECURITY_AUDIT.md` |
+| Sprint 1 security quick-wins (12 fixes) | Shipped commit e188820 |
+| `BACKLOG.md` (forward-looking work queue) | Shipped commit 6d8d384 |
+| `DEPLOYMENT_RUNBOOK.md` (prod launch instructions, NO AWS) | Shipped commit b60e090 |
+
+### Last user request (2026-05-12 before pause)
+"Make tab transitions less jittery + dashboard elements fall into place when logged in" — ✅ shipped in commit `6f93b48`. User can verify on refresh.
+
+### Verdict matrix (per `COMPREHENSIVE_SECURITY_AUDIT.md`)
+- Local dev / personal use: **GO** ✅
+- Closed beta (≤10 invited users): **GO** after Sprint 1 (already done) ✅
+- Public open signup: **NO-GO** until Sprint 2+3 (~2 weeks of work)
+- Plaid Production: **NO-GO** until Sprint 1-4 (~3 weeks of work)
+
+### Servers (will need restart after laptop reboot)
+- API: `cd apps/api && (set -a && source .env && set +a && exec npx tsx watch src/index.ts)` — port 3001
+- Web: `cd apps/web && /Users/ashiks/Desktop/myai/laylo/node_modules/.bin/next dev --port 3000` (NOT `npm run dev` — workspace bin link is broken; use root node_modules)
+- Test creds (live in Railway DB): `test@laylo.app` / `Test1234!` AND `demo@lifeadmin.app` / `Test1234!`
+
+## Session 4 — 2026-05-12 — Hive theme, liveliness, security audit, motion polish, mobile blocked
+Picked up from Session 3 (which paused after the redesign + Plaid integration shipped). Added a lot of polish + a full end-to-end security audit + tried to boot iOS sim.
+
+**Logo iteration spiral (rounds 1→4) — finally landed on user's reference image**
+- Rounds 1-3 of graphic design (cartoon mascots, polite tech marks, edgy startup marks) all rejected
+- User picked their original reference image: round-faced bee with angled eyebrows + solid mouth bar + outlined wings + chunky antenna dots
+- Bee uses fixed colors (highlight yellow #F8E71C body + black 4px outline + black eyebrows/mouth + chunky yellow antenna dots) so it works in BOTH light and dark mode without theme-flipping
+- Both `<BeeStanding>` (large hero) and `<BeeLogoMark>` (small brand mark) match the design
+- Removed gold-square wrapper; bee floats free in nav/header/footer
+
+**Palette change (commit b4a9594)** — gold #FFD700 → highlight yellow #F8E71C across web + mobile tokens. Brighter, more "highlighter pen" feel.
+
+**Hive theme rollout (commit df1ff6b — Hive Theme Engineer)**
+- New `<HexFrame>` primitive — reusable hexagonal clip wrapper
+- Subtle 4% honeycomb pattern background on 7 pages (dashboard, money, bills, tasks, transactions header, reminders, appointments). Settings stays calm.
+- Hex-clipped containers everywhere: top-bar avatar, settings profile avatar, every page-header icon, dashboard bill stat, money hub icons, every Bill category icon + subscription tile/row icons, every appointment card category icon, calendar ribbon today indicator
+- Tasks: gold-hex priority indicators + gold hex-burst on completion
+- Reminders: bell hex-clipped + per-row gold-hex bullets
+
+**Liveliness + Personality (commit df1ff6b — Liveliness Engineer)**
+- New `<CursorBee>` — Pokémon-trail bee following cursor on marketing landing only
+- New `<BeeSpeechBubble>` — gold-bordered speech bubble with positional tail
+- Easter egg: poke dashboard bee 5× in 2.5s → "Stop poking me!"
+- Random one-liner toast on task complete (7 variants)
+- Login speech bubble "Missed you 🐝", signup "Let's get you set up 🐝"
+- Avatar tooltip "That's you 🐝"
+- 18 system messages rewritten conversational: "Got it, saved! 🐝", "Add it to the hive", "Lock it in", "Send it", "Hmm, sync stalled. Try again?"
+- All zod validation errors humanized
+
+**Comprehensive security audit (commit a69c4d2 — 6 parallel agents + coordinator)**
+- THREAT_MODEL.md (Cybersecurity Lead, 3,845 words, STRIDE matrix, top-20 threats, GDPR/CCPA gaps)
+- PENTEST_REPORT.md (0 CRIT, 1 HIGH, 9 MED, 8 LOW). Verdict: "Plaid integration is at near-financial-grade hardening. IDOR discipline is exceptionally consistent."
+- DATA_LEAK_AUDIT.md (0 CRIT, 3 HIGH, 6 MED, 5 LOW)
+- CRYPTO_AUDIT.md (0 CRIT, 3 HIGH, 6 MED, 5 LOW). Verdict: "AES impl is textbook. ES256 webhook verification is reference quality."
+- DEPENDENCY_AUDIT.md (0 CRIT, 25 HIGH transitive, 13 MOD)
+- INFRA_SECURITY_AUDIT.md (0 CRIT, 6 HIGH, 11 MED, 7 LOW). **Zero secrets in git history.**
+- COMPREHENSIVE_SECURITY_AUDIT.md (Coordinator) — 15 unique HIGHs after dedup. Verdict matrix per launch tier.
+
+**Sprint 1 security quick-wins (commit e188820 — 12 fixes)**
+- `passport.initialize()` (Google OAuth was 500-ing in prod)
+- `npm audit fix` (-10 transitive vulns)
+- `next@14.2.35` (-7 next.js HIGH advisories)
+- `select` on `loginWithGoogle` `findUnique`
+- JWT in OAuth `#fragment` not `?query`
+- `pushToken` to SENSITIVE_FIELDS
+- Login + register dummy bcrypt (timing fixes)
+- `writeAuthFailureLog()` for breach detection
+- Dockerfile USER node + HEALTHCHECK + .dockerignore
+- Production env `.superRefine`
+- Database SSL enforcement
+- npm audit: 43 → 33 vulns
+
+**DEPLOYMENT_RUNBOOK.md (commit b60e090)** — 10 sections covering NO-AWS path to PROD. Domain → service signups (Upstash, R2, Resend, Sentry, Anthropic prod, Plaid Production) → DNS → Railway/Vercel deploy → Plaid config → mobile launch → smoke test → monitoring. Total cost: ~$15-35/mo + $10/yr domain.
+
+**BACKLOG.md (commit 6d8d384)** — forward-looking queue. Item 29 (email order tracking), Item 33 (receipt analysis with AI insights), Sprint 2/3/4 security, mobile parity items, etc. Documents iOS Simulator blocker too.
+
+**Motion polish (commit 6f93b48)** — fixed user's "jittery" feedback
+- Page transition: dropped directional slide (was the jitter source), softened spring (380→220), switched to mode="wait" with 80ms exit
+- Bee delivery: corner-settle (top-right) instead of viewport fly-through
+- New `<FallIntoPlace>` orchestrator (settling spring, weighted, no overshoot)
+- Dashboard: hero drops from top → stat tiles cascade → bills + tasks rise from bottom → AmbientBees fade in last (1.2s total)
+- First-login session: slower stagger + welcome bee speech bubble
+- Money/Vault/Bills/Tasks pages all got FallIntoPlace too
+
+**Mobile iOS Simulator (BLOCKED)**
+- arm64 Homebrew installed (alongside existing x86)
+- arm64 CocoaPods installed
+- pod install succeeded with 74 deps
+- Podfile patches: removed `:privacy_file_aggregation_enabled` (RN 0.74 doesn't have it), bumped iOS deployment target 13.4 → 14.0 (Plaid SDK requirement), added `use_modular_headers!` (ExpoModulesCore Swift requirement)
+- App.json rebranded to BillBee + black splash
+- Xcode build fails with "No space left on device" twice. Disk at 100%, 1.4GB free. Need ~8-10GB free.
+- User restarting laptop to free temp + retry later
 
 ## Item 27 Phase 7 — Layout redesign + Bricolage Grotesque + droplet choreography (2026-05-10)
 User rejected Fraunces ("not a fan of the font"), asked for joyful page layouts ("user should FEEL like using it"), and a login droplet animation. Spawned a Design Expert (Phase A) → 3 implementation agents in parallel (C1 typography, C2 layouts, C3 auth+droplet).
