@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lifeadminai.app",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["plaid"]
+        "LSApplicationQueriesSchemes": ["plaid", "https", "mailto"]
       }
     },
     "android": {
@@ -34,6 +34,17 @@
             {
               "scheme": "lifeadminai",
               "host": "plaid-oauth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "lifeadminai",
+              "host": "google-oauth"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

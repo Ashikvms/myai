@@ -11,6 +11,13 @@ import {
   plaidIncrementalSync,
   plaidRebalance,
   purgeOldWebhookPayloads,
+  googleCalendarSyncAll,
+  googleCalendarSyncUser,
+  googleCalendarPushAppointment,
+  googleCalendarDeleteAppointment,
+  gmailPollingSyncAll,
+  gmailPollingSyncUser,
+  gmailInboxTriage,
 } from './handlers';
 
 const QUEUE_NAME = 'life-admin-jobs';
@@ -24,6 +31,14 @@ export enum JobType {
   PLAID_INCREMENTAL_SYNC = 'PLAID_INCREMENTAL_SYNC',
   PLAID_REBALANCE = 'PLAID_REBALANCE',
   PURGE_OLD_WEBHOOK_PAYLOADS = 'PURGE_OLD_WEBHOOK_PAYLOADS',
+  // ── Google integrations ─────────────
+  GOOGLE_CALENDAR_SYNC = 'GOOGLE_CALENDAR_SYNC',
+  GOOGLE_CALENDAR_SYNC_USER = 'GOOGLE_CALENDAR_SYNC_USER',
+  GOOGLE_CALENDAR_PUSH_APPOINTMENT = 'GOOGLE_CALENDAR_PUSH_APPOINTMENT',
+  GOOGLE_CALENDAR_DELETE_APPOINTMENT = 'GOOGLE_CALENDAR_DELETE_APPOINTMENT',
+  GMAIL_POLLING_SYNC = 'GMAIL_POLLING_SYNC',
+  GMAIL_POLLING_SYNC_USER = 'GMAIL_POLLING_SYNC_USER',
+  INBOX_TRIAGE = 'INBOX_TRIAGE',
 }
 
 let queue: Queue | null = null;
@@ -61,6 +76,39 @@ async function processJob(jobType: string, data: unknown): Promise<void> {
     case JobType.PURGE_OLD_WEBHOOK_PAYLOADS:
       await purgeOldWebhookPayloads();
       break;
+    case JobType.GOOGLE_CALENDAR_SYNC:
+      await googleCalendarSyncAll();
+      break;
+    case JobType.GOOGLE_CALENDAR_SYNC_USER: {
+      const { userId } = (data as { userId?: string }) ?? {};
+      if (!userId) throw new Error('GOOGLE_CALENDAR_SYNC_USER: missing userId');
+      await googleCalendarSyncUser(userId);
+      break;
+    }
+    case JobType.GOOGLE_CALENDAR_PUSH_APPOINTMENT: {
+      const { appointmentId } = (data as { appointmentId?: string }) ?? {};
+      if (!appointmentId) throw new Error('GOOGLE_CALENDAR_PUSH_APPOINTMENT: missing appointmentId');
+      await googleCalendarPushAppointment(appointmentId);
+      break;
+    }
+    case JobType.GOOGLE_CALENDAR_DELETE_APPOINTMENT: {
+      const { appointmentId } = (data as { appointmentId?: string }) ?? {};
+      if (!appointmentId) throw new Error('GOOGLE_CALENDAR_DELETE_APPOINTMENT: missing appointmentId');
+      await googleCalendarDeleteAppointment(appointmentId);
+      break;
+    }
+    case JobType.GMAIL_POLLING_SYNC:
+      await gmailPollingSyncAll();
+      break;
+    case JobType.GMAIL_POLLING_SYNC_USER: {
+      const { userId } = (data as { userId?: string }) ?? {};
+      if (!userId) throw new Error('GMAIL_POLLING_SYNC_USER: missing userId');
+      await gmailPollingSyncUser(userId);
+      break;
+    }
+    case JobType.INBOX_TRIAGE:
+      await gmailInboxTriage();
+      break;
     default:
       logger.warn('Unknown job type', { jobType });
   }
@@ -79,6 +127,34 @@ export async function enqueuePlaidJob(
 ): Promise<Job | null> {
   if (!queue) {
     logger.warn('Queue not running — Plaid job not enqueued', { jobType });
+    return null;
+  }
+  const job = await queue.add(jobType, data, {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5_000 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 200 },
+  });
+  return job;
+}
+
+/**
+ * Enqueue a Google integration job. Mirrors `enqueuePlaidJob` — returns
+ * null when Redis is down so callers never block on Google sync.
+ */
+export async function enqueueGoogleJob(
+  jobType:
+    | JobType.GOOGLE_CALENDAR_SYNC
+    | JobType.GOOGLE_CALENDAR_SYNC_USER
+    | JobType.GOOGLE_CALENDAR_PUSH_APPOINTMENT
+    | JobType.GOOGLE_CALENDAR_DELETE_APPOINTMENT
+    | JobType.GMAIL_POLLING_SYNC
+    | JobType.GMAIL_POLLING_SYNC_USER
+    | JobType.INBOX_TRIAGE,
+  data: { userId?: string; appointmentId?: string } = {},
+): Promise<Job | null> {
+  if (!queue) {
+    logger.warn('Queue not running — Google job not enqueued', { jobType });
     return null;
   }
   const job = await queue.add(jobType, data, {
@@ -163,6 +239,30 @@ export async function startJobQueue(): Promise<void> {
       'purge-old-webhook-payloads',
       { pattern: '0 3 * * *' }, // Daily at 3am UTC
       { name: JobType.PURGE_OLD_WEBHOOK_PAYLOADS },
+    );
+
+    // ── Google integration schedules ─────────
+    // Calendar sync runs daily at 06:00 UTC so we have fresh data before
+    // the daily-insights job (07:00) reads it.
+    await queue.upsertJobScheduler(
+      'google-calendar-sync',
+      { pattern: '0 6 * * *' },
+      { name: JobType.GOOGLE_CALENDAR_SYNC },
+    );
+
+    // Gmail polling runs hourly. AI processing is included in the same
+    // job so we don't pay the per-user fan-out cost twice.
+    await queue.upsertJobScheduler(
+      'gmail-polling-sync',
+      { pattern: '0 * * * *' },
+      { name: JobType.GMAIL_POLLING_SYNC },
+    );
+
+    // Daily inbox triage at 07:00 UTC — after the hourly Gmail poll runs.
+    await queue.upsertJobScheduler(
+      'gmail-inbox-triage',
+      { pattern: '0 7 * * *' },
+      { name: JobType.INBOX_TRIAGE },
     );
 
     logger.info('Job queue started with recurring schedules');

@@ -65,6 +65,8 @@ interface Bill {
   amount: number;
   dueDate: string;
   autopay: boolean;
+  /** When 'gmail', show the small "📧" badge next to the bill name. */
+  source: 'manual' | 'gmail' | 'plaid' | null;
 }
 
 interface Subscription {
@@ -144,6 +146,7 @@ function adaptBill(b: ApiBill): Bill {
     amount: typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount)) || 0,
     dueDate: b.nextDueDate,
     autopay: b.autopay,
+    source: b.source ?? null,
   };
 }
 
@@ -231,7 +234,19 @@ export default function BillsScreen() {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardName}>{item.name}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.cardName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.source === 'gmail' && (
+                  <View
+                    style={styles.sourceBadge}
+                    accessibilityLabel="Auto-detected from Gmail"
+                  >
+                    <Text style={styles.sourceBadgeText}>📧</Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.badgeRow}>
                 <Badge label={item.category} styles={styles} t={t} />
                 {item.autopay && <Badge label="Autopay" styles={styles} t={t} />}
@@ -633,6 +648,25 @@ function makeStyles(t: Tokens) {
     fontWeight: '600',
     color: t.text,
     marginBottom: spacing.xs + 2,
+    flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+  },
+  sourceBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+    backgroundColor: t.surface2,
+    borderWidth: 1,
+    borderColor: t.border,
+    marginBottom: spacing.xs + 2,
+  },
+  sourceBadgeText: {
+    fontSize: 11,
+    color: t.text,
   },
   cardAmount: {
     fontSize: 22,

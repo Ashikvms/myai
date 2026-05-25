@@ -48,6 +48,12 @@ import { HexFrame } from '@/components/layout/hex-frame';
 import { getGreeting, getBeePoseForHour } from '@/lib/greeting';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
+import { InboxTriageCard } from '@/components/google/inbox-triage-card';
+import {
+  getGoogleStatus,
+  getDashboardGoogleSlice,
+  type InboxTriage,
+} from '@/lib/api/google';
 
 // ─── Demo Data ───────────────────────────────────────────────────────
 const DEMO_TASKS = [
@@ -245,6 +251,33 @@ export default function DashboardPage() {
   // Welcome name — fall back to "back" if no name available.
   const welcomeName = (user?.name?.split(' ')[0]) || 'back';
 
+  // ── Google inbox triage (best-effort, fail-soft) ────────────────
+  // The brief: render the InboxTriageCard at the top of the dashboard
+  // if `linked && inboxTriage`. We fetch status + the dashboard slice
+  // on mount in parallel and stash the triage payload. Network errors
+  // are swallowed — we just don't show the card.
+  const [inboxTriage, setInboxTriage] = useState<InboxTriage | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [status, slice] = await Promise.all([
+          getGoogleStatus().catch(() => null),
+          getDashboardGoogleSlice().catch(() => null),
+        ]);
+        if (cancelled) return;
+        if (status?.linked && slice?.inboxTriage) {
+          setInboxTriage(slice.inboxTriage);
+        }
+      } catch {
+        // Soft-fail — leave the card hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <FallIntoPlace className="relative max-w-[1280px] mx-auto">
       {/* Subtle hive-theme honeycomb wash — 4% opacity, behind everything */}
@@ -286,6 +319,13 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* ── Inbox Triage (Google) — only when linked + payload present ── */}
+      {inboxTriage && (
+        <FallIntoPlace.Item from="top" delay={heroDelay} className="block mb-5">
+          <InboxTriageCard triage={inboxTriage} />
+        </FallIntoPlace.Item>
+      )}
+
       {/* ── Bento Grid ─────────────────────────────────────────────────
           Mobile = single column; ≥lg = 12-col / multi-row layout.
           Each tile is wrapped in <FallIntoPlace.Item> so the whole grid

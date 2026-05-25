@@ -11,6 +11,27 @@ const baseSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALLBACK_URL: z.string().url().optional().default('http://localhost:3001/api/auth/google/callback'),
+  // Separate redirect for the LINK flow (logged-in user adding Calendar/Gmail
+  // scopes WITHOUT replacing their session). Must be registered in the Google
+  // Cloud console alongside GOOGLE_CALLBACK_URL.
+  GOOGLE_LINK_REDIRECT_URI: z
+    .string()
+    .url()
+    .optional()
+    .default('http://localhost:3001/api/google/link/callback'),
+  // Where to bounce the browser AFTER the link flow completes — the web app
+  // settings page typically. Falls back to APP_URL if unset.
+  GOOGLE_LINK_SUCCESS_REDIRECT: z.string().optional(),
+  // Comma-separated scopes. We keep them in env so a deployment can dial
+  // them down (e.g. drop gmail.modify) without redeploying code.
+  GOOGLE_CALENDAR_SCOPES: z
+    .string()
+    .default('https://www.googleapis.com/auth/calendar'),
+  GOOGLE_GMAIL_SCOPES: z
+    .string()
+    .default(
+      'https://www.googleapis.com/auth/gmail.readonly,https://www.googleapis.com/auth/gmail.modify',
+    ),
 
   // Optional — infrastructure
   REDIS_URL: z.string().optional(),

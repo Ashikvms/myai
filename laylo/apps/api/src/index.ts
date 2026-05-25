@@ -18,6 +18,7 @@ import dashboardRouter from './routes/dashboard';
 import settingsRouter from './routes/settings';
 import aiRouter from './routes/ai';
 import plaidRouter, { plaidWebhookHandler } from './routes/plaid';
+import googleRouter from './routes/google';
 import transactionsRouter, { aiExplainTransactionRouter } from './routes/transactions';
 import accountsRouter from './routes/accounts';
 import { healthRouter } from './routes/health';
@@ -94,6 +95,7 @@ app.use('/api/ai', aiRouter);
 // Item 28: POST /api/ai/explain-transaction/:id (handler in transactions.ts)
 app.use('/api/ai', aiExplainTransactionRouter);
 app.use('/api/plaid', plaidRouter);
+app.use('/api/google', googleRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/accounts', accountsRouter);
 

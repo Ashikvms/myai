@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { HexFrame } from '@/components/layout/hex-frame';
+import { GoogleConnectCard } from '@/components/google/google-connect-card';
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -145,6 +146,11 @@ export default function SettingsPage() {
           </div>
         </div>
       </SectionCard>
+
+      {/* Google integration — full-width row above the hub grid. */}
+      <div className="mt-6">
+        <GoogleConnectCard />
+      </div>
 
       {/* 2×2 hub grid — Notifications · Appearance · Data & Privacy · Plan */}
       <div className="mt-6 grid gap-6 md:grid-cols-2">

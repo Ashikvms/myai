@@ -7,6 +7,20 @@ export * as chatPrompt from './prompts/chat';
 export * as suggestPrompt from './prompts/suggest';
 export * as nlToActionPrompt from './prompts/nl-to-action';
 export * as insightsPrompt from './prompts/insights';
+export * as extractBillFromEmailPrompt from './prompts/extract-bill-from-email';
+export * as extractAppointmentFromEmailPrompt from './prompts/extract-appointment-from-email';
+export * as inboxTriagePrompt from './prompts/inbox-triage';
+
+export type {
+  GmailMessageInput,
+  ExtractedBill,
+  ExtractedAppointment,
+  InboxTriageSummary,
+  TriageMustActItem,
+  TriageFyiItem,
+  BillCategory,
+  BillingCycle,
+} from './types';
 
 export {
   explainTransaction,

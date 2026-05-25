@@ -40,6 +40,7 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
 import { HexFrame } from '@/components/layout/hex-frame';
+import { GoogleSourceBadge } from '@/components/google/source-badge';
 
 const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
@@ -55,6 +56,8 @@ interface Appointment {
   category: ApptCategory;
   reminderMinutes: number;
   notes?: string;
+  /** Where this row came from. 'google' lights up the Google badge. */
+  source?: 'manual' | 'google';
 }
 
 const CATEGORY_ICONS: Record<ApptCategory, React.ElementType> = {
@@ -84,8 +87,8 @@ function setTime(date: Date, hours: number, minutes: number): Date {
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
   { id: 'a1', title: 'Tax Consultation', dateTime: setTime(addDays(today, 14), 10, 0), endTime: setTime(addDays(today, 14), 11, 0), location: 'H&R Block — 123 Main St', category: 'Finance', reminderMinutes: 60, notes: "Bring W-2, 1099 forms, and last year's return." },
-  { id: 'a2', title: 'Dentist Cleaning', dateTime: setTime(addDays(today, 7), 14, 30), endTime: setTime(addDays(today, 7), 15, 30), location: 'Bright Smile Dental — 456 Oak Ave', category: 'Health', reminderMinutes: 60, notes: 'Regular 6-month checkup and cleaning.' },
-  { id: 'a3', title: 'Eye Exam', dateTime: setTime(addDays(today, 3), 9, 0), endTime: setTime(addDays(today, 3), 10, 0), location: 'Vision Center — 789 Elm Blvd', category: 'Health', reminderMinutes: 120, notes: 'Annual eye exam. Bring current glasses.' },
+  { id: 'a2', title: 'Dentist Cleaning', dateTime: setTime(addDays(today, 7), 14, 30), endTime: setTime(addDays(today, 7), 15, 30), location: 'Bright Smile Dental — 456 Oak Ave', category: 'Health', reminderMinutes: 60, notes: 'Regular 6-month checkup and cleaning.', source: 'google' },
+  { id: 'a3', title: 'Eye Exam', dateTime: setTime(addDays(today, 3), 9, 0), endTime: setTime(addDays(today, 3), 10, 0), location: 'Vision Center — 789 Elm Blvd', category: 'Health', reminderMinutes: 120, notes: 'Annual eye exam. Bring current glasses.', source: 'google' },
   { id: 'a4', title: 'Car Service — Oil Change', dateTime: setTime(addDays(today, 21), 8, 0), endTime: setTime(addDays(today, 21), 9, 30), location: 'Quick Lube — 321 Auto Way', category: 'Car', reminderMinutes: 60, notes: 'Oil change + tire rotation. 30k mile service.' },
   { id: 'a5', title: 'Annual Physical', dateTime: setTime(addDays(today, -10), 11, 0), endTime: setTime(addDays(today, -10), 12, 0), location: 'City Health Clinic — 555 Health Dr', category: 'Health', reminderMinutes: 60, notes: 'Completed. Follow up on lab results.' },
 ];
@@ -396,8 +399,9 @@ export default function AppointmentsPage() {
                             {appt.category}
                           </span>
                         </div>
-                        <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
-                          {appt.title}
+                        <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] flex items-center gap-2 flex-wrap">
+                          <span>{appt.title}</span>
+                          {appt.source === 'google' && <GoogleSourceBadge />}
                         </h3>
                         {appt.location && (
                           <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5 mt-1">

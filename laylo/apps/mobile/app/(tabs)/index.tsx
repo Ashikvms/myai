@@ -16,6 +16,7 @@ import {
   Platform,
   ActivityIndicator,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -24,10 +25,11 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listAccounts, listTransactions } from '../../src/lib/api/transactions';
 import type { BankAccount, Transaction } from '../../src/lib/api/types';
-import { getDashboard } from '../../src/lib/api/resources';
+import { getDashboard, getGoogleStatus, pollGmail } from '../../src/lib/api/resources';
+import { InboxTriageCard } from '../../src/components/google/inbox-triage-card';
 import { useAuth } from '../../src/context/auth';
 import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
@@ -326,10 +328,40 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
+  const queryClient = useQueryClient();
   const dashboardQuery = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboard,
   });
+
+  // Google triage is opt-in — only show when linked + the API has
+  // returned a payload. The query fails soft (retry: false) so an
+  // unlinked user never sees a spinner here.
+  const googleQuery = useQuery({
+    queryKey: ['google', 'status'],
+    queryFn: getGoogleStatus,
+    retry: false,
+  });
+  const googleLinked = googleQuery.data?.linked === true;
+  const inboxTriage = googleQuery.data?.inboxTriage ?? null;
+
+  // Pull-to-refresh on Dashboard also re-polls Gmail (best-effort —
+  // failures are silent because the inbox triage card already
+  // tolerates an empty payload).
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        dashboardQuery.refetch(),
+        googleQuery.refetch(),
+        googleLinked ? pollGmail() : Promise.resolve(),
+      ]);
+      queryClient.invalidateQueries({ queryKey: ['google'] });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const data = dashboardQuery.data;
   const todayTasks = data?.todayTasks ?? [];
@@ -352,7 +384,17 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={t.accent}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -402,6 +444,16 @@ export default function HomeScreen() {
             What&apos;s worth your time today?
           </Text>
         </View>
+
+        {/* Inbox Triage — Google integration. Surfaces only when the
+            user has connected Google + the API returned an inboxTriage
+            payload. Sits above the stats grid so the bee's first
+            morning report is what you see. */}
+        {googleLinked && inboxTriage && (
+          <View style={styles.section}>
+            <InboxTriageCard triage={inboxTriage} />
+          </View>
+        )}
 
         {/* Stats Grid — single gold accent on most-actionable. Numbers
             count up from 0 → final on mount (B6). */}

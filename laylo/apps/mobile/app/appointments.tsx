@@ -44,6 +44,9 @@ interface Appointment {
   category: ApptCategory;
   reminderMinutes: number;
   notes?: string;
+  /** When 'google', show the small "G" badge next to the title. */
+  source: 'manual' | 'google' | null;
+  externalUrl: string | null;
 }
 
 const CATEGORY_GLYPH: Record<ApptCategory, string> = {
@@ -107,6 +110,8 @@ function adapt(a: ApiAppointment): Appointment {
     category: toCategory(a.category),
     reminderMinutes: a.reminderMinutes ?? 60,
     notes: a.notes ?? undefined,
+    source: a.source ?? null,
+    externalUrl: a.externalUrl ?? null,
   };
 }
 
@@ -155,7 +160,19 @@ export default function AppointmentsScreen() {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                {item.source === 'google' && (
+                  <View
+                    style={styles.googleBadge}
+                    accessibilityLabel="Synced from Google Calendar"
+                  >
+                    <Text style={styles.googleBadgeText}>G</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.cardDateTime}>
                 {formatDateTime(item.dateTime)}
                 {item.endTime ? ` – ${formatTimeOnly(item.endTime)}` : ''}
@@ -391,6 +408,28 @@ function makeStyles(t: Tokens) {
     fontWeight: '600',
     color: t.text,
     marginBottom: 2,
+    flexShrink: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+  },
+  googleBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: t.surface2,
+    borderWidth: 1,
+    borderColor: t.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: t.text,
+    lineHeight: 12,
   },
   cardDateTime: {
     fontSize: 12,

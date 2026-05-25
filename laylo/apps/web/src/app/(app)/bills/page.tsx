@@ -40,6 +40,7 @@ import { HexFrame } from '@/components/layout/hex-frame';
 import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
 import { useMilestoneTracker } from '@/components/celebrations/milestone-toast';
 import { AmbientBees } from '@/components/motion/ambient-bees';
+import { GmailSourceBadge } from '@/components/google/source-badge';
 
 // ─── Types ───────────────────────────────────────────────────────────
 type ActiveTab = 'bills' | 'subscriptions';
@@ -57,6 +58,8 @@ interface Bill {
   autopay: boolean;
   notes?: string;
   paid?: boolean;
+  /** Where this row originated. 'gmail' surfaces the inbox badge. */
+  source?: 'manual' | 'gmail';
 }
 
 interface Subscription {
@@ -93,7 +96,7 @@ const INITIAL_BILLS: Bill[] = [
   { id: 'b1', name: 'Rent', category: 'Housing', amount: 2200, frequency: 'Monthly', dueDate: format(addDays(today, 5), 'yyyy-MM-dd'), autopay: true, notes: 'Apartment 4B' },
   { id: 'b2', name: 'Internet', category: 'Utilities', amount: 79.99, frequency: 'Monthly', dueDate: format(addDays(today, 12), 'yyyy-MM-dd'), autopay: true, notes: 'Fiber 500Mbps' },
   { id: 'b3', name: 'Car Insurance', category: 'Insurance', amount: 185, frequency: 'Monthly', dueDate: format(addDays(today, 8), 'yyyy-MM-dd'), autopay: false, notes: 'Progressive — Honda Civic' },
-  { id: 'b4', name: 'Electricity', category: 'Utilities', amount: 142.5, frequency: 'Monthly', dueDate: format(addDays(today, 1), 'yyyy-MM-dd'), autopay: false, notes: 'Variable — check bill' },
+  { id: 'b4', name: 'Electricity', category: 'Utilities', amount: 142.5, frequency: 'Monthly', dueDate: format(addDays(today, 1), 'yyyy-MM-dd'), autopay: false, notes: 'Variable — check bill', source: 'gmail' },
   { id: 'b5', name: 'Phone Plan', category: 'Utilities', amount: 55, frequency: 'Monthly', dueDate: format(addDays(today, 18), 'yyyy-MM-dd'), autopay: true, notes: 'T-Mobile Essentials' },
 ];
 
@@ -201,8 +204,9 @@ function BillCard({
               <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
             </HexFrame>
             <div className="flex-1 min-w-0">
-              <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
-                {bill.name}
+              <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate flex items-center gap-2">
+                <span className="truncate">{bill.name}</span>
+                {bill.source === 'gmail' && <GmailSourceBadge />}
               </h3>
               <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-0.5">
                 {bill.category} · {bill.frequency}

@@ -137,6 +137,13 @@ export interface ApiBill {
   category: string | null;
   status: string;
   autopay: boolean;
+  /**
+   * Provenance — backend sets this to 'gmail' when the bill was
+   * auto-detected from a Gmail message. Used by the mobile UI to
+   * render the small "📧" badge next to the bill name. May be
+   * undefined for older records.
+   */
+  source?: 'manual' | 'gmail' | 'plaid' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,6 +205,14 @@ export interface ApiAppointment {
   category: string | null;
   reminderMinutes: number | null;
   notes: string | null;
+  /**
+   * Provenance — backend sets this to 'google' when the appointment
+   * was synced from Google Calendar. Mobile renders a small "G"
+   * badge next to the title. May be undefined for older records.
+   */
+  source?: 'manual' | 'google' | null;
+  /** Direct link back to Google Calendar (only when source === 'google'). */
+  externalUrl?: string | null;
 }
 
 export function listDocuments(): Promise<ApiDocument[]> {
@@ -250,3 +265,210 @@ export function askAi(
     })
     .then((r) => r.data);
 }
+
+// ─── Google Calendar + Gmail ──────────────────────────────────────
+//
+// Mirror of `apps/web/.../google/*`. The mobile flow uses the
+// authorization-code-with-PKCE pattern via `expo-auth-session`:
+//   1. POST /api/google/link/start          → { redirectUrl, state }
+//   2. Open redirectUrl in WebBrowser
+//   3. App captures lifeadminai://google-oauth?code=...&state=...
+//   4. POST /api/google/link/callback { code, state } → { ok: true }
+//   5. Refetch /api/google/status
+//
+// `inboxTriage` is the bee's daily Gmail digest — surfaced on the
+// dashboard when present. Shape mirrors what the web component reads.
+
+/**
+ * Granular OAuth scopes mirrored from `apps/web/src/lib/api/google.ts`.
+ * Web and mobile use the same canonical identifiers so a chip labeled
+ * "Calendar" on web and mobile is keyed off the same string.
+ */
+export type GoogleScope =
+  | 'calendar.readonly'
+  | 'calendar.events'
+  | 'gmail.readonly'
+  | 'gmail.metadata';
+
+/**
+ * Convenience grouping the UI uses to render the two scope chips
+ * (Calendar / Gmail). Returns true when *any* scope in the group is
+ * granted — Google's consent screen lets users grant subset.
+ */
+export function hasCalendarScope(scopes: GoogleScope[]): boolean {
+  return scopes.some((s) => s.startsWith('calendar'));
+}
+export function hasGmailScope(scopes: GoogleScope[]): boolean {
+  return scopes.some((s) => s.startsWith('gmail'));
+}
+
+export interface GoogleStatus {
+  linked: boolean;
+  googleEmail: string | null;
+  /** Granted scopes — same shape as the web client. */
+  scopes: GoogleScope[];
+  calendarLastSyncedAt: string | null;
+  gmailLastPolledAt: string | null;
+  /** Optional triage summary (only present if Gmail scope is granted). */
+  inboxTriage?: GoogleInboxTriage | null;
+}
+
+export interface GoogleInboxTriageItem {
+  id: string;
+  /** Display name of the sender ("Acme Bank" not "noreply@acme.com"). */
+  from: string;
+  subject: string;
+  /** Short AI-generated rationale: "Why this matters". */
+  why: string;
+  /** External Gmail id for the "View in Gmail" link. */
+  externalId: string;
+  receivedAt: string;
+}
+
+export interface GoogleInboxTriage {
+  /** Display-type headline, e.g. "3 things to act on, 5 to skim". */
+  headline: string;
+  mustAct: GoogleInboxTriageItem[];
+  fyi: GoogleInboxTriageItem[];
+  /** Count of newsletters / promos filtered out. */
+  noise: number;
+}
+
+export interface GoogleCalendarEvent {
+  id: string;
+  externalId: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  location: string | null;
+  htmlLink: string;
+  readOnly: boolean;
+  calendarName: string;
+}
+
+export type GmailMessageCategory =
+  | 'bill'
+  | 'receipt'
+  | 'subscription'
+  | 'other';
+
+export interface GmailMessage {
+  id: string;
+  externalId: string;
+  from: string;
+  subject: string;
+  snippet: string;
+  receivedAt: string;
+  category: GmailMessageCategory;
+  amountCents: number | null;
+  currency: string | null;
+  merchant: string | null;
+  convertedToBill: boolean;
+}
+
+export interface GoogleLinkStart {
+  redirectUrl: string;
+  /**
+   * CSRF token mobile passes back to /link/callback.
+   *
+   * NOTE: web's `/api/google/link` returns only `{ redirectUrl }`
+   * because the browser flow uses a server-side cookie for the CSRF
+   * check. The mobile flow doesn't have that cookie — so we ask the
+   * server for the state token explicitly via the same endpoint
+   * (server-side branch keyed off the Accept header / a query flag
+   * like `mode=mobile`). If the backend hasn't shipped this branch
+   * yet, `state` may be empty — the OAuth helper handles that.
+   */
+  state: string;
+}
+
+export interface GoogleSyncJob {
+  jobId: string;
+}
+
+/**
+ * Helper — turn a Gmail externalId into the canonical web URL the
+ * mobile Linking.openURL() call uses. Mirrors web's gmailLink().
+ */
+export function gmailMessageUrl(externalId: string): string {
+  return `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(externalId)}`;
+}
+
+export function getGoogleStatus(): Promise<GoogleStatus> {
+  return api
+    .get<ApiEnvelope<GoogleStatus>>('/api/google/status')
+    .then((r) => r.data);
+}
+
+/**
+ * Start an OAuth link. We pass `?mode=mobile` so the backend knows
+ * to surface the `state` token in the JSON response (web reads it
+ * from a server-set cookie that the native client can't see).
+ */
+export function startGoogleLink(): Promise<GoogleLinkStart> {
+  return api
+    .post<ApiEnvelope<GoogleLinkStart>>('/api/google/link?mode=mobile', {})
+    .then((r) => r.data);
+}
+
+/**
+ * Exchange the OAuth code for tokens. Mobile-only endpoint — the web
+ * flow uses the server's redirect handler instead of an explicit
+ * callback POST.
+ */
+export function completeGoogleLink(input: {
+  code: string;
+  state: string;
+}): Promise<{ ok: true }> {
+  return api
+    .post<ApiEnvelope<{ ok: true }>>('/api/google/link/callback', input)
+    .then((r) => r.data);
+}
+
+export function unlinkGoogle(): Promise<{ ok: true }> {
+  return api
+    .post<ApiEnvelope<{ ok: true }>>('/api/google/unlink', {})
+    .then((r) => r.data);
+}
+
+export function syncGoogleCalendar(): Promise<GoogleSyncJob> {
+  return api
+    .post<ApiEnvelope<GoogleSyncJob>>('/api/google/calendar/sync', {})
+    .then((r) => r.data);
+}
+
+export function pollGmail(): Promise<GoogleSyncJob> {
+  return api
+    .post<ApiEnvelope<GoogleSyncJob>>('/api/google/gmail/poll', {})
+    .then((r) => r.data);
+}
+
+export function listGoogleCalendarEvents(params?: {
+  since?: string;
+}): Promise<{ events: GoogleCalendarEvent[] }> {
+  const qs = params?.since
+    ? `?since=${encodeURIComponent(params.since)}`
+    : '';
+  return api
+    .get<ApiEnvelope<{ events: GoogleCalendarEvent[] }>>(
+      `/api/google/calendar/events${qs}`,
+    )
+    .then((r) => r.data);
+}
+
+export function listGmailMessages(
+  category: GmailMessageCategory = 'bill',
+): Promise<{ messages: GmailMessage[] }> {
+  return api
+    .get<ApiEnvelope<{ messages: GmailMessage[] }>>(
+      `/api/google/gmail/messages?category=${encodeURIComponent(category)}`,
+    )
+    .then((r) => r.data);
+}
+
+/**
+ * Bills + Appointments may be Gmail/Calendar-sourced. The backend
+ * adds a `source` field to indicate provenance; mobile reads it to
+ * show the small badge ("📧" / "G") on cards.
+ */
+export type ResourceSource = 'manual' | 'gmail' | 'google' | 'plaid';

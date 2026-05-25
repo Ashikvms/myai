@@ -25,7 +25,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { copy } from '../../src/lib/copy';
 import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -40,7 +45,9 @@ import { InboxZeroOverlay } from '../../src/components/celebrations/inbox-zero-o
 import { markInboxZeroShown } from '../../src/lib/inbox-zero-flag';
 import {
   completeTask,
+  getGoogleStatus,
   listTasks,
+  syncGoogleCalendar,
   uncompleteTask,
   type ApiTask,
 } from '../../src/lib/api/resources';
@@ -156,6 +163,25 @@ export default function TasksScreen() {
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
     queryFn: listTasks,
+  });
+
+  // Google link status — drives the "Import from Google Calendar"
+  // chip above the filters. Fails soft so unlinked users never see
+  // a spinner there.
+  const googleQuery = useQuery({
+    queryKey: ['google', 'status'],
+    queryFn: getGoogleStatus,
+    retry: false,
+  });
+  const googleLinked = googleQuery.data?.linked === true;
+
+  const calendarImportMutation = useMutation({
+    mutationFn: syncGoogleCalendar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    },
+    onError: () => Alert.alert(copy.syncStalled),
   });
 
   const tasks = useMemo(
@@ -301,6 +327,33 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Google Calendar import — only when linked. Sits above the
+          filter chips so it reads as "pull stuff IN" before "filter
+          what's already there." */}
+      {googleLinked && (
+        <View style={styles.gcalImportRow}>
+          <TouchableOpacity
+            style={[
+              styles.gcalImportChip,
+              calendarImportMutation.isPending && { opacity: 0.6 },
+            ]}
+            onPress={() => calendarImportMutation.mutate()}
+            disabled={calendarImportMutation.isPending}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Import from Google Calendar"
+          >
+            {calendarImportMutation.isPending ? (
+              <ActivityIndicator color={t.text} size="small" />
+            ) : (
+              <Text style={styles.gcalImportText}>
+                Import from Google Calendar
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Filter Chips */}
       <ScrollView
         horizontal
@@ -318,7 +371,7 @@ export default function TasksScreen() {
             >
               {active && (
                 <GradientPill
-                  colors={GRADIENT_PALETTES.blackSheen}
+                  colors={[t.accent, t.accentHover]}
                   direction="diagonal"
                   borderRadius={radius.sm}
                   style={styles.filterChipActiveFill}
@@ -476,6 +529,24 @@ function makeStyles(t: Tokens) {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.sm,
+  },
+  gcalImportRow: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  gcalImportChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: t.surface2,
+    borderWidth: 1,
+    borderColor: t.border,
+  },
+  gcalImportText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: t.text,
   },
   filterChip: {
     paddingHorizontal: spacing.md + 2,

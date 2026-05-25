@@ -159,7 +159,7 @@ export default function AuthScreen() {
             >
               {activeTab === 'signin' && (
                 <GradientPill
-                  colors={GRADIENT_PALETTES.blackSheen}
+                  colors={[t.accent, t.accentHover]}
                   direction="diagonal"
                   borderRadius={radius.sm - 2}
                   style={styles.tabActiveFill}
@@ -178,7 +178,7 @@ export default function AuthScreen() {
             >
               {activeTab === 'signup' && (
                 <GradientPill
-                  colors={GRADIENT_PALETTES.blackSheen}
+                  colors={[t.accent, t.accentHover]}
                   direction="diagonal"
                   borderRadius={radius.sm - 2}
                   style={styles.tabActiveFill}

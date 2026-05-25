@@ -2,9 +2,53 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/prisma';
+import { logger } from '../config/logger';
 import { requireAuth } from '../middleware/auth';
+import { enqueueGoogleJob, JobType } from '../jobs/queue';
+import { hasCalendarScope } from '../services/google-oauth';
 
 const router = Router();
+
+/**
+ * Fire-and-forget push to Google Calendar. Looks up the user's scopes
+ * cheaply; only enqueues if they have the calendar grant. Never throws
+ * — Google push failures must not break the appointment CRUD response.
+ */
+async function maybeEnqueueCalendarPush(userId: string, appointmentId: string): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleLinkedAt: true, googleScopes: true },
+    });
+    if (!user?.googleLinkedAt) return;
+    if (!hasCalendarScope(user.googleScopes)) return;
+    await enqueueGoogleJob(JobType.GOOGLE_CALENDAR_PUSH_APPOINTMENT, { appointmentId });
+  } catch (err) {
+    logger.warn('Failed to enqueue Google Calendar push — appointment is local only', {
+      userId,
+      appointmentId,
+      error: (err as Error).message,
+    });
+  }
+}
+
+async function maybeEnqueueCalendarDelete(userId: string, appointmentId: string): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleLinkedAt: true, googleScopes: true },
+    });
+    if (!user?.googleLinkedAt) return;
+    if (!hasCalendarScope(user.googleScopes)) return;
+    await enqueueGoogleJob(JobType.GOOGLE_CALENDAR_DELETE_APPOINTMENT, { appointmentId });
+  } catch (err) {
+    logger.warn('Failed to enqueue Google Calendar delete — leaving remote event in place', {
+      userId,
+      appointmentId,
+      error: (err as Error).message,
+    });
+  }
+}
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -98,6 +142,9 @@ router.post(
       },
     });
 
+    // Fire-and-forget push to Google Calendar (no-op if not linked).
+    await maybeEnqueueCalendarPush(req.user!.userId, appointment.id);
+
     res.status(201).json({ success: true, data: appointment });
   }),
 );
@@ -130,6 +177,11 @@ router.put(
       data,
     });
 
+    // Last-write-wins is enforced inside the calendar service. Always
+    // enqueue — the worker will decide whether to push or skip based on
+    // updatedAt vs. syncedAt.
+    await maybeEnqueueCalendarPush(req.user!.userId, appointment.id);
+
     res.json({ success: true, data: appointment });
   }),
 );
@@ -146,6 +198,13 @@ router.delete(
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Appointment not found' } });
       return;
     }
+
+    // Enqueue the remote delete BEFORE the local delete: the worker
+    // needs to read the GoogleCalendarEvent linkage row, which lives
+    // until the local appointment row is gone (FK SET NULL leaves a
+    // dangling link). We pass the id through so the worker can resolve
+    // the link via GoogleCalendarEvent.appointmentId directly.
+    await maybeEnqueueCalendarDelete(req.user!.userId, req.params.id!);
 
     await prisma.appointment.delete({
       where: { id: req.params.id },

@@ -77,3 +77,60 @@ export const plaidSyncLimiter = rateLimit({
     },
   },
 });
+
+// ── Google-specific limiters ────────────────────────────────────────
+
+/**
+ * Manual Google sync / poll triggers: 1 request / minute / (user, surface).
+ * Mirrors `plaidSyncLimiter` — userId-scoped so a stranger cannot DoS a
+ * victim's sync endpoint by guessing routes. The `surface` discriminator
+ * (`calendar` | `gmail`) keeps the calendar bucket independent of the
+ * gmail bucket per user.
+ */
+export const googleSyncLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request): string => {
+    const userId = (req as Request & { user?: { userId?: string } }).user?.userId ?? 'anon';
+    // Pull the surface from the route path so /calendar/sync and
+    // /gmail/poll get separate buckets.
+    const path = req.path ?? '';
+    const surface = /gmail/i.test(path) ? 'gmail' : 'calendar';
+    return `google-sync:${userId}:${surface}`;
+  },
+  validate: false,
+  message: {
+    success: false,
+    error: {
+      code: 'GOOGLE_SYNC_RATE_LIMIT_EXCEEDED',
+      message:
+        'Sync requested too frequently for this Google integration — try again in a minute',
+    },
+  },
+});
+
+/**
+ * Google OAuth link flow: 5 requests / 10 minutes / user. Loose enough
+ * for a user retrying a flaky consent screen, tight enough to deter
+ * automated abuse.
+ */
+export const googleLinkLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request): string => {
+    const userId = (req as Request & { user?: { userId?: string } }).user?.userId ?? req.ip ?? 'anon';
+    return `google-link:${userId}`;
+  },
+  validate: false,
+  message: {
+    success: false,
+    error: {
+      code: 'GOOGLE_LINK_RATE_LIMIT_EXCEEDED',
+      message: 'Too many Google link attempts — try again in a few minutes',
+    },
+  },
+});

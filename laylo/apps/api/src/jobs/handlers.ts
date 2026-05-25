@@ -12,6 +12,14 @@ import { syncItem } from '../services/transaction-sync';
 import { decryptAccessToken } from '../services/crypto';
 import { getBalances } from '../services/plaid';
 import { writeAccessLog } from '../services/audit-log';
+import {
+  syncCalendarEvents,
+  pushAppointmentToCalendar,
+  deleteAppointmentFromCalendar,
+} from '../services/google-calendar';
+import { pollGmail, processGmailMessage, summarizeInboxForUser } from '../services/google-gmail';
+import { writeGoogleAccessLog } from '../services/google-audit';
+import { hasCalendarScope, hasGmailScope } from '../services/google-oauth';
 
 // ── Helpers for daily-insights txn enrichment ───────────────
 
@@ -534,6 +542,246 @@ export async function plaidRebalance(): Promise<void> {
     logger.info('Job: plaidRebalance completed', { items: items.length, updated });
   } catch (err) {
     logger.error('Job: plaidRebalance failed', { error: (err as Error).message });
+  }
+}
+
+// ── Google Calendar sync ────────────────────
+
+/**
+ * Daily Google Calendar fan-out: iterates every user with the calendar
+ * scope linked and pulls their events. Skips users who never linked or
+ * who explicitly dropped the scope.
+ */
+export async function googleCalendarSyncAll(): Promise<void> {
+  logger.info('Job: googleCalendarSyncAll started');
+  try {
+    const users = await prisma.user.findMany({
+      where: { googleLinkedAt: { not: null } },
+      select: { id: true, googleScopes: true },
+    });
+
+    let scanned = 0;
+    let synced = 0;
+    for (const user of users) {
+      scanned += 1;
+      if (!hasCalendarScope(user.googleScopes)) continue;
+      try {
+        const result = await syncCalendarEvents(user.id);
+        synced += 1;
+        await writeGoogleAccessLog({
+          userId: user.id,
+          actorUserId: 'system:googleCalendarSync',
+          action: 'SYNC',
+          scope: 'calendar',
+          endpoint: 'events.list',
+          context: result as unknown as Record<string, unknown>,
+        });
+      } catch (err) {
+        logger.warn('googleCalendarSyncAll: user sync failed — continuing', {
+          userId: user.id,
+          error: (err as Error).message,
+        });
+      }
+    }
+    logger.info('Job: googleCalendarSyncAll completed', { scanned, synced });
+  } catch (err) {
+    logger.error('Job: googleCalendarSyncAll failed', { error: (err as Error).message });
+  }
+}
+
+/** Single-user calendar sync (triggered on-demand). */
+export async function googleCalendarSyncUser(userId: string): Promise<void> {
+  logger.info('Job: googleCalendarSyncUser started', { userId });
+  try {
+    const result = await syncCalendarEvents(userId);
+    await writeGoogleAccessLog({
+      userId,
+      actorUserId: 'system:googleCalendarSyncUser',
+      action: 'SYNC',
+      scope: 'calendar',
+      endpoint: 'events.list',
+      context: result as unknown as Record<string, unknown>,
+    });
+    logger.info('Job: googleCalendarSyncUser completed', { userId, ...result });
+  } catch (err) {
+    logger.error('Job: googleCalendarSyncUser failed', {
+      userId,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/** Push a single appointment to Google Calendar. */
+export async function googleCalendarPushAppointment(appointmentId: string): Promise<void> {
+  logger.info('Job: googleCalendarPushAppointment started', { appointmentId });
+  try {
+    const result = await pushAppointmentToCalendar(appointmentId);
+    logger.info('Job: googleCalendarPushAppointment completed', {
+      appointmentId,
+      ...result,
+    });
+  } catch (err) {
+    logger.error('Job: googleCalendarPushAppointment failed', {
+      appointmentId,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/** Delete the Google event linked to a deleted appointment. */
+export async function googleCalendarDeleteAppointment(appointmentId: string): Promise<void> {
+  logger.info('Job: googleCalendarDeleteAppointment started', { appointmentId });
+  try {
+    const result = await deleteAppointmentFromCalendar(appointmentId);
+    logger.info('Job: googleCalendarDeleteAppointment completed', {
+      appointmentId,
+      ...result,
+    });
+  } catch (err) {
+    logger.warn('Job: googleCalendarDeleteAppointment failed — appointment local-only', {
+      appointmentId,
+      error: (err as Error).message,
+    });
+    // Swallow — the local appointment is already gone.
+  }
+}
+
+// ── Gmail polling + triage ──────────────────
+
+/**
+ * Hourly fan-out: poll Gmail for every linked user and process new
+ * messages serially. Per-user errors are isolated.
+ */
+export async function gmailPollingSyncAll(): Promise<void> {
+  logger.info('Job: gmailPollingSyncAll started');
+  try {
+    const users = await prisma.user.findMany({
+      where: { googleLinkedAt: { not: null } },
+      select: { id: true, googleScopes: true },
+    });
+    let scannedUsers = 0;
+    let totalInserted = 0;
+    let totalProcessed = 0;
+
+    for (const user of users) {
+      if (!hasGmailScope(user.googleScopes)) continue;
+      scannedUsers += 1;
+      try {
+        const poll = await pollGmail(user.id);
+        totalInserted += poll.inserted;
+
+        // Process up to N unprocessed messages per user per run.
+        const unprocessed = await prisma.gmailMessage.findMany({
+          where: { userId: user.id, processedAt: null, deletedAt: null },
+          orderBy: { receivedAt: 'desc' },
+          take: 25,
+          select: { id: true },
+        });
+        for (const m of unprocessed) {
+          try {
+            await processGmailMessage(m.id);
+            totalProcessed += 1;
+          } catch (err) {
+            logger.warn('gmailPollingSyncAll: processGmailMessage failed', {
+              userId: user.id,
+              gmailMessageId: m.id,
+              error: (err as Error).message,
+            });
+          }
+        }
+        await writeGoogleAccessLog({
+          userId: user.id,
+          actorUserId: 'system:gmailPollingSync',
+          action: 'SYNC',
+          scope: 'gmail',
+          endpoint: 'messages.list',
+          context: { ...poll, processed: unprocessed.length } as Record<string, unknown>,
+        });
+      } catch (err) {
+        logger.warn('gmailPollingSyncAll: user poll failed — continuing', {
+          userId: user.id,
+          error: (err as Error).message,
+        });
+      }
+    }
+    logger.info('Job: gmailPollingSyncAll completed', {
+      scannedUsers,
+      totalInserted,
+      totalProcessed,
+    });
+  } catch (err) {
+    logger.error('Job: gmailPollingSyncAll failed', { error: (err as Error).message });
+  }
+}
+
+/** Single-user Gmail poll (on-demand from /api/google/gmail/poll). */
+export async function gmailPollingSyncUser(userId: string): Promise<void> {
+  logger.info('Job: gmailPollingSyncUser started', { userId });
+  try {
+    const poll = await pollGmail(userId);
+    const unprocessed = await prisma.gmailMessage.findMany({
+      where: { userId, processedAt: null, deletedAt: null },
+      orderBy: { receivedAt: 'desc' },
+      take: 25,
+      select: { id: true },
+    });
+    for (const m of unprocessed) {
+      try {
+        await processGmailMessage(m.id);
+      } catch (err) {
+        logger.warn('gmailPollingSyncUser: processGmailMessage failed — continuing', {
+          userId,
+          gmailMessageId: m.id,
+          error: (err as Error).message,
+        });
+      }
+    }
+    await writeGoogleAccessLog({
+      userId,
+      actorUserId: 'system:gmailPollingSyncUser',
+      action: 'SYNC',
+      scope: 'gmail',
+      endpoint: 'messages.list',
+      context: { ...poll, processed: unprocessed.length } as Record<string, unknown>,
+    });
+    logger.info('Job: gmailPollingSyncUser completed', { userId, ...poll });
+  } catch (err) {
+    logger.error('Job: gmailPollingSyncUser failed', {
+      userId,
+      error: (err as Error).message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * Daily inbox triage: per user, produce an AI summary of yesterday's
+ * inbox. Skipped if the AI bridge isn't wired up yet (see google-gmail.ts).
+ */
+export async function gmailInboxTriage(): Promise<void> {
+  logger.info('Job: gmailInboxTriage started');
+  try {
+    const users = await prisma.user.findMany({
+      where: { googleLinkedAt: { not: null } },
+      select: { id: true, googleScopes: true },
+    });
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    for (const user of users) {
+      if (!hasGmailScope(user.googleScopes)) continue;
+      try {
+        await summarizeInboxForUser(user.id, yesterday);
+      } catch (err) {
+        logger.warn('gmailInboxTriage: per-user summary failed — continuing', {
+          userId: user.id,
+          error: (err as Error).message,
+        });
+      }
+    }
+    logger.info('Job: gmailInboxTriage completed');
+  } catch (err) {
+    logger.error('Job: gmailInboxTriage failed', { error: (err as Error).message });
   }
 }
 

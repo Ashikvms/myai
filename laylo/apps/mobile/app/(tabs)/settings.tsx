@@ -23,6 +23,7 @@ import { useAuth } from '../../src/context/auth';
 import { useTheme } from '../../src/context/theme';
 import type { ThemeMode } from '../../src/lib/theme-mode';
 import { GradientPill, GRADIENT_PALETTES } from '../../src/components/ui/gradient-pill';
+import { GoogleConnectCard } from '../../src/components/google/google-connect-card';
 
 const THEME_OPTIONS: ReadonlyArray<{
   value: ThemeMode;
@@ -152,6 +153,12 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Google Account — Calendar + Gmail integration */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Connected Services</Text>
+        <GoogleConnectCard />
+      </View>
+
       {/* Appearance */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
@@ -182,7 +189,7 @@ export default function SettingsScreen() {
                   >
                     {active && (
                       <GradientPill
-                        colors={GRADIENT_PALETTES.blackSheen}
+                        colors={[t.accent, t.accentHover]}
                         direction="diagonal"
                         borderRadius={radius.sm - 2}
                         style={styles.themeTabActiveFill}

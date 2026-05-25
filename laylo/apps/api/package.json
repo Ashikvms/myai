@@ -17,6 +17,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1009.0",
     "@aws-sdk/s3-request-presigner": "^3.1009.0",
+    "@googleapis/calendar": "^14.3.0",
+    "@googleapis/gmail": "^16.1.2",
     "@life-admin/ai": "*",
     "@life-admin/shared": "*",
     "@paralleldrive/cuid2": "^2.2.2",
@@ -27,12 +29,13 @@
     "cors": "^2.8.5",
     "express": "^4.19.0",
     "express-rate-limit": "^7.3.0",
+    "google-auth-library": "^10.6.2",
     "helmet": "^7.1.0",
     "ioredis": "^5.4.0",
     "jose": "^5.4.0",
     "passport": "^0.7.0",
-    "plaid": "^28.0.0",
     "passport-google-oauth20": "^2.0.0",
+    "plaid": "^28.0.0",
     "winston": "^3.13.0",
     "zod": "^3.23.0"
   },
