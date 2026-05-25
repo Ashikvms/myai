@@ -30,6 +30,7 @@ import {
   SettingsIcon,
 } from '../../src/components/icons/tab-icons';
 import { GradientPill, GRADIENT_PALETTES } from '../../src/components/ui/gradient-pill';
+import { GradientBackground } from '../../src/components/layout/gradient-bg';
 
 type TabIconProps = {
   Icon: React.ComponentType<{ color: string; size?: number }>;
@@ -73,7 +74,17 @@ function TabIcon({ Icon, focused }: TabIconProps) {
 
 export default function TabLayout() {
   return (
-    <Tabs
+    // Wrap the Tabs in a host View so the atmospheric gradient sits
+    // behind the tab navigator + screens. The gradient is decorative,
+    // `pointerEvents="none"`, and animates its dark layer with
+    // Reanimated when the theme flips — softening the bg flash that
+    // a hard `--color-bg` swap would otherwise produce. Opaque screen
+    // containers occlude it (the existing tab screens paint `t.bg`),
+    // but it shows through safe-area insets and during route
+    // transitions, which is where the flash is most noticeable.
+    <View style={styles.host}>
+      <GradientBackground />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: tokens.accent,
@@ -129,10 +140,17 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Full-bleed host for the gradient + Tabs navigator. The Tabs
+  // primitive paints its own scene container, so this view only
+  // exists to give the GradientBackground a sized parent.
+  host: {
+    flex: 1,
+  },
   tabBar: {
     backgroundColor: tokens.surface,
     borderTopWidth: 1,

@@ -53,6 +53,25 @@
   /* Bee mascot — body inverts (black on yellow in light, yellow on black in dark) */
   --bee-body: #0A0A0A;
   --bee-detail: #F8E71C;
+
+  /*
+   * Atmospheric background gradient — light mode.
+   * RADIAL chosen over linear: a single soft warm pool reads as
+   * "sunlit canvas" without implying directionality the way a
+   * 135deg linear would (linears feel like a Web 2.0 hero, radials
+   * feel like ambient room light).
+   *
+   * Stops use existing palette tokens only: surface-2 (#FCF180) at
+   * ~28% opacity in the top-left, fading to the base canvas
+   * (#F8E71C). 60% radius keeps the warm pool off-centre so it
+   * doesn't read as a vignette — just a gentle highlight.
+   */
+  --bg-gradient: radial-gradient(
+    ellipse 80% 60% at 20% 0%,
+    rgba(252, 241, 128, 0.55) 0%,
+    rgba(252, 241, 128, 0.18) 35%,
+    rgba(248, 231, 28, 0) 70%
+  ), #F8E71C;
 }
 
 .dark {
@@ -85,6 +104,20 @@
   /* Bee mascot — highlight-yellow body on black bg in dark mode */
   --bee-body: #F8E71C;
   --bee-detail: #0A0A0A;
+
+  /*
+   * Atmospheric background gradient — dark mode.
+   * Mirror of the light treatment: a very faint gold halo
+   * (~4% opacity at peak) pooled top-centre that fades to pure
+   * black by 50% radius. Reads as "depth" — not as a coloured
+   * wash. If you can describe it as "yellow tint", reduce alpha.
+   */
+  --bg-gradient: radial-gradient(
+    ellipse 70% 55% at 50% 0%,
+    rgba(248, 231, 28, 0.06) 0%,
+    rgba(248, 231, 28, 0.02) 30%,
+    rgba(0, 0, 0, 0) 55%
+  ), #000000;
 }
 
 @layer base {
@@ -97,10 +130,42 @@
    * (See /LAYOUT_REDESIGN_BRIEF.md §1 for the full type scale.)
    */
   body {
+    /*
+     * Keep the solid token as the painted background so any surface
+     * relying on `var(--color-bg)` stays consistent. The atmospheric
+     * gradient is rendered by `body::before` so we can fade both
+     * `background-color` (solid fallback) and the gradient layer
+     * during a theme switch without painting twice on the body itself.
+     */
     background-color: var(--color-bg);
     color: var(--color-text);
     font-variation-settings: "opsz" 14, "wdth" 100;
     font-feature-settings: "cv11", "cv05";
+    /*
+     * Theme-transition smoother: the dim/bright flash on a flat
+     * `--color-bg` swap reads as a strobe. A 220 ms ease-out on the
+     * solid fallback and the colour rules tied to it softens the
+     * crossover. The gradient layer (body::before) eases the same
+     * way via its own transition.
+     */
+    transition: background-color 220ms ease-out, color 220ms ease-out;
+  }
+
+  /*
+   * Atmospheric gradient layer. Sits behind everything (z-index: -1)
+   * and is fixed to the viewport so it doesn't scroll with content.
+   * `pointer-events: none` keeps clicks landing on real elements.
+   * Transitioning `background` lets the radial cross-fade between
+   * the light and dark stops instead of snapping.
+   */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--bg-gradient);
+    transition: background 220ms ease-out;
   }
 
   h1, h2, h3, h4, h5, h6,

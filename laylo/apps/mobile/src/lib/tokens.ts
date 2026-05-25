@@ -151,3 +151,42 @@ export const beePalette = {
   black: '#0A0A0A',
   white: '#FFFFFF',
 } as const;
+
+/**
+ * Atmospheric background-gradient stops.
+ *
+ * Mirrors the web `--bg-gradient` (see `apps/web/src/styles/globals.css`).
+ * Consumed by `<GradientBackground />` (apps/mobile/src/components/layout/gradient-bg.tsx).
+ *
+ * Stops are kept in token-land so the design system stays the single
+ * source of truth — a designer changing the wash strength only edits
+ * this map, not the component.
+ *
+ * Both maps use **only the existing palette** plus alpha — no new hexes.
+ *  - Light: highlight-yellow canvas (#F8E71C) with a softer #FCF180
+ *    (surface-2) pool top-left → "sunlit canvas".
+ *  - Dark: pure black (#000000) with a ~6% gold halo (#F8E71C alpha)
+ *    top-centre → "ambient depth", never reads as a yellow wash.
+ *
+ * Three stops each so the gradient eases over distance rather than
+ * banding. Locations are ordered low → high so consumers can pass them
+ * straight to `expo-linear-gradient`.
+ */
+export const bgGradient = {
+  light: {
+    colors: [
+      'rgba(252, 241, 128, 0.55)', // surface-2 (#FCF180) @ 55% — warm pool
+      'rgba(252, 241, 128, 0.18)', // mid fade
+      '#F8E71C',                    // base canvas
+    ] as const,
+    locations: [0, 0.35, 0.95] as const,
+  },
+  dark: {
+    colors: [
+      'rgba(248, 231, 28, 0.06)',  // gold @ 6% — barely-there halo
+      'rgba(248, 231, 28, 0.02)',  // gold @ 2% — fades through
+      '#000000',                    // base canvas
+    ] as const,
+    locations: [0, 0.3, 0.7] as const,
+  },
+} as const;

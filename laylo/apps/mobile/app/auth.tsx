@@ -23,6 +23,7 @@ import { useTokens, radius, spacing, type Tokens } from '../src/lib/tokens';
 import { BreathingBee } from '../src/components/motion/breathing-bee';
 import { BeeEntrance } from '../src/components/motion/bee-entrance';
 import { FloatingBee } from '../src/components/motion/floating-bee';
+import { BeeFlyBy } from '../src/components/motion/bee-flyby';
 import { WelcomeBeeBubble } from '../src/components/illustrations/welcome-bee-bubble';
 import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
 import { GradientPill, GRADIENT_PALETTES } from '../src/components/ui/gradient-pill';
@@ -113,6 +114,13 @@ export default function AuthScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <HoneycombPattern opacity={0.04} />
+      {/* Ambient bee fly-bys — three small bees drifting behind the form on
+          staggered delays/trajectories/sizes so the background reads "alive
+          but not busy". Sit at zIndex -1 with pointerEvents none. */}
+      <BeeFlyBy size={20} delay={0} duration={9000} direction="ltr" baseY={140} yAmplitude={18} />
+      <BeeFlyBy size={26} delay={3500} duration={11000} direction="rtl" baseY={260} yAmplitude={22} />
+      <BeeFlyBy size={18} delay={7000} duration={8500} direction="ltr" baseY={420} yAmplitude={12} />
+      <BeeFlyBy size={22} delay={11000} duration={10000} direction="rtl" baseY={560} yAmplitude={16} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

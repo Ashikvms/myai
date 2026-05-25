@@ -34,6 +34,7 @@ import { DropletChoreography } from '@/components/motion/droplet-choreography';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { IdleBob } from '@/components/motion/idle-bob';
 import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
+import { BeeFlyBy } from '@/components/motion/bee-fly-by';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -129,6 +130,13 @@ export default function SignupPage() {
       />
       <HoneycombPattern opacity={0.03} />
 
+      {/* Ambient fly-by bees — mirrors the login auth surface. Slightly
+          different staggers so the two pages feel like distinct moments. */}
+      <BeeFlyBy mode="loop" size={22} delay={1}  duration={10} fromX="-10vw" toX="110vw" anchor="top-[20%]"  y={[0, -10, 10, -4, 0]} />
+      <BeeFlyBy mode="loop" size={28} delay={5}  duration={12} fromX="110vw" toX="-10vw" anchor="top-[45%]" y={[0, 12, -8, 10, 0]} />
+      <BeeFlyBy mode="loop" size={20} delay={9}  duration={9}  fromX="-10vw" toX="110vw" anchor="top-[70%]" y={[0, -12, 8, -10, 0]} />
+      <BeeFlyBy mode="loop" size={24} delay={14} duration={11} fromX="110vw" toX="-10vw" anchor="top-[88%]" y={[0, 10, -6, 8, 0]} />
+
       <DropletChoreography variant="signup">
         <div className="relative w-full max-w-[440px]">
           {/* Ambient bee in the upper third — "the hive is alive". */}
@@ -148,13 +156,21 @@ export default function SignupPage() {
                         'radial-gradient(circle at center, rgba(255,215,0,0.32) 0%, rgba(255,215,0,0) 65%)',
                     }}
                   />
+                  {/* Breathing scale — 6s full cycle, delta 1.0 ↔ 1.025,
+                      cubic-bezier sine in/out. Tuned to read as "breath",
+                      not "pulse" (mirrors the login page + mobile
+                      BreathingBee). */}
                   <motion.div
-                    animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    animate={reduce ? undefined : { scale: [1, 1.025, 1] }}
+                    transition={{
+                      duration: 6,
+                      repeat: Infinity,
+                      ease: [0.42, 0, 0.58, 1],
+                    }}
                     className="relative"
                   >
                     {/* Idle bob — bee "breathes" up/down once the droplet has landed. */}
-                    <IdleBob amplitude={2} duration={4}>
+                    <IdleBob amplitude={2} duration={5}>
                       <BeeStanding size={180} />
                     </IdleBob>
                   </motion.div>

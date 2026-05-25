@@ -25,7 +25,7 @@ import { MotionButton } from '@/components/motion/motion-button';
 import { DropletChoreography } from '@/components/motion/droplet-choreography';
 import { AmbientBees } from '@/components/motion/ambient-bees';
 import { IdleBob } from '@/components/motion/idle-bob';
-import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
+import { BeeFlyBy } from '@/components/motion/bee-fly-by';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -71,6 +71,14 @@ export default function LoginPage() {
       />
       <HoneycombPattern opacity={0.03} />
 
+      {/* Ambient fly-by bees — four small bees crossing the viewport behind
+          the form on staggered delays so the auth page reads "alive but
+          ambient". `BeeFlyBy` honors useReducedMotion internally. */}
+      <BeeFlyBy mode="loop" size={22} delay={0}  duration={9}  fromX="-10vw" toX="110vw" anchor="top-[18%]"  y={[0, -8, 12, -4, 0]} />
+      <BeeFlyBy mode="loop" size={28} delay={4}  duration={11} fromX="110vw" toX="-10vw" anchor="top-[42%]" y={[0, 14, -6, 10, 0]} />
+      <BeeFlyBy mode="loop" size={20} delay={9}  duration={8}  fromX="-10vw" toX="110vw" anchor="top-[68%]" y={[0, -10, 6, -12, 0]} />
+      <BeeFlyBy mode="loop" size={24} delay={14} duration={10} fromX="110vw" toX="-10vw" anchor="top-[85%]" y={[0, 8, -8, 6, 0]} />
+
       <DropletChoreography variant="login">
         <div className="relative w-full max-w-[440px]">
           {/* Ambient bee in the upper third — "the hive is alive". */}
@@ -90,13 +98,22 @@ export default function LoginPage() {
                         'radial-gradient(circle at center, rgba(255,215,0,0.32) 0%, rgba(255,215,0,0) 65%)',
                     }}
                   />
+                  {/* Breathing scale — tuned for "breath, not pulse" per
+                      user feedback. 6s full cycle (was 4s), delta 1.0 ↔
+                      1.025 (was 1.03), and a sine-style cubic-bezier so
+                      the apex/trough are continuous instead of stepping.
+                      Mobile twin lives in components/motion/breathing-bee.tsx. */}
                   <motion.div
-                    animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    animate={reduce ? undefined : { scale: [1, 1.025, 1] }}
+                    transition={{
+                      duration: 6,
+                      repeat: Infinity,
+                      ease: [0.42, 0, 0.58, 1],
+                    }}
                     className="relative"
                   >
                     {/* Idle bob — the bee "breathes" up/down once the droplet has landed. */}
-                    <IdleBob amplitude={2} duration={4}>
+                    <IdleBob amplitude={2} duration={5}>
                       <BeeStanding size={180} />
                     </IdleBob>
                   </motion.div>
@@ -104,12 +121,10 @@ export default function LoginPage() {
                 <h1 className="mt-2 text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">
                   Welcome back
                 </h1>
-                {/* Bee says hi — D: conversational helper */}
-                <div className="mt-3">
-                  <BeeSpeechBubble tail="bottom" ariaLabel="Bee says: missed you">
-                    Missed you 🐝
-                  </BeeSpeechBubble>
-                </div>
+                {/* "Missed you 🐝" speech bubble removed per user feedback
+                    (2026-05): a returning user just wants to sign in. Bee
+                    + halo still anchor the surface; the bubble was too
+                    chatty for the moment. Signup keeps its greeting. */}
               </div>
             </DropletChoreography.Logo>
 

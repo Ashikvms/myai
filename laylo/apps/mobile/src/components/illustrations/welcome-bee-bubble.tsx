@@ -79,10 +79,16 @@ export function WelcomeBeeBubble({
   beeSize = 104,
   style,
 }: WelcomeBeeBubbleProps) {
-  const message = variant === 'login' ? copy.missedYou : copy.letsGetSetUp;
   // Halo frame ~1.5× the bee so the glow extends well past the silhouette
   // without overlapping the speech bubble. Rounded to keep the SVG crisp.
   const haloSize = Math.round(beeSize * 1.6);
+
+  // User feedback (2026-05): the "Missed you 🐝" greeting on login felt like
+  // too much voice for a returning user — they just want to sign in. Render
+  // the bubble only on signup, where the welcome moment still earns the
+  // beat. Bee + halo stay on both screens so the mascot continues to
+  // anchor the auth surface.
+  const showBubble = variant === 'signup';
 
   return (
     <View style={[styles.column, style]}>
@@ -100,12 +106,13 @@ export function WelcomeBeeBubble({
         </View>
       </View>
 
-      {/* Bubble floats below the bee — tail points UP toward the bee's
-          head, identical to the web's `tail="bottom"` (i.e. bee sits
-          ABOVE the bubble, so the tail points UP/towards the top). */}
-      <View style={styles.bubbleWrap}>
-        <BeeSpeechBubble direction="top">{message}</BeeSpeechBubble>
-      </View>
+      {showBubble && (
+        // Bubble floats below the bee — tail points UP toward the bee's
+        // head, identical to the web's `tail="bottom"`.
+        <View style={styles.bubbleWrap}>
+          <BeeSpeechBubble direction="top">{copy.letsGetSetUp}</BeeSpeechBubble>
+        </View>
+      )}
     </View>
   );
 }
