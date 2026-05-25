@@ -38,9 +38,7 @@ All 4 Phase 2 agents shipped + 2 polish agents shipped + flying-bee design fix:
 - **New `BeeFlying` illustration**: separate from logo `BeeStanding` — small cartoon bee (yellow body + 2 stripes + grey wings + 1 eye). Used in both web + mobile `BeeFlyBy`. Theme-independent fixed brand hexes.
 
 ### Phase 2 user-required next steps
-- Set Google OAuth env vars in `apps/api/.env`: `GOOGLE_CALENDAR_SCOPES`, `GOOGLE_GMAIL_SCOPES`, `GOOGLE_LINK_REDIRECT_URI`, `GOOGLE_LINK_SUCCESS_REDIRECT` (defaults in `.env.example`). Existing `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` already present.
-- In Google Cloud Console, ADD Calendar + Gmail scopes to the OAuth consent screen + verify the new redirect URI (`/api/google/link/callback`).
-- For end-to-end testing: log in via Google OAuth (which now requests broader scopes), then visit Settings → Google to confirm `linked` status.
+- Moved to `docs/operations/BACKLOG.md` → "Google integrations — config + Cloud Console setup". User direction 2026-05-25: defer.
 - App Store deferred per user direction ("bare minimum").
 
 ### Phase 2 NEXT (was-pending — original handoff, preserved below)

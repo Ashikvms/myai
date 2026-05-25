@@ -6,6 +6,25 @@ Prioritized queue of features + improvements deferred from active work. Each ent
 
 ## 🔥 Pre-launch (must do before specific milestones)
 
+### Google integrations — config + Cloud Console setup
+**Trigger:** before testing Calendar/Gmail features end-to-end (in dev or prod)
+**Added:** 2026-05-25
+**Estimated:** ~30 min
+
+- Set in `apps/api/.env` (defaults in `apps/api/.env.example`):
+  - `GOOGLE_CALENDAR_SCOPES`
+  - `GOOGLE_GMAIL_SCOPES`
+  - `GOOGLE_LINK_REDIRECT_URI=http://localhost:3001/api/google/link/callback`
+  - `GOOGLE_LINK_SUCCESS_REDIRECT=http://localhost:3000/settings?google=linked`
+- In Google Cloud Console (existing project with `GOOGLE_CLIENT_ID`):
+  - Add Calendar + Gmail scopes to the OAuth consent screen
+  - Add the new authorized redirect URI: `/api/google/link/callback`
+  - Set the app to "Internal" testing mode OR add yourself + `test@laylo.app` as test users
+- For production: bump `GOOGLE_LINK_REDIRECT_URI` to the prod API URL + same in Cloud Console
+- Verify: log in, navigate to Settings → Google, tap Connect → complete OAuth → confirm `linked: true` in `/api/google/status`
+
+### Sprint 2 — Security hardening for public open signup
+
 ### Sprint 2 — Security hardening for public open signup
 **Trigger:** before flipping signup to public (no invite required)
 **From:** `COMPREHENSIVE_SECURITY_AUDIT.md` — Sprint 2 fix list
