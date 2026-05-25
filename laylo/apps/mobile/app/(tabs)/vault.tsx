@@ -168,7 +168,8 @@ export default function VaultTab() {
 
 function makeStyles(t: Tokens) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: t.bg },
+  // Transparent so GradientBackground in (tabs)/_layout.tsx shows through.
+  container: { flex: 1, backgroundColor: 'transparent' },
   scroll: {
     paddingHorizontal: spacing.lg,
     paddingTop: Platform.OS === 'ios' ? 60 : 44,

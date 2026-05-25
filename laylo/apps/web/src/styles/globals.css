@@ -56,21 +56,19 @@
 
   /*
    * Atmospheric background gradient — light mode.
-   * RADIAL chosen over linear: a single soft warm pool reads as
-   * "sunlit canvas" without implying directionality the way a
-   * 135deg linear would (linears feel like a Web 2.0 hero, radials
-   * feel like ambient room light).
-   *
-   * Stops use existing palette tokens only: surface-2 (#FCF180) at
-   * ~28% opacity in the top-left, fading to the base canvas
-   * (#F8E71C). 60% radius keeps the warm pool off-centre so it
-   * doesn't read as a vignette — just a gentle highlight.
+   * "Sunlit yellow canvas": a radial pool in the top-left brightens
+   * with surface-2 (#FCF180) at full opacity, eases through surface
+   * (#FAEC4A) mid-radius, then settles into base canvas (#F8E71C)
+   * at 75% radius. The warm pool is clearly visible (no alpha — we
+   * use full hex stops so the lift is unmistakable) but never
+   * dominates: by the bottom-right the canvas is pure base yellow.
+   * Palette-only: no new hexes, just the existing surface ladder.
    */
   --bg-gradient: radial-gradient(
-    ellipse 80% 60% at 20% 0%,
-    rgba(252, 241, 128, 0.55) 0%,
-    rgba(252, 241, 128, 0.18) 35%,
-    rgba(248, 231, 28, 0) 70%
+    ellipse 95% 75% at 18% 0%,
+    #FCF180 0%,
+    #FAEC4A 45%,
+    #F8E71C 75%
   ), #F8E71C;
 }
 
@@ -107,16 +105,18 @@
 
   /*
    * Atmospheric background gradient — dark mode.
-   * Mirror of the light treatment: a very faint gold halo
-   * (~4% opacity at peak) pooled top-centre that fades to pure
-   * black by 50% radius. Reads as "depth" — not as a coloured
-   * wash. If you can describe it as "yellow tint", reduce alpha.
+   * "Gold ember in the corner": a soft 12%-alpha gold pool in the
+   * top-left, fading through 4% mid-radius, then to transparent
+   * black by 70%. The base canvas is solid #000000 so the ember
+   * reads as ambient depth — visible warmth without ever becoming
+   * a yellow wash. Top-left mirrors the light-mode brightener so
+   * the eye lands in the same place across themes.
    */
   --bg-gradient: radial-gradient(
-    ellipse 70% 55% at 50% 0%,
-    rgba(248, 231, 28, 0.06) 0%,
-    rgba(248, 231, 28, 0.02) 30%,
-    rgba(0, 0, 0, 0) 55%
+    ellipse 85% 65% at 18% 0%,
+    rgba(248, 231, 28, 0.12) 0%,
+    rgba(248, 231, 28, 0.04) 40%,
+    rgba(0, 0, 0, 0) 70%
   ), #000000;
 }
 

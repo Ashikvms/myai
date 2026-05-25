@@ -163,10 +163,16 @@ export const beePalette = {
  * this map, not the component.
  *
  * Both maps use **only the existing palette** plus alpha — no new hexes.
- *  - Light: highlight-yellow canvas (#F8E71C) with a softer #FCF180
- *    (surface-2) pool top-left → "sunlit canvas".
- *  - Dark: pure black (#000000) with a ~6% gold halo (#F8E71C alpha)
- *    top-centre → "ambient depth", never reads as a yellow wash.
+ *
+ *  - Light: a "sunlit canvas" wash. Top-left brightens with surface-2
+ *    light (#FFF4B8 is NOT in the palette — we use #FCF180 = surface-2
+ *    at full opacity instead, then ease to surface (#FAEC4A) mid-screen
+ *    and base (#F8E71C) at the bottom-right. The result is a soft
+ *    diagonal "morning light over the canvas" lift — visible but never
+ *    busy.
+ *  - Dark: a "gold ember" pooled top-left. Stops use the gold accent
+ *    (#F8E71C) at 12% in the corner, 4% mid, and base black (#000000)
+ *    by 70% radius. Reads as ambient depth, never as a yellow wash.
  *
  * Three stops each so the gradient eases over distance rather than
  * banding. Locations are ordered low → high so consumers can pass them
@@ -175,18 +181,18 @@ export const beePalette = {
 export const bgGradient = {
   light: {
     colors: [
-      'rgba(252, 241, 128, 0.55)', // surface-2 (#FCF180) @ 55% — warm pool
-      'rgba(252, 241, 128, 0.18)', // mid fade
-      '#F8E71C',                    // base canvas
+      '#FCF180', // surface-2 — brightest corner, "sunlit"
+      '#FAEC4A', // surface  — mid lift
+      '#F8E71C', // base canvas — settles into bottom-right
     ] as const,
-    locations: [0, 0.35, 0.95] as const,
+    locations: [0, 0.55, 1] as const,
   },
   dark: {
     colors: [
-      'rgba(248, 231, 28, 0.06)',  // gold @ 6% — barely-there halo
-      'rgba(248, 231, 28, 0.02)',  // gold @ 2% — fades through
-      '#000000',                    // base canvas
+      'rgba(248, 231, 28, 0.12)', // gold @ 12% — visible ember
+      'rgba(248, 231, 28, 0.04)', // gold @ 4%  — soft drop-off
+      '#000000',                   // base canvas
     ] as const,
-    locations: [0, 0.3, 0.7] as const,
+    locations: [0, 0.45, 1] as const,
   },
 } as const;

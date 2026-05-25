@@ -321,7 +321,9 @@ function makeStyles(t: Tokens) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: t.bg,
+      // Transparent — GradientBackground in (tabs)/_layout.tsx paints
+      // the canvas underneath so the wash shows through.
+      backgroundColor: 'transparent',
     },
     header: {
       paddingHorizontal: spacing.xl,

@@ -81,6 +81,7 @@ export default function TabLayout() {
     <View style={styles.host}>
       <GradientBackground />
       <Tabs
+      sceneContainerStyle={styles.scene}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: t.accent,
@@ -147,6 +148,15 @@ function makeStyles(t: Tokens) {
   // exists to give the GradientBackground a sized parent.
   host: {
     flex: 1,
+  },
+  // Scene container painted by the Tabs navigator behind each route.
+  // Transparent so the GradientBackground below shows through; flex:1
+  // ensures the scene fills its parent so child ScrollViews scroll
+  // properly (without this, nested views can collapse to content height
+  // and break scrolling).
+  scene: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   tabBar: {
     backgroundColor: t.surface,

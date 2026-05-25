@@ -25,10 +25,17 @@
  * everything runs on the UI thread.
  *
  * The gradient direction is **top-left → bottom-right** (diagonal).
- * A true radial isn't necessary — at ~6% alpha the directional cue
- * is invisible and the implementation cost halves. If a future
- * refactor wants a literal radial, swap the LinearGradient for
- * `react-native-svg`'s `RadialGradient` and keep the same outer API.
+ * A true radial isn't necessary — the eye reads a soft top-left lift
+ * as "natural light from the upper-left", which is the design intent.
+ * If a future refactor wants a literal radial, swap the LinearGradient
+ * for `react-native-svg`'s `RadialGradient` and keep the same outer API.
+ *
+ * Dark layer composition
+ * ----------------------
+ * The dark map's gold-tinted stops are all rgba (translucent), so the
+ * dark layer is painted **on top of an opaque black base**. Otherwise
+ * the layer would be semi-transparent and the light layer below would
+ * bleed through during the crossfade, making the swap look muddy.
  *
  * Placement
  * ---------
@@ -138,11 +145,17 @@ export function GradientBackground({ theme }: GradientBackgroundProps = {}) {
         end={DIAGONAL.end}
         style={StyleSheet.absoluteFillObject}
       />
-      {/* Dark layer — opacity is animated so the swap crossfades. */}
+      {/* Dark layer — opacity is animated so the swap crossfades.
+          Solid black base sits *under* the translucent gold-tinted
+          gradient so the layer is fully opaque when active and the
+          light layer below it stays hidden. */}
       <Animated.View
         pointerEvents="none"
         style={[StyleSheet.absoluteFillObject, darkAnimatedStyle]}
       >
+        <View
+          style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000000' }]}
+        />
         <LG
           colors={bgGradient.dark.colors}
           locations={bgGradient.dark.locations}
