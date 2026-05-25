@@ -4,15 +4,65 @@
 
 ---
 
-## 🔄 Current State (read this first, every session) — UPDATED 2026-05-25
+## 🔄 Current State (read this first, every session) — UPDATED 2026-05-25 (PHASE 1 SHIP)
 
-**Mobile iOS app is RUNNING on the simulator with full visual + functional parity to web.**
+**Mobile iOS app boots in DARK mode on the simulator with centered bee + gold halo + gradient indicators. Repo docs reorganized into `docs/`.**
 
 ### Where we are
-- **Branch:** `feat/redesign-black-yellow` (still open as **PR #16**)
-- **Latest commit:** _to be set on next commit_ (this session: mobile parity push)
+- **Branch:** `feat/ios-app-polish` (off `feat/redesign-black-yellow`); both pushed to GitHub
+- **Latest commits:** `chore(docs)` (reorg + auth migration), `feat(mobile+brand)` (theme migration + brand guide + gradient indicators), `feat(mobile)` (Reanimated worklet fix + bee animations + theme switcher)
 - **Item 26 (Plaid):** ✅ MERGED to main (PR #15)
-- **Item 27 (Redesign + mobile parity):** PR #16 open, mobile now matches web
+- **Item 27 (Redesign + mobile parity):** PR #16 open (`feat/redesign-black-yellow`)
+- **iOS polish (this session):** `feat/ios-app-polish` open — needs PR created on GitHub
+
+### Phase 1 outcomes (this session)
+- **Brand Guide** — `BRAND_GUIDE.md` at repo root (15 sections, canonical, supersedes design briefs for current hexes/tokens)
+- **Theme reactivity** — 21 mobile files migrated from static `tokens` → reactive `useTokens()`. App defaults to dark mode for new installs. Theme toggle in Settings actually works now.
+- **Auth screen polish** — Bee centered with gold RadialGradient halo; speech bubble below pointing UP at bee; gradient pill indicator on active tab (no more flat solid fill). Both antennae clear of Dynamic Island.
+- **Gradient indicators** — new `GradientPill` primitive (`expo-linear-gradient`) shared by bottom tab bar, auth tabs, settings theme toggle, tasks filter chips.
+- **Reanimated worklet crash** — `animated-number.tsx`: rounding moved to worklet, `format()` bounced to JS via `runOnJS`. Dashboard mounts cleanly post-login.
+- **Bee animations** — new `FloatingBee` (Y bob) + `BeeEntrance` (scale-in spring). Applied to splash, auth, dashboard empty/footer bees.
+- **iOS native** — Info.plist (BillBee display name, light status bar), Podfile.properties.json (`newArchEnabled: true`), full AppIcon size matrix regenerated.
+- **Theme switcher** — `ThemeProvider` + 3-segment Light/Dark/System toggle in Settings, persists via expo-secure-store, ThemedStatusBar flips with theme.
+- **Docs reorg** — root keeps `README.md`, `CLAUDE.md`, `SESSION_MEMORY.md`, `BRAND_GUIDE.md`. Everything else under `docs/{design,security,architecture,operations,internal}` + `docs/README.md` index.
+
+### Phase 2 NEXT (NOT STARTED — pick up here)
+Per user direction:
+- **Google Calendar = TWO-WAY sync** with Tasks/Appointments
+- **Gmail = auto-detect bills/receipts + appointment confirmations + inbox triage** (3 of 3 use cases)
+- **App Store compliance: SKIPPED** ("bare minimum, just don't crash")
+- **Branch strategy: phased PRs** — Phase 2 should be its own branch off main: `feat/google-integrations`
+
+### Phase 2 plan (kick off agents on this)
+Senior team:
+1. **Backend OAuth + token storage** — extend OAuth scopes to Calendar + Gmail; encrypt googleAccessToken + googleRefreshToken in Prisma User model (mirror the AES-256-GCM pattern from `apps/api/src/services/crypto.ts`); install `@googleapis/calendar` + `@googleapis/gmail`. Refresh token currently NOT captured — passport-google-oauth20 strategy in `apps/api/src/routes/auth.ts:186-251` discards `_refreshToken`.
+2. **Google Calendar sync (two-way)** — new BullMQ jobs `GOOGLE_CALENDAR_SYNC` (daily + on-demand). Mirror cursor pattern from `apps/api/src/services/transaction-sync.ts:22-100`. Tasks with `dueAt` push to Calendar as events; new Calendar events appear in `/api/appointments`. Conflict resolution: last-write-wins on `updatedAt`; user can re-link to reset.
+3. **Gmail integrations**:
+   - Auto-detect bills/receipts — new AI prompt in `packages/ai/src/prompts/` for bill extraction; surface in `/api/bills?autoDetected=true` (same flow as Plaid auto-detect).
+   - Appointment confirmations — extract date/time/place from confirmation emails, surface as `/api/appointments?source=gmail`.
+   - Inbox triage — daily AI summary on Dashboard ("3 emails worth your attention today").
+4. **Web UI** — Settings page: "Connect Google" button + scope-aware permission flow + per-scope unlink. Dashboard inserts "Google Calendar" + "Gmail" cards next to Plaid Banks.
+5. **Mobile UI** — Use `expo-auth-session` (NOT native Google SignIn — App Store config overhead deferred). Same Settings flow as web. Tasks tab gets "Import from Google Calendar" CTA.
+6. **AI engineer** — bill extraction prompt, appointment extraction prompt, daily inbox triage prompt. Cache aggressively (one extraction per email, never re-extract).
+
+### How to resume mobile dev
+```bash
+# API (currently running)
+cd apps/api && (set -a && source .env && set +a && exec npx tsx watch src/index.ts)
+# Metro
+cd apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo start --dev-client
+# Launch
+xcrun simctl launch booted com.lifeadminai.app
+# Full rebuild if native deps change:
+cd apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios
+```
+
+### Persistent gotchas (don't get bitten again)
+- **React duplication**: `apps/mobile/node_modules/react` must NOT exist. Root has React 18.3.1 (Next.js); mobile peer of Expo 51 was 18.2.0 but workspace `overrides.react: ^18.3.0` upgrades it. Two copies → `Cannot read property 'useMemo' of null` crash. `npx expo install` sometimes recreates it; delete after any install.
+- **expo-router symlink**: `apps/mobile/node_modules/expo-router → ../../../node_modules/expo-router` must exist for Metro HmrServer (treats `main: expo-router/entry` as a literal relative path). Recreate after any install.
+- **Native module install workflow**: every new native dep needs `cd ios && pod install && cd .. && npx expo run:ios` to link. JS-only hot-reload won't pick up native modules.
+- **iOS native edits** (`Info.plist`, `Podfile.properties.json`, `AppIcon` PNGs) live in gitignored `apps/mobile/ios/` — they survive locally but a fresh `expo prebuild` would lose them. Port to `app.json` plugins before EAS Build.
+- **Test creds (live in Railway DB)**: `test@laylo.app` / `Test1234!` AND `demo@lifeadmin.app` / `Test1234!`.
 
 ### What just shipped (2026-05-25 — mobile parity session)
 4 parallel agents + 1 debug specialist + 2 test engineers landed the following:
