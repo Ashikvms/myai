@@ -4,7 +4,7 @@
  * Reached from the Vault hub. Black + gold tokens, neutral category
  * chips, AskAi sparkle on every card, BeeMail empty state.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   StatusBar,
   Platform,
   Pressable,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -22,10 +24,16 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMail } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
+import {
+  dismissReminder as apiDismissReminder,
+  listReminders,
+  type ApiReminder,
+} from '../src/lib/api/resources';
 
 type ReminderStatus = 'pending' | 'dismissed';
 type LinkedType =
@@ -56,24 +64,6 @@ const LINKED_GLYPH: Record<LinkedType, string> = {
   None: '·',
 };
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
-
-function setTime(date: Date, hours: number, minutes: number): Date {
-  const d = new Date(date);
-  d.setHours(hours, minutes, 0, 0);
-  return d;
-}
-
 function formatDateTime(date: Date): string {
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -88,57 +78,72 @@ function formatDateTime(date: Date): string {
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()} — ${hour}:${min} ${ampm}`;
 }
 
-const today = new Date();
+function toLinkedType(t: string | null | undefined): LinkedType {
+  if (!t) return 'None';
+  const allowed: LinkedType[] = [
+    'Document',
+    'Appointment',
+    'Bill',
+    'Subscription',
+    'Task',
+    'None',
+  ];
+  // API stores uppercase enums like 'BILL'; normalise to PascalCase.
+  const normalised =
+    t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  return (allowed as string[]).includes(normalised)
+    ? (normalised as LinkedType)
+    : 'None';
+}
 
-const INITIAL_REMINDERS: Reminder[] = [
-  {
-    id: 'r1',
-    title: 'Renew vehicle registration',
-    dateTime: setTime(addDays(today, 60), 9, 0),
-    linkedType: 'Document',
-    recurring: true,
-    recurrenceRule: 'Annually',
-    status: 'pending',
-  },
-  {
-    id: 'r2',
-    title: 'Pay electricity bill',
-    dateTime: setTime(addDays(today, 1), 10, 0),
-    linkedType: 'Bill',
-    recurring: false,
-    status: 'pending',
-  },
-  {
-    id: 'r3',
-    title: 'Passport renewal deadline',
-    dateTime: setTime(addMonths(today, 5), 9, 0),
-    linkedType: 'Document',
-    recurring: false,
-    status: 'pending',
-  },
-  {
-    id: 'r4',
-    title: 'Dentist appointment tomorrow',
-    dateTime: setTime(addDays(today, 1), 8, 0),
-    linkedType: 'Appointment',
-    recurring: false,
-    status: 'pending',
-  },
-  {
-    id: 'r5',
-    title: 'Review gym membership',
-    dateTime: setTime(addDays(today, 2), 12, 0),
-    linkedType: 'Subscription',
-    recurring: false,
-    status: 'pending',
-  },
-];
+function adaptReminder(r: ApiReminder): Reminder {
+  return {
+    id: r.id,
+    title: r.title,
+    dateTime: new Date(r.dueAt),
+    linkedType: toLinkedType(r.linkedType),
+    recurring: r.recurring,
+    recurrenceRule: r.recurrenceRule ?? undefined,
+    status: r.status === 'DISMISSED' ? 'dismissed' : 'pending',
+  };
+}
 
 export default function RemindersScreen() {
   const router = useRouter();
-  const [reminders, setReminders] = useState<Reminder[]>(INITIAL_REMINDERS);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('Pending');
+  const queryClient = useQueryClient();
+  const remindersQuery = useQuery({
+    queryKey: ['reminders'],
+    queryFn: listReminders,
+  });
+  const [activeFilter, setActiveFilter] = React.useState<FilterTab>('Pending');
   const sheet = useAiSheet('Help me with my reminders.');
+
+  const reminders = useMemo(
+    () => (remindersQuery.data ?? []).map(adaptReminder),
+    [remindersQuery.data],
+  );
+
+  const dismissMutation = useMutation({
+    mutationFn: (id: string) => apiDismissReminder(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['reminders'] });
+      const prev = queryClient.getQueryData<ApiReminder[]>(['reminders']);
+      queryClient.setQueryData<ApiReminder[]>(['reminders'], (old) =>
+        (old ?? []).map((r) =>
+          r.id === id ? { ...r, status: 'DISMISSED' as const } : r,
+        ),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['reminders'], ctx.prev);
+      Alert.alert('Hmm, sync stalled. Try again?');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 
   const filteredReminders = useMemo(() => {
     let filtered = reminders;
@@ -168,9 +173,7 @@ export default function RemindersScreen() {
   };
 
   const dismissReminder = (id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'dismissed' as ReminderStatus } : r)),
-    );
+    dismissMutation.mutate(id);
   };
 
   const renderReminder = ({
@@ -294,7 +297,14 @@ export default function RemindersScreen() {
         })}
       </View>
 
-      {filteredReminders.length === 0 ? (
+      {remindersQuery.isLoading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
+            Loading the hive…
+          </Text>
+        </View>
+      ) : filteredReminders.length === 0 ? (
         <View style={styles.emptyState}>
           <BeeMail size={120} />
           <Text style={styles.emptyTitle}>
@@ -318,6 +328,8 @@ export default function RemindersScreen() {
           renderItem={renderReminder}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshing={remindersQuery.isFetching}
+          onRefresh={() => remindersQuery.refetch()}
         />
       )}
 

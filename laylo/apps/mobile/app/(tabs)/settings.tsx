@@ -13,16 +13,57 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import { AvatarBadge } from '../../src/components/icons/tab-icons';
+import { useAuth } from '../../src/context/auth';
+
+function initialsFromName(name: string | null | undefined): string {
+  if (!name) return '··';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '··';
+  if (parts.length === 1) return (parts[0]?.slice(0, 2) ?? '··').toUpperCase();
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
 
 export default function SettingsScreen() {
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const [signingOut, setSigningOut] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [billReminders, setBillReminders] = useState(true);
   const [taskReminders, setTaskReminders] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign out of the hive?',
+      "You'll need to sign back in to see your stuff.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOut(true);
+            try {
+              await logout();
+              queryClient.clear();
+            } finally {
+              setSigningOut(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const planLabel = (user?.plan ?? 'FREE').toUpperCase();
+  const isPro = planLabel === 'PRO';
 
   const switchProps = (value: boolean) => ({
     trackColor: { false: tokens.border, true: tokens.accent },
@@ -41,14 +82,16 @@ export default function SettingsScreen() {
       {/* Profile */}
       <View style={styles.section}>
         <View style={styles.profileCard}>
-          <AvatarBadge initials="AJ" size={56} bg={tokens.surface2} textColor={tokens.text} />
+          <AvatarBadge
+            initials={initialsFromName(user?.name)}
+            size={56}
+            bg={tokens.surface2}
+            textColor={tokens.text}
+          />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Alex Johnson</Text>
-            <Text style={styles.profileEmail}>alex.johnson@email.com</Text>
+            <Text style={styles.profileName}>{user?.name ?? 'Signed in'}</Text>
+            <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.editLink}>Edit</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -113,17 +156,21 @@ export default function SettingsScreen() {
               <View style={styles.planLabelRow}>
                 <Text style={styles.settingLabel}>Current Plan</Text>
                 <View style={styles.freeBadge}>
-                  <Text style={styles.freeBadgeText}>FREE</Text>
+                  <Text style={styles.freeBadgeText}>{planLabel}</Text>
                 </View>
               </View>
               <Text style={styles.settingDesc}>
-                Basic features with limited AI usage.
+                {isPro
+                  ? 'Full hive access — unlimited AI.'
+                  : 'Basic features with limited AI usage.'}
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-          </TouchableOpacity>
+          {!isPro && (
+            <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
+              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -155,8 +202,17 @@ export default function SettingsScreen() {
 
       {/* Sign Out */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.signOutButton} activeOpacity={0.7}>
-          <Text style={styles.signOutText}>Sign out of the hive</Text>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          activeOpacity={0.7}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? (
+            <ActivityIndicator color={tokens.danger} />
+          ) : (
+            <Text style={styles.signOutText}>Sign out of the hive</Text>
+          )}
         </TouchableOpacity>
       </View>
 

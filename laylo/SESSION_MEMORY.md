@@ -4,18 +4,48 @@
 
 ---
 
-## 🔄 Current State (read this first, every session) — UPDATED 2026-05-12
+## 🔄 Current State (read this first, every session) — UPDATED 2026-05-25
 
-**Session paused for laptop restart.** Working tree clean. Resume any time.
+**Mobile iOS app is RUNNING on the simulator with full visual + functional parity to web.**
 
 ### Where we are
 - **Branch:** `feat/redesign-black-yellow` (still open as **PR #16**)
-- **Latest commit:** `6f93b48` (motion polish: smoother transitions + dashboard fall-into-place)
+- **Latest commit:** _to be set on next commit_ (this session: mobile parity push)
 - **Item 26 (Plaid):** ✅ MERGED to main (PR #15)
-- **Item 27 (Redesign + everything since):** PR #16 open, ~13 commits accumulated, **production-ready for closed beta**
+- **Item 27 (Redesign + mobile parity):** PR #16 open, mobile now matches web
 
-### Active blocker (resume from here)
-**Mobile iOS Simulator boot — blocked on disk space.**
+### What just shipped (2026-05-25 — mobile parity session)
+4 parallel agents + 1 debug specialist + 2 test engineers landed the following:
+- **Visual parity (web↔mobile):** elaborate bee ported via `react-native-svg` (5 poses + BeeLogoMark), `HoneycombPattern` + `HexFrame` primitives, light/dark `tokensLight`+`tokensDark` maps + `useTokens()` hook, Bricolage Grotesque via `@expo-google-fonts/bricolage-grotesque`, splash route (`app/index.tsx`) redesigned, `app.json` updated for icon+splash+font plugin
+- **Liveliness:** `BeeSpeechBubble`, `WelcomeBeeBubble`, `PokeBee` (5-tap easter egg), `FallIntoPlace` + `ListStagger` + `MotionButton`, `copy.ts` conversational bank
+- **Functionality:** real JWT auth (`src/context/auth.tsx` — was mock!), all `(tabs)` screens fetch real API data via react-query, `AskAi` wired to `/api/ai/chat`, `AuthRedirect` segment-gate in `_layout.tsx`
+- **iOS native:** Info.plist (CFBundleDisplayName=BillBee, light status bar, NSAllowsLocalNetworking), Podfile.properties.json (`newArchEnabled: true` — was MISSING), full AppIcon size matrix regenerated via `sips`
+- **Tests:** 45 Jest tests passing (~1.2s), jest-expo preset + RTL, covers `copy`, `api`, `tokens`, `auth` context, dashboard integration, bee snapshots
+- **QA fixes:** added `WelcomeBeeBubble` + `HoneycombPattern` to auth screen, fixed `&apos;` literal on splash
+
+### Critical fixes during integration
+- **React duplication crash** (`Cannot read property 'useMemo' of null`): root override pins React to 18.3.1 but mobile's `package.json` had its own 18.2.0 → two React copies in the bundle → hook dispatcher returned null. Fixed by **deleting `apps/mobile/node_modules/react`** so the workspace root copy is the only one. Metro config also updated: `extraNodeModules.react → workspace root`.
+- **Metro HmrServer crash** on `expo-router/entry`: HmrServer treats `"main": "expo-router/entry"` as a literal `./node_modules/expo-router/entry` path. `extraNodeModules` doesn't help because it only intercepts bare specifiers. Fixed by **symlinking** `apps/mobile/node_modules/expo-router → ../../../node_modules/expo-router`.
+
+### How to resume mobile dev
+```bash
+# API
+cd apps/api && (set -a && source .env && set +a && exec npx tsx watch src/index.ts)
+# Metro (mobile)
+cd apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo start --dev-client
+# Launch on simulator (already installed)
+xcrun simctl launch booted com.lifeadminai.app
+# OR full rebuild if native changes:
+cd apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios
+```
+
+### Known follow-ups
+- iOS native engineer's Info.plist edits live in gitignored `apps/mobile/ios/` — they survive locally but a fresh `expo prebuild` would lose `CFBundleDisplayName`, status bar style, etc. If switching to EAS Build / fresh checkout, port those edits into `app.json` via Expo's plugin/extra config (or use `app.config.ts` and `expo-build-properties`).
+- Plaid Link flow on mobile (banks screen) was wired by functionality engineer but not manually verified in sim — pending real test.
+- `react-test-renderer` is at 18.2.0; the single React in workspace is now 18.3.1. Jest tests passed at install time but a `npm install` from a clean state may surface a mismatch — pin if it bites.
+
+### Active blocker (now-RESOLVED archive)
+~~Mobile iOS Simulator boot — blocked on disk space.~~ Resolved 2026-05-25 (laptop restart freed 710GB; build + Pods succeeded; React + Metro issues debugged through).
 - All prerequisite work complete: arm64 Homebrew installed, arm64 CocoaPods installed, `pod install` succeeded with 74 deps, `app.json` rebranded (BillBee + black splash), Podfile patched (RN 0.74 + iOS 14.0 + use_modular_headers + privacy_file_aggregation removed)
 - Xcode build via `expo run:ios` failed twice with "No space left on device" — disk is at 100% (1.4GB free; need ~5-10GB for DerivedData + Hermes engine + RCT-Folly compile)
 - User said they will restart the laptop and resume later — restart frees temp + macOS recovers some space
@@ -23,7 +53,7 @@
 ### To resume after restart
 1. `df -h /Users` — verify ≥8GB free
 2. If still tight: clear browser caches manually (`~/Library/Caches/Google`, `~/Library/Caches/Mozilla`, `~/Library/Caches/Firefox`, `~/Library/Caches/com.microsoft.VSCode.ShipIt`, `~/Library/Caches/com.anthropic.claudefordesktop.ShipIt`, `~/Library/Caches/Comet`) + empty Trash
-3. `cd /Users/ashiks/Desktop/myai/laylo/apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios` (foreground, ~5 min first build) — Simulator should pop with BillBee installed
+3. `cd /Users/ashiks/Documents/myai/laylo/apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios` (foreground, ~5 min first build) — Simulator should pop with BillBee installed
 4. If localhost:3001 isn't reachable from sim, the API URL in `apps/mobile/src/lib/api.ts` may need to be `http://<Mac LAN IP>:3001` instead of `http://localhost:3001` (Simulator can usually reach localhost but device cannot)
 
 ### What's shipped + working RIGHT NOW (visit http://localhost:3000 after restart)
@@ -51,7 +81,7 @@
 
 ### Servers (will need restart after laptop reboot)
 - API: `cd apps/api && (set -a && source .env && set +a && exec npx tsx watch src/index.ts)` — port 3001
-- Web: `cd apps/web && /Users/ashiks/Desktop/myai/laylo/node_modules/.bin/next dev --port 3000` (NOT `npm run dev` — workspace bin link is broken; use root node_modules)
+- Web: `cd apps/web && /Users/ashiks/Documents/myai/laylo/node_modules/.bin/next dev --port 3000` (NOT `npm run dev` — workspace bin link is broken; use root node_modules)
 - Test creds (live in Railway DB): `test@laylo.app` / `Test1234!` AND `demo@lifeadmin.app` / `Test1234!`
 
 ## Session 4 — 2026-05-12 — Hive theme, liveliness, security audit, motion polish, mobile blocked
@@ -130,7 +160,7 @@ Picked up from Session 3 (which paused after the redesign + Plaid integration sh
 ## Item 27 Phase 7 — Layout redesign + Bricolage Grotesque + droplet choreography (2026-05-10)
 User rejected Fraunces ("not a fan of the font"), asked for joyful page layouts ("user should FEEL like using it"), and a login droplet animation. Spawned a Design Expert (Phase A) → 3 implementation agents in parallel (C1 typography, C2 layouts, C3 auth+droplet).
 
-**Phase A (Design Expert):** `/Users/ashiks/Desktop/myai/laylo/LAYOUT_REDESIGN_BRIEF.md` saved (4,014 words, 8 sections, 13 sub-sections). Picked **Bricolage Grotesque** (grotesque with opsz+wdth axes, free, near-Inter at body sizes). Three named layout patterns: **Bento Grid** (Dashboard, Money), **Honeycomb Tile Grid** (Vault, Documents), **Origami Card** (Bills). Plus Conversational Stack (Reminders), Calendar Ribbon (Appointments), Story Strip (Tasks), Settings Hub Grid. 1.8s droplet choreography for login (fall→impact→3 ripples→form cascade), once-per-session.
+**Phase A (Design Expert):** `/Users/ashiks/Documents/myai/laylo/LAYOUT_REDESIGN_BRIEF.md` saved (4,014 words, 8 sections, 13 sub-sections). Picked **Bricolage Grotesque** (grotesque with opsz+wdth axes, free, near-Inter at body sizes). Three named layout patterns: **Bento Grid** (Dashboard, Money), **Honeycomb Tile Grid** (Vault, Documents), **Origami Card** (Bills). Plus Conversational Stack (Reminders), Calendar Ribbon (Appointments), Story Strip (Tasks), Settings Hub Grid. 1.8s droplet choreography for login (fall→impact→3 ripples→form cascade), once-per-session.
 
 **Phase C1 (typography ✅ done):** Bricolage Grotesque via `next/font/google` with axes `['opsz','wdth']`. globals.css rewritten with axis settings per heading level + OpenType features `cv11` (circular zero), `cv05` (straight l), `ss01` (single-storey a on display ≥22px), `tnum` on `.tabular-nums`. DESIGN_SYSTEM.md §2 fully rewritten. Build clean, 17 routes.
 
@@ -170,16 +200,16 @@ User chose options B (more motion) + D (bigger illustrations + color moments) af
 1. Check the task notification system: any `<task-notification>` for agentIds `a703c876fec5d728b` (web) or `a69f02113e1acfcda` (mobile)? If yes, read their `<result>` to see what they completed.
 2. If you don't see a notification, the agents likely died with the prior session. Verify by running:
    ```bash
-   cd /Users/ashiks/Desktop/myai/laylo && git status --short | wc -l
+   cd /Users/ashiks/Documents/myai/laylo && git status --short | wc -l
    ```
    If the count is roughly 26 files (just packages/ui + design tokens + 2 stub components), Phase 3a/3b never finished. Re-spawn them — prompt scaffolding is in `SESSION_MEMORY.md` Session History entries below, OR just re-read `REDESIGN_BRIEF.md` §8 (Phase handoff matrix) and `DESIGN_SYSTEM.md` and write fresh prompts that note what's already done (see "Already done — do NOT redo" below).
 
 ### If Phase 3a/3b ARE done and you're picking up at Phase 4:
 1. Run all three typechecks:
    ```bash
-   cd /Users/ashiks/Desktop/myai/laylo/apps/api && npx tsc --noEmit
-   cd /Users/ashiks/Desktop/myai/laylo/apps/web && npx tsc --noEmit && npm run build
-   cd /Users/ashiks/Desktop/myai/laylo/apps/mobile && npx tsc --noEmit
+   cd /Users/ashiks/Documents/myai/laylo/apps/api && npx tsc --noEmit
+   cd /Users/ashiks/Documents/myai/laylo/apps/web && npx tsc --noEmit && npm run build
+   cd /Users/ashiks/Documents/myai/laylo/apps/mobile && npx tsc --noEmit
    ```
 2. Spawn the QA agent (Phase 4) — prompt template:
    - Read REDESIGN_BRIEF.md, DESIGN_SYSTEM.md
@@ -322,8 +352,8 @@ If you arrive in a new session and an in-flight agentId isn't in any task-notifi
 ### Session 2 part 2 — 2026-04-29 — Item 27 Black/Yellow Redesign (paused at Phase 3)
 - Item 26 Plaid PR #15 MERGED to main (squash merge `afcb54c..3c68abb`). Three follow-up commits added to the PR before merge: `fix(auth)` — wired auth-context to real JWT flow, closing CRITICAL F1; `fix(api)` — winston logger Symbol preservation; `chore(tsconfig)` — explicit rootDir for ai/shared/ui packages. Final PR description updated to "production-grade".
 - Branch `feat/redesign-black-yellow` created off main.
-- **Phase 1 (Design Strategist) ✅** — `/Users/ashiks/Desktop/myai/laylo/REDESIGN_BRIEF.md` saved (3,499 words, 9 sections, 21 copy strings, 15 microinteractions, 32 files identified). Top finding: prototype `viewState` toolbar leaking to production on dashboard/bills/tasks/documents. IA proposal: collapse to 5 nav items (Dashboard/Money/Tasks/Vault/Settings).
-- **Phase 2 (UI Designer) ✅** — `/Users/ashiks/Desktop/myai/laylo/DESIGN_SYSTEM.md` saved (4,875 words, 11 sections). 20 color tokens, 15 packages/ui components updated to consume CSS variables. Tailwind configs updated (web modified, mobile created). globals.css migrated. Both typechecks clean. Designer rules: use CSS variables in arbitrary form (`bg-[var(--color-accent)]`); body text never gold; only 2 radii (8px chips/16px cards).
+- **Phase 1 (Design Strategist) ✅** — `/Users/ashiks/Documents/myai/laylo/REDESIGN_BRIEF.md` saved (3,499 words, 9 sections, 21 copy strings, 15 microinteractions, 32 files identified). Top finding: prototype `viewState` toolbar leaking to production on dashboard/bills/tasks/documents. IA proposal: collapse to 5 nav items (Dashboard/Money/Tasks/Vault/Settings).
+- **Phase 2 (UI Designer) ✅** — `/Users/ashiks/Documents/myai/laylo/DESIGN_SYSTEM.md` saved (4,875 words, 11 sections). 20 color tokens, 15 packages/ui components updated to consume CSS variables. Tailwind configs updated (web modified, mobile created). globals.css migrated. Both typechecks clean. Designer rules: use CSS variables in arbitrary form (`bg-[var(--color-accent)]`); body text never gold; only 2 radii (8px chips/16px cards).
 - **Phase 3a (Frontend, web) 🟡 RUNNING** — backgrounded. Scope: remove viewState toolbar; fix theme bug on /reminders + /documents (switch to `useTheme()`); delete /assistant route; create Money + Vault hub pages; restyle 9+ pages with new tokens; reduce CATEGORY_COLORS gradient noise in /bills; embed contextual "Ask AI" buttons; ship 5 bee mascot SVG poses; Framer Motion microinteractions.
 - **Phase 3b (Mobile) 🟡 RUNNING** — backgrounded. Scope: restructure tab bar to 5 tabs (Home/Money/Tasks/Vault/Settings); delete assistant tab; restyle all screens; embed mobile AI affordances (long-press + bottom sheet); Reanimated microinteractions; bee mascot parity.
 - **Phase 4 (QA) ⏳ pending** — should verify theme parity across all routes (light + dark), microinteraction smoke test, copy bank applied, no /assistant references, no viewState toolbar.

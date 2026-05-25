@@ -24,8 +24,11 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
 import { listAccounts, listTransactions } from '../../src/lib/api/transactions';
 import type { BankAccount, Transaction } from '../../src/lib/api/types';
+import { getDashboard } from '../../src/lib/api/resources';
+import { useAuth } from '../../src/context/auth';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -43,17 +46,6 @@ type Stat = {
   /** Optional formatter — defaults to `Math.round`. */
   format?: (n: number) => string;
 };
-
-const STATS: Stat[] = [
-  { label: 'Pending Tasks', value: 5, accent: false },
-  { label: 'Bills due this week', value: 2, accent: true },
-  {
-    label: 'Subscriptions',
-    value: 78,
-    accent: false,
-    format: (n) => `$${Math.round(n)}`,
-  },
-];
 
 const INSIGHTS = [
   {
@@ -74,12 +66,6 @@ const INSIGHTS = [
       'Your W-2 form has been uploaded. I can help you organise your tax documents.',
     prompt: 'Help me organise tax documents from this year.',
   },
-];
-
-const TASKS = [
-  { id: '1', title: 'Renew car insurance', done: false },
-  { id: '2', title: 'Schedule dentist appointment', done: false },
-  { id: '3', title: 'Pay electricity bill', done: true },
 ];
 
 function getGreeting(): string {
@@ -312,9 +298,48 @@ function RecentTransactionsTile({
   );
 }
 
+function initialsFromName(name: string | null | undefined): string {
+  if (!name) return '··';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '··';
+  if (parts.length === 1) return (parts[0]?.slice(0, 2) ?? '··').toUpperCase();
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
+function firstName(name: string | null | undefined): string {
+  if (!name) return 'friend';
+  const first = name.trim().split(/\s+/)[0];
+  return first || 'friend';
+}
+
 export default function HomeScreen() {
   const sheet = useAiSheet('Help me with my life admin today.');
-  const allDone = TASKS.every((t) => t.done);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboard,
+  });
+
+  const data = dashboardQuery.data;
+  const todayTasks = data?.todayTasks ?? [];
+  const allDone = todayTasks.length === 0;
+
+  const stats: Stat[] = [
+    { label: 'Pending Tasks', value: data?.pendingTasks ?? 0, accent: false },
+    {
+      label: 'Bills due this week',
+      value: data?.billsDueSoon?.length ?? 0,
+      accent: true,
+    },
+    {
+      label: 'Subscriptions',
+      value: data?.totalMonthlySubs ?? 0,
+      accent: false,
+      format: (n) => `$${Math.round(n)}`,
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -323,11 +348,16 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.greeting}>{getGreeting()},</Text>
-            <Text style={styles.userName}>Alex</Text>
+            <Text style={styles.userName}>{firstName(user?.name)}</Text>
           </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AJ</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatar}
+            onPress={() => router.push('/(tabs)/settings' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+          >
+            <Text style={styles.avatarText}>{initialsFromName(user?.name)}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Hero — Ask BillBee input. Wrapped in a glow container that
@@ -367,7 +397,7 @@ export default function HomeScreen() {
         {/* Stats Grid — single gold accent on most-actionable. Numbers
             count up from 0 → final on mount (B6). */}
         <View style={styles.statsGrid}>
-          {STATS.map((stat, index) => (
+          {stats.map((stat, index) => (
             <View
               key={index}
               style={[styles.statCard, stat.accent && styles.statCardAccent]}
@@ -420,11 +450,16 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Today&apos;s Tasks</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/tasks' as never)}>
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
-          {allDone ? (
+          {dashboardQuery.isLoading ? (
+            <View style={styles.emptyTasks}>
+              <ActivityIndicator color={tokens.accent} />
+              <Text style={styles.emptyDesc}>Loading the hive…</Text>
+            </View>
+          ) : allDone ? (
             <View style={styles.emptyTasks}>
               <BeeSleeping size={84} />
               <Text style={styles.emptyTitle}>Inbox zero unlocked</Text>
@@ -433,30 +468,34 @@ export default function HomeScreen() {
               </Text>
             </View>
           ) : (
-            TASKS.map((task) => (
-              <PressableCard
-                key={task.id}
-                onLongPress={() =>
-                  sheet.open(`Break "${task.title}" into steps for me.`)
-                }
-                style={styles.taskCard}
-              >
-                <View style={[styles.checkbox, task.done && styles.checkboxDone]}>
-                  {task.done && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text
-                  style={[styles.taskTitle, task.done && styles.taskTitleDone]}
-                >
-                  {task.title}
-                </Text>
-                <AskAiButton
-                  variant="icon"
-                  onPress={() =>
+            todayTasks.map((task) => {
+              const done = task.status === 'COMPLETED';
+              return (
+                <PressableCard
+                  key={task.id}
+                  onPress={() => router.push('/(tabs)/tasks' as never)}
+                  onLongPress={() =>
                     sheet.open(`Break "${task.title}" into steps for me.`)
                   }
-                />
-              </PressableCard>
-            ))
+                  style={styles.taskCard}
+                >
+                  <View style={[styles.checkbox, done && styles.checkboxDone]}>
+                    {done && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text
+                    style={[styles.taskTitle, done && styles.taskTitleDone]}
+                  >
+                    {task.title}
+                  </Text>
+                  <AskAiButton
+                    variant="icon"
+                    onPress={() =>
+                      sheet.open(`Break "${task.title}" into steps for me.`)
+                    }
+                  />
+                </PressableCard>
+              );
+            })
           )}
         </View>
 

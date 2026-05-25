@@ -5,7 +5,7 @@
  * chips (icon-by-glyph, not by colour). AskAi sparkle on every card.
  * Empty state uses the standing bee.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   StatusBar,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -23,6 +24,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -32,6 +34,12 @@ import {
 import { BeeStanding } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
 import { GoldSweep } from '../src/components/celebrations/gold-sweep';
+import {
+  listBills,
+  listSubscriptions,
+  type ApiBill,
+  type ApiSubscription,
+} from '../src/lib/api/resources';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -83,12 +91,6 @@ const CATEGORY_GLYPH: Record<string, string> = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   const months = [
@@ -106,33 +108,56 @@ function daysBetween(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function toDateStr(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// ─── Adapters ───────────────────────────────────────────────────────────────
+
+function toCategory(c: string | null | undefined, def: BillCategory): BillCategory {
+  if (!c) return def;
+  // API stores free-text or enum strings — try to match our restricted union.
+  const allowed: BillCategory[] = [
+    'Housing',
+    'Utilities',
+    'Insurance',
+    'Transportation',
+    'Other',
+  ];
+  return allowed.includes(c as BillCategory) ? (c as BillCategory) : def;
 }
 
-// ─── Demo Data ──────────────────────────────────────────────────────────────
+function toSubCategory(c: string | null | undefined): SubCategory {
+  if (!c) return 'Other';
+  const allowed: SubCategory[] = [
+    'Entertainment',
+    'Health',
+    'Tech',
+    'Work',
+    'Education',
+    'Other',
+  ];
+  return allowed.includes(c as SubCategory) ? (c as SubCategory) : 'Other';
+}
 
-const today = new Date();
+function adaptBill(b: ApiBill): Bill {
+  return {
+    id: b.id,
+    name: b.name,
+    category: toCategory(b.category, 'Other'),
+    amount: typeof b.amount === 'number' ? b.amount : parseFloat(String(b.amount)) || 0,
+    dueDate: b.nextDueDate,
+    autopay: b.autopay,
+  };
+}
 
-const BILLS: Bill[] = [
-  { id: 'b1', name: 'Rent', category: 'Housing', amount: 2200, dueDate: toDateStr(addDays(today, 5)), autopay: true },
-  { id: 'b2', name: 'Internet', category: 'Utilities', amount: 79.99, dueDate: toDateStr(addDays(today, 12)), autopay: true },
-  { id: 'b3', name: 'Car Insurance', category: 'Insurance', amount: 185, dueDate: toDateStr(addDays(today, 8)), autopay: false },
-  { id: 'b4', name: 'Electricity', category: 'Utilities', amount: 142.5, dueDate: toDateStr(addDays(today, 1)), autopay: false },
-  { id: 'b5', name: 'Phone Plan', category: 'Utilities', amount: 55, dueDate: toDateStr(addDays(today, 18)), autopay: true },
-];
-
-const SUBSCRIPTIONS: Subscription[] = [
-  { id: 's1', name: 'Netflix', category: 'Entertainment', amount: 15.99, renewalDate: toDateStr(addDays(today, 14)), autopay: true },
-  { id: 's2', name: 'Spotify', category: 'Entertainment', amount: 10.99, renewalDate: toDateStr(addDays(today, 7)), autopay: true },
-  { id: 's3', name: 'Gym Membership', category: 'Health', amount: 49.99, renewalDate: toDateStr(addDays(today, 3)), autopay: true },
-  { id: 's4', name: 'iCloud Storage', category: 'Tech', amount: 2.99, renewalDate: toDateStr(addDays(today, 20)), autopay: true },
-  { id: 's5', name: 'ChatGPT Plus', category: 'Tech', amount: 20, renewalDate: toDateStr(addDays(today, 11)), autopay: true },
-  { id: 's6', name: 'Adobe Creative Cloud', category: 'Work', amount: 54.99, renewalDate: toDateStr(addDays(today, 22)), autopay: true },
-];
+function adaptSub(s: ApiSubscription): Subscription {
+  const amt = typeof s.amount === 'number' ? s.amount : parseFloat(String(s.amount)) || 0;
+  return {
+    id: s.id,
+    name: s.name,
+    category: toSubCategory(s.category),
+    amount: amt,
+    renewalDate: s.renewalDate ?? s.nextDueDate ?? new Date().toISOString(),
+    autopay: s.autopay,
+  };
+}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -140,6 +165,21 @@ export default function BillsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>('bills');
   const sheet = useAiSheet('Help me with my bills.');
+
+  const billsQuery = useQuery({ queryKey: ['bills'], queryFn: listBills });
+  const subsQuery = useQuery({
+    queryKey: ['subscriptions'],
+    queryFn: listSubscriptions,
+  });
+
+  const bills = useMemo(
+    () => (billsQuery.data ?? []).map(adaptBill),
+    [billsQuery.data],
+  );
+  const subscriptions = useMemo(
+    () => (subsQuery.data ?? []).map(adaptSub),
+    [subsQuery.data],
+  );
 
   // Track which bills the user has "paid" this session — and which one
   // is currently sweeping (B4). Sweep animates for 600ms then clears.
@@ -159,8 +199,14 @@ export default function BillsScreen() {
     }, 700);
   };
 
-  const billsTotal = useMemo(() => BILLS.reduce((sum, b) => sum + b.amount, 0), []);
-  const subsTotal = useMemo(() => SUBSCRIPTIONS.reduce((sum, s) => sum + s.amount, 0), []);
+  const billsTotal = useMemo(
+    () => bills.reduce((sum, b) => sum + b.amount, 0),
+    [bills],
+  );
+  const subsTotal = useMemo(
+    () => subscriptions.reduce((sum, s) => sum + s.amount, 0),
+    [subscriptions],
+  );
 
   const renderBillCard = ({ item, index }: { item: Bill; index: number }) => {
     const days = daysBetween(item.dueDate);
@@ -268,7 +314,8 @@ export default function BillsScreen() {
   };
 
   const isBills = activeTab === 'bills';
-  const isEmpty = (isBills ? BILLS.length : SUBSCRIPTIONS.length) === 0;
+  const isLoading = isBills ? billsQuery.isLoading : subsQuery.isLoading;
+  const isEmpty = (isBills ? bills.length : subscriptions.length) === 0;
 
   return (
     <View style={styles.container}>
@@ -320,7 +367,14 @@ export default function BillsScreen() {
       </View>
 
       {/* List */}
-      {isEmpty ? (
+      {isLoading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
+            Loading the hive…
+          </Text>
+        </View>
+      ) : isEmpty ? (
         <View style={styles.emptyState}>
           <BeeStanding size={120} />
           <Text style={styles.emptyTitle}>
@@ -338,19 +392,23 @@ export default function BillsScreen() {
         </View>
       ) : isBills ? (
         <FlatList<Bill>
-          data={BILLS}
+          data={bills}
           keyExtractor={(item) => item.id}
           renderItem={renderBillCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshing={billsQuery.isFetching}
+          onRefresh={() => billsQuery.refetch()}
         />
       ) : (
         <FlatList<Subscription>
-          data={SUBSCRIPTIONS}
+          data={subscriptions}
           keyExtractor={(item) => item.id}
           renderItem={renderSubCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshing={subsQuery.isFetching}
+          onRefresh={() => subsQuery.refetch()}
         />
       )}
 

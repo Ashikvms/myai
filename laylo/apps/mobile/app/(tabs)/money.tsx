@@ -5,6 +5,9 @@
  * /bills, /transactions, /banks. This hub is the single Money tab
  * destination — it links out to those screens with breathable cards
  * + an inline AskAi affordance per REDESIGN_BRIEF.md §3.3.
+ *
+ * Live counts: dashboard query feeds the hub-card descriptions so the
+ * user sees "$2,408 monthly" instead of marketing copy.
  */
 import React from 'react';
 import {
@@ -15,6 +18,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -24,6 +28,7 @@ import {
 import { WalletIcon } from '../../src/components/icons/tab-icons';
 import { HoneycombPattern } from '../../src/components/illustrations/honeycomb-pattern';
 import { WobblePressable } from '../../src/components/motion/wobble-pressable';
+import { getDashboard } from '../../src/lib/api/resources';
 
 type Hub = {
   id: string;
@@ -33,33 +38,64 @@ type Hub = {
   glyph: string; // ascii / unicode glyph used inside the avatar
 };
 
-const HUBS: Hub[] = [
-  {
-    id: 'bills',
-    title: 'Bills & Subs',
-    description: 'Recurring outflows. See what is due this week.',
-    href: '/bills',
-    glyph: '$',
-  },
-  {
-    id: 'transactions',
-    title: 'Transactions',
-    description: 'Recent activity across every connected account.',
-    href: '/transactions',
-    glyph: '#',
-  },
-  {
-    id: 'banks',
-    title: 'Connected Banks',
-    description: 'Manage Plaid links + sync status.',
-    href: '/banks',
-    glyph: 'B',
-  },
-];
+function formatCurrency(n: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(n);
+}
 
 export default function MoneyTab() {
   const router = useRouter();
   const sheet = useAiSheet('Help me understand my money this month.');
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboard,
+  });
+
+  const data = dashboardQuery.data;
+  const billsDue = data?.billsDueSoon?.length ?? 0;
+  const monthlyBills = data?.totalMonthlyBills ?? 0;
+  const monthlySubs = data?.totalMonthlySubs ?? 0;
+  const accountCount = data?.connectedAccounts?.count ?? 0;
+  const txnCount = data?.recentTransactions?.length ?? 0;
+
+  const hubs: Hub[] = [
+    {
+      id: 'bills',
+      title: 'Bills & Subs',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : billsDue > 0
+          ? `${billsDue} due this week · ${formatCurrency(monthlyBills + monthlySubs)}/mo`
+          : `${formatCurrency(monthlyBills + monthlySubs)}/mo recurring`,
+      href: '/bills',
+      glyph: '$',
+    },
+    {
+      id: 'transactions',
+      title: 'Transactions',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : txnCount > 0
+          ? `${txnCount} recent across your accounts`
+          : 'Recent activity across every connected account.',
+      href: '/transactions',
+      glyph: '#',
+    },
+    {
+      id: 'banks',
+      title: 'Connected Banks',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : accountCount > 0
+          ? `${accountCount} ${accountCount === 1 ? 'account' : 'accounts'} linked`
+          : 'Manage Plaid links + sync status.',
+      href: '/banks',
+      glyph: 'B',
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -85,7 +121,7 @@ export default function MoneyTab() {
 
         {/* Hub cards */}
         <View style={styles.hubList}>
-          {HUBS.map((h) => (
+          {hubs.map((h) => (
             <WobblePressable
               key={h.id}
               style={styles.hubCard}

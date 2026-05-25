@@ -26,6 +26,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   Easing,
@@ -36,6 +38,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { tokens, radius, spacing } from '../../lib/tokens';
 import { SparkleIcon } from './sparkle-icon';
+import { askAi } from '../../lib/api/resources';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -58,7 +61,12 @@ export function AiBottomSheet({
   suggestions,
 }: AiBottomSheetProps) {
   const [prompt, setPrompt] = useState(initialPrompt);
-  const [toastVisible, setToastVisible] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(
+    undefined,
+  );
 
   const reduceMotion = useReducedMotion();
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -67,6 +75,8 @@ export function AiBottomSheet({
   useEffect(() => {
     if (visible) {
       setPrompt(initialPrompt);
+      setAnswer(null);
+      setErrorMessage(null);
       const duration = reduceMotion ? 0 : 280;
       translateY.value = withTiming(0, {
         duration,
@@ -97,13 +107,22 @@ export function AiBottomSheet({
     opacity: backdropOpacity.value,
   }));
 
-  const handleSubmit = () => {
-    if (!prompt.trim()) return;
-    setToastVisible(true);
-    setTimeout(() => {
-      setToastVisible(false);
-      onClose();
-    }, 1500);
+  const handleSubmit = async () => {
+    const trimmed = prompt.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const res = await askAi(trimmed, conversationId);
+      setConversationId(res.conversationId);
+      setAnswer(res.assistantMessage.content);
+      setPrompt('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Hmm, sync stalled. Try again?';
+      setErrorMessage(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -175,23 +194,35 @@ export function AiBottomSheet({
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                !prompt.trim() && styles.submitButtonDisabled,
+                (!prompt.trim() || submitting) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               activeOpacity={0.85}
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || submitting}
               accessibilityRole="button"
               accessibilityLabel="Send to BillBee"
             >
-              <Text style={styles.submitText}>Ask BillBee</Text>
+              {submitting ? (
+                <ActivityIndicator color={tokens.textOnAccent} />
+              ) : (
+                <Text style={styles.submitText}>Ask BillBee</Text>
+              )}
             </TouchableOpacity>
 
-            {toastVisible && (
-              <View style={styles.toast}>
-                <Text style={styles.toastText}>
-                  We&apos;ll wire this up next
-                </Text>
+            {errorMessage && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
+            )}
+
+            {answer && (
+              <ScrollView
+                style={styles.answerScroll}
+                contentContainerStyle={styles.answerWrap}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.answerText}>{answer}</Text>
+              </ScrollView>
             )}
           </Animated.View>
         </KeyboardAvoidingView>
@@ -295,17 +326,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  toast: {
+  errorBox: {
     marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderLeftWidth: 4,
+    borderLeftColor: tokens.danger,
+  },
+  errorText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: tokens.danger,
+  },
+  answerScroll: {
+    marginTop: spacing.lg,
+    maxHeight: 200,
+  },
+  answerWrap: {
     padding: spacing.md,
     borderRadius: radius.sm,
     backgroundColor: tokens.accentSoft,
     borderLeftWidth: 4,
     borderLeftColor: tokens.accent,
   },
-  toastText: {
-    fontSize: 13,
-    fontWeight: '500',
+  answerText: {
+    fontSize: 14,
+    lineHeight: 20,
     color: tokens.text,
   },
 });

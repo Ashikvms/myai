@@ -1,53 +1,109 @@
 /**
- * Mobile design tokens — Phase 3b.
+ * Mobile design tokens — black-yellow hive theme.
  *
- * Mirror of apps/mobile/global.css and tailwind.config.js, exported as
- * a plain TS object so React Native StyleSheet callsites can consume
- * them directly without parsing CSS variables (which RN doesn't do).
+ * Mirrors `apps/web/src/styles/globals.css` `:root` (light) and `.dark`
+ * (dark). React Native StyleSheet can't read CSS variables so we expose
+ * matching TypeScript maps + a `useTokens()` hook that picks the right
+ * one off `useColorScheme()`.
  *
  * Source of truth: /DESIGN_SYSTEM.md §1.
- *
- * Light/dark switching is handled imperatively by callers — Phase 3b
- * scope is a static black + gold paint job; theme switching follows in
- * a later phase. Defaults to light values; engineers reading the dark
- * map can swap when the dark-mode toggle ships.
  */
-export const tokens = {
-  // Backgrounds
-  bg: '#FFFFFF',
-  surface: '#FAFAFA',
-  surface2: '#F4F4F5',
-  surfaceHover: '#EFEFEF',
+import { useColorScheme } from 'react-native';
 
-  // Text
+/**
+ * Light mode = "black over yellow". Yellow IS the canvas; black is the
+ * stand-out (CTAs, focus, mascot). Matches the web `:root` block.
+ */
+export const tokensLight = {
+  // Backgrounds
+  bg: '#F8E71C',         // highlight yellow canvas
+  surface: '#FAEC4A',
+  surface2: '#FCF180',
+  surfaceHover: '#F4E211',
+
+  // Text — all dark to read on yellow
   text: '#0A0A0A',
-  textMuted: '#525252',
+  textMuted: '#2A2A2A',
+  textSubtle: '#4A4A0A',
+  textOnAccent: '#F8E71C', // yellow text on black CTAs
+
+  // Brand accent — BLACK is the accent in light mode
+  accent: '#0A0A0A',
+  accentHover: '#1F1F1F',
+  accentDim: '#4A4A4A',
+  accentSoft: '#2A2A2A',
+
+  // Borders — dark amber hairlines on yellow
+  border: '#B8A800',
+  borderStrong: '#8A7E00',
+  focusRing: '#0A0A0A',
+
+  // Semantic — darker variants read better on yellow
+  success: '#166534',
+  warning: '#9A3412',
+  danger: '#991B1B',
+
+  overlay: 'rgba(0,0,0,0.55)',
+} as const;
+
+/** Dark mode = "yellow over black". Matches the web `.dark` block. */
+export const tokensDark = {
+  bg: '#000000',
+  surface: '#0A0A0A',
+  surface2: '#141414',
+  surfaceHover: '#1A1A1A',
+
+  text: '#FFFFFF',
+  textMuted: '#A3A3A3',
   textSubtle: '#737373',
   textOnAccent: '#0A0A0A',
 
-  // Brand accent — gold
   accent: '#F8E71C',
   accentHover: '#FAED4A',
-  accentDim: '#8A7400',
-  accentSoft: '#FFF4B8',
+  accentDim: '#8A7E00',
+  accentSoft: '#3D3700',
 
-  // Borders
-  border: '#E5E5E5',
-  borderStrong: '#D4D4D4',
+  border: '#1F1F1F',
+  borderStrong: '#2A2A2A',
   focusRing: '#F8E71C',
 
-  // Semantic
   success: '#22C55E',
   warning: '#F59E0B',
   danger: '#EF4444',
 
-  // Overlay (modal backdrop)
-  overlay: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(0,0,0,0.65)',
 } as const;
 
+/**
+ * Widen the shape so callers see plain `string` for every token —
+ * mirrors what they'd get from `tokens.bg` today. We deliberately
+ * avoid `as const` narrowing on the return type because `useTokens()`
+ * picks at runtime between light + dark maps whose literal hex types
+ * differ.
+ */
+export type Tokens = { [K in keyof typeof tokensLight]: string };
+
+/**
+ * Returns the active token map based on the system colour scheme.
+ * Components that need theming should call this each render so they
+ * react to OS-level light/dark switches.
+ */
+export function useTokens(): Tokens {
+  const scheme = useColorScheme();
+  return scheme === 'dark' ? tokensDark : tokensLight;
+}
+
+/**
+ * @deprecated Use `useTokens()` to react to OS dark-mode switches.
+ *   This static export is kept as an alias of `tokensLight` so existing
+ *   `import { tokens } from '.../tokens'` callsites keep compiling
+ *   during the incremental migration. Migrate callsites to the hook.
+ */
+export const tokens = tokensLight;
+
 export const radius = {
-  sm: 8, // chips, inputs, badges
-  md: 16, // cards, modals, buttons
+  sm: 8,   // chips, inputs, badges
+  md: 16,  // cards, modals, buttons
 } as const;
 
 export const spacing = {
@@ -59,6 +115,22 @@ export const spacing = {
   xxl: 32,
   xxxl: 48,
   hero: 64,
+} as const;
+
+/**
+ * Bricolage Grotesque font family names — must match the keys we pass
+ * to `useFonts()` in `src/lib/fonts.ts`. Use with the StyleSheet
+ * `fontFamily` prop on React Native `<Text>`.
+ *
+ * Until fonts finish loading the OS fallback (San Francisco on iOS,
+ * Roboto on Android) is used — no need to gate on `fontsLoaded` for
+ * non-blocking surfaces.
+ */
+export const fontFamily = {
+  display: 'BricolageGrotesque_700Bold',
+  displaySemibold: 'BricolageGrotesque_600SemiBold',
+  body: 'BricolageGrotesque_400Regular',
+  bodyMedium: 'BricolageGrotesque_500Medium',
 } as const;
 
 /** Theme-independent palette that the bee mascot relies on. */

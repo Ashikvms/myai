@@ -20,8 +20,9 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/auth';
 import { tokens, radius, spacing } from '../src/lib/tokens';
-import { BeeStanding } from '../src/components/illustrations/bee';
 import { BreathingBee } from '../src/components/motion/breathing-bee';
+import { WelcomeBeeBubble } from '../src/components/illustrations/welcome-bee-bubble';
+import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
 
 type Tab = 'signin' | 'signup';
 
@@ -59,21 +60,40 @@ export default function AuthScreen() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+    setErrors({});
 
     try {
       if (activeTab === 'signin') {
-        await login(email, password);
+        await login(email.trim(), password);
       } else {
-        await signup(name, email, password);
+        await signup(name.trim(), email.trim(), password);
       }
+      // The AuthRedirect in _layout.tsx forwards us to /(tabs) once
+      // the auth context flips. Explicit navigate handles slow renders.
       router.replace('/(tabs)');
-    } catch {
-      setErrors({ form: 'Hmm, something stung. Try again?' });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? // Surface the API error message when meaningful, fall back
+            // to the on-brand "stung" copy otherwise.
+            err.message.includes('401') || err.message.includes('400')
+            ? activeTab === 'signin'
+              ? 'Email or password incorrect.'
+              : 'Could not create your account. Try a different email?'
+            : 'Hmm, sync stalled. Try again?'
+          : 'Hmm, sync stalled. Try again?';
+      setErrors({ form: message });
     }
   };
 
   const handleGoogleAuth = () => {
-    router.replace('/(tabs)');
+    // Mobile Google OAuth needs `expo-auth-session` + native config
+    // (iosClientId in the GoogleSignin SDK or a custom URL scheme).
+    // Out of scope for this functionality pass — surface the limit so
+    // the user reaches for the email form instead.
+    setErrors({
+      form: 'Google sign-in on mobile is coming soon. Use email for now.',
+    });
   };
 
   const switchTab = (tab: Tab) => {
@@ -86,6 +106,7 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <HoneycombPattern opacity={0.04} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -95,15 +116,15 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
+          {/* Logo + speech bubble */}
           <View style={styles.logoContainer}>
             <BreathingBee>
-              <BeeStanding size={180} />
+              <WelcomeBeeBubble
+                variant={activeTab === 'signin' ? 'login' : 'signup'}
+                beeSize={140}
+              />
             </BreathingBee>
             <Text style={styles.logoTitle}>BillBee</Text>
-            <Text style={styles.logoSubtitle}>
-              {activeTab === 'signin' ? 'Welcome back' : 'Join the hive'}
-            </Text>
           </View>
 
           {/* Tab Toggle */}

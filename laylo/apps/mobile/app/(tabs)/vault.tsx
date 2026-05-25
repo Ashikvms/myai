@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -23,6 +24,7 @@ import {
 import { ArchiveIcon } from '../../src/components/icons/tab-icons';
 import { HoneycombPattern } from '../../src/components/illustrations/honeycomb-pattern';
 import { WobblePressable } from '../../src/components/motion/wobble-pressable';
+import { getDashboard } from '../../src/lib/api/resources';
 
 type Hub = {
   id: string;
@@ -32,33 +34,54 @@ type Hub = {
   glyph: string;
 };
 
-const HUBS: Hub[] = [
-  {
-    id: 'documents',
-    title: 'Documents',
-    description: 'Tax forms, IDs, contracts. Drop a file in.',
-    href: '/(tabs)/documents',
-    glyph: 'D',
-  },
-  {
-    id: 'appointments',
-    title: 'Appointments',
-    description: 'Upcoming visits, calls, and meetings.',
-    href: '/appointments',
-    glyph: 'A',
-  },
-  {
-    id: 'reminders',
-    title: 'Reminders',
-    description: 'Things BillBee will buzz you about.',
-    href: '/reminders',
-    glyph: 'R',
-  },
-];
-
 export default function VaultTab() {
   const router = useRouter();
   const sheet = useAiSheet('Help me find a document.');
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboard,
+  });
+
+  const data = dashboardQuery.data;
+  const recentDocs = data?.recentDocuments?.length ?? 0;
+  const upcomingAppts = data?.upcomingAppointments?.length ?? 0;
+  const pendingReminders = data?.pendingReminders ?? 0;
+
+  const HUBS: Hub[] = [
+    {
+      id: 'documents',
+      title: 'Documents',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : recentDocs > 0
+          ? `${recentDocs} recent document${recentDocs === 1 ? '' : 's'}`
+          : 'Tax forms, IDs, contracts. Drop a file in.',
+      href: '/(tabs)/documents',
+      glyph: 'D',
+    },
+    {
+      id: 'appointments',
+      title: 'Appointments',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : upcomingAppts > 0
+          ? `${upcomingAppts} upcoming`
+          : 'Upcoming visits, calls, and meetings.',
+      href: '/appointments',
+      glyph: 'A',
+    },
+    {
+      id: 'reminders',
+      title: 'Reminders',
+      description: dashboardQuery.isLoading
+        ? 'Loading the hive…'
+        : pendingReminders > 0
+          ? `${pendingReminders} pending`
+          : 'Things BillBee will buzz you about.',
+      href: '/reminders',
+      glyph: 'R',
+    },
+  ];
 
   return (
     <View style={styles.container}>

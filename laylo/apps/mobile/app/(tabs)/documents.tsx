@@ -5,7 +5,7 @@
  * differentiated by Lucide-style glyph + neutral chip background per
  * Brief §4.1 ("category differentiation = icon, not colour").
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   StyleSheet,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -23,6 +24,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -34,6 +36,7 @@ import {
   BeeStanding,
 } from '../../src/components/illustrations/bee';
 import { StaggeredListItem } from '../../src/components/motion/staggered-list-item';
+import { listDocuments, type ApiDocument } from '../../src/lib/api/resources';
 
 const CATEGORIES = [
   'All',
@@ -55,15 +58,66 @@ interface Document {
   glyph: string;
 }
 
-const DOCUMENTS: Document[] = [
-  { id: '1', title: 'W-2 Form 2025', category: 'Tax', date: 'Feb 15, 2026', size: '245 KB', glyph: 'T' },
-  { id: '2', title: 'Car Insurance Policy', category: 'Insurance', date: 'Jan 10, 2026', size: '1.2 MB', glyph: 'I' },
-  { id: '3', title: 'Annual Health Checkup', category: 'Medical', date: 'Dec 8, 2025', size: '890 KB', glyph: 'M' },
-  { id: '4', title: 'Lease Agreement', category: 'Housing', date: 'Nov 1, 2025', size: '2.1 MB', glyph: 'H' },
-  { id: '5', title: 'Passport Scan', category: 'Identity', date: 'Oct 15, 2025', size: '3.4 MB', glyph: 'ID' },
-  { id: '6', title: '1099-INT Tax Form', category: 'Tax', date: 'Feb 1, 2026', size: '156 KB', glyph: 'T' },
-  { id: '7', title: 'Home Insurance Renewal', category: 'Insurance', date: 'Mar 5, 2026', size: '980 KB', glyph: 'I' },
-];
+function toCategory(c: string | null | undefined): Exclude<Category, 'All'> {
+  if (!c) return 'Finance';
+  const allowed: Exclude<Category, 'All'>[] = [
+    'Tax',
+    'Insurance',
+    'Medical',
+    'Housing',
+    'Identity',
+    'Finance',
+  ];
+  return allowed.includes(c as Exclude<Category, 'All'>)
+    ? (c as Exclude<Category, 'All'>)
+    : 'Finance';
+}
+
+function glyphFor(cat: Exclude<Category, 'All'>): string {
+  switch (cat) {
+    case 'Tax':
+      return 'T';
+    case 'Insurance':
+      return 'I';
+    case 'Medical':
+      return 'M';
+    case 'Housing':
+      return 'H';
+    case 'Identity':
+      return 'ID';
+    default:
+      return 'F';
+  }
+}
+
+function formatSize(bytes: number | null | undefined): string {
+  if (!bytes || bytes <= 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function adapt(d: ApiDocument): Document {
+  const cat = toCategory(d.category);
+  return {
+    id: d.id,
+    title: d.title,
+    category: cat,
+    date: formatDate(d.createdAt),
+    size: formatSize(d.sizeBytes),
+    glyph: glyphFor(cat),
+  };
+}
 
 export default function DocumentsScreen() {
   const router = useRouter();
@@ -71,10 +125,20 @@ export default function DocumentsScreen() {
   const [searched, setSearched] = useState(false);
   const sheet = useAiSheet('Help me find a document.');
 
+  const docsQuery = useQuery({
+    queryKey: ['documents'],
+    queryFn: listDocuments,
+  });
+
+  const documents = useMemo(
+    () => (docsQuery.data ?? []).map(adapt),
+    [docsQuery.data],
+  );
+
   const filteredDocs =
     activeCategory === 'All'
-      ? DOCUMENTS
-      : DOCUMENTS.filter((d) => d.category === activeCategory);
+      ? documents
+      : documents.filter((d) => d.category === activeCategory);
 
   const renderDocument = ({
     item,
@@ -167,12 +231,22 @@ export default function DocumentsScreen() {
       </Text>
 
       {/* Document List */}
+      {docsQuery.isLoading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
+            Loading the hive…
+          </Text>
+        </View>
+      ) : (
       <FlatList
         data={filteredDocs}
         renderItem={renderDocument}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.docList}
         showsVerticalScrollIndicator={false}
+        refreshing={docsQuery.isFetching}
+        onRefresh={() => docsQuery.refetch()}
         ListEmptyComponent={
           noResults ? (
             <View style={styles.emptyState}>
@@ -206,6 +280,7 @@ export default function DocumentsScreen() {
           )
         }
       />
+      )}
 
       <AiBottomSheet
         visible={sheet.visible}

@@ -70,11 +70,11 @@ Repaint Laylo from indigo-gradient SaaS into a black-and-gold "bumblebee" produc
 **File:** `apps/web/src/app/(app)/assistant/page.tsx` (433 LOC)
 
 This entire file is removed in Phase 3a. References to delete:
-- `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/layout.tsx:34` — nav item `'AI Assistant'`
-- `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/layout.tsx:16` — `MessageSquare` import (only used for the assistant nav item — keep the import only if reused for an "Ask AI" chip, otherwise remove)
-- `/Users/ashiks/Desktop/myai/laylo/apps/mobile/app/(tabs)/_layout.tsx:55–66` — `Tabs.Screen name="assistant"` (the centre "💬" tab) plus its custom `centerIconWrapper` styling
-- `/Users/ashiks/Desktop/myai/laylo/apps/mobile/app/(tabs)/assistant.tsx` — entire file deletes
-- `/Users/ashiks/Desktop/myai/laylo/apps/mobile/.expo/types/router.d.ts` — auto-regenerated; will rebuild
+- `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/layout.tsx:34` — nav item `'AI Assistant'`
+- `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/layout.tsx:16` — `MessageSquare` import (only used for the assistant nav item — keep the import only if reused for an "Ask AI" chip, otherwise remove)
+- `/Users/ashiks/Documents/myai/laylo/apps/mobile/app/(tabs)/_layout.tsx:55–66` — `Tabs.Screen name="assistant"` (the centre "💬" tab) plus its custom `centerIconWrapper` styling
+- `/Users/ashiks/Documents/myai/laylo/apps/mobile/app/(tabs)/assistant.tsx` — entire file deletes
+- `/Users/ashiks/Documents/myai/laylo/apps/mobile/.expo/types/router.d.ts` — auto-regenerated; will rebuild
 
 ### 2.10 Web — Marketing (`apps/web/src/app/(marketing)/layout.tsx` + `page.tsx`)
 `from-primary-500 to-purple-500` gradient on logo + CTA (lines 51, 83, 131, 150). "Life Admin AI" copy (lines 54, 153, 168). Replace gradient → solid gold; rename → "Laylo".
@@ -236,10 +236,10 @@ Tone rules: never use exclamation points twice in a row. One emoji max per strin
 
 ### Phase 2 — UI Designer
 **Must produce:**
-1. **Design tokens file** at `/Users/ashiks/Desktop/myai/laylo/packages/ui/src/tokens.ts` exporting all §4.1 colours, §4.2 type scale, §4.3 spacing, §4.4 radii. Plain TS object — no theme provider yet.
+1. **Design tokens file** at `/Users/ashiks/Documents/myai/laylo/packages/ui/src/tokens.ts` exporting all §4.1 colours, §4.2 type scale, §4.3 spacing, §4.4 radii. Plain TS object — no theme provider yet.
 2. **Updated `apps/web/tailwind.config.ts`** — replace the entire `primary` ramp (50–900) with a single `gold` token + map semantics to §4.1. Update `surface`, `card`, add `border` tokens.
 3. **Restyled `packages/ui/src/components/`** — all 14 components retoned to gold palette. Touch every file in the list at §2.14. Snapshot each in light + dark with all variants (default/secondary/outline/ghost/danger × sm/md/lg).
-4. **Bee mascot SVG** at `/Users/ashiks/Desktop/myai/laylo/packages/ui/src/illustrations/bee.tsx` — 2-tone, single-component, takes `size` prop. Plus 4 empty-state variants (yawning bee, sleeping bee, working bee, celebrating bee).
+4. **Bee mascot SVG** at `/Users/ashiks/Documents/myai/laylo/packages/ui/src/illustrations/bee.tsx` — 2-tone, single-component, takes `size` prop. Plus 4 empty-state variants (yawning bee, sleeping bee, working bee, celebrating bee).
 5. **Updated `apps/web/src/styles/globals.css`** — recolour `.theme-fade-overlay` gradients to gold/black; recolour `.gradient-text` to a flat gold (delete the gradient class entirely if no longer needed).
 
 ### Phase 3a — Frontend (Web) Engineer

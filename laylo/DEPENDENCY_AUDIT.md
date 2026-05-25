@@ -2,7 +2,7 @@
 
 **Auditor:** Dependency / Supply-Chain Auditor
 **Date:** 2026-04-28
-**Scope:** npm dependencies across the Turborepo monorepo (`/Users/ashiks/Desktop/myai/laylo`)
+**Scope:** npm dependencies across the Turborepo monorepo (`/Users/ashiks/Documents/myai/laylo`)
 **Workspaces audited:** root, `apps/api`, `apps/web`, `apps/mobile`, `packages/{ai,shared,ui,config}`
 **Mode:** READ-ONLY (no `npm install`, `npm update`, or `npm audit fix` was executed)
 
@@ -176,7 +176,7 @@ Counts (production tree only, `prod=1486`):
 
 | Check | Result |
 |---|---|
-| `package-lock.json` exists at repo root | YES (`/Users/ashiks/Desktop/myai/laylo/package-lock.json`, 878 KB) |
+| `package-lock.json` exists at repo root | YES (`/Users/ashiks/Documents/myai/laylo/package-lock.json`, 878 KB) |
 | Lockfile version | **3** (npm 7+, modern) |
 | `packageManager` field at root | `npm@10.8.0` (matches lockfile schema) |
 | Total locked packages | 1,789 |
@@ -262,7 +262,7 @@ The following can be addressed with `npm audit fix` (without `--force`) — thes
 **Suggested command (read-only NOT executed by this audit):**
 
 ```bash
-cd /Users/ashiks/Desktop/myai/laylo && npm audit fix --omit=dev --dry-run
+cd /Users/ashiks/Documents/myai/laylo && npm audit fix --omit=dev --dry-run
 # Review the proposed changes, then drop --dry-run on a branch
 ```
 

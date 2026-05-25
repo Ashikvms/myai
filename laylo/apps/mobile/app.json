@@ -7,7 +7,10 @@
     "scheme": "lifeadminai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
@@ -20,7 +23,8 @@
     "android": {
       "package": "com.lifeadminai.app",
       "adaptiveIcon": {
-        "backgroundColor": "#6366F1"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#000000"
       },
       "intentFilters": [
         {
@@ -40,11 +44,12 @@
       "expo-dev-client",
       "expo-router",
       "expo-secure-store",
+      "expo-font",
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#6366F1"
+          "color": "#F8E71C"
         }
       ]
     ],

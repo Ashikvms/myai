@@ -4,7 +4,7 @@
  * Reached from the Vault hub. Black + gold tokens, neutral category
  * chips, AskAi sparkle on every card. Empty state uses the standing bee.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   StatusBar,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -22,10 +23,15 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useQuery } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeStanding } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
+import {
+  listAppointments,
+  type ApiAppointment,
+} from '../src/lib/api/resources';
 
 type ApptCategory = 'Health' | 'Finance' | 'Car' | 'Personal' | 'Work' | 'Other';
 
@@ -48,22 +54,6 @@ const CATEGORY_GLYPH: Record<ApptCategory, string> = {
   Work: 'W',
   Other: 'O',
 };
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function addWeeks(date: Date, weeks: number): Date {
-  return addDays(date, weeks * 7);
-}
-
-function setTime(date: Date, hours: number, minutes: number): Date {
-  const d = new Date(date);
-  d.setHours(hours, minutes, 0, 0);
-  return d;
-}
 
 function formatDateTime(date: Date): string {
   const months = [
@@ -94,57 +84,48 @@ function getReminderLabel(minutes: number): string {
   return `${hrs} hr${hrs > 1 ? 's' : ''} before`;
 }
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+function toCategory(c: string | null | undefined): ApptCategory {
+  if (!c) return 'Other';
+  const allowed: ApptCategory[] = [
+    'Health',
+    'Finance',
+    'Car',
+    'Personal',
+    'Work',
+    'Other',
+  ];
+  return allowed.includes(c as ApptCategory) ? (c as ApptCategory) : 'Other';
+}
 
-const APPOINTMENTS: Appointment[] = (
-  [
-    {
-      id: 'a1',
-      title: 'Tax Consultation',
-      dateTime: setTime(addWeeks(today, 2), 10, 0),
-      endTime: setTime(addWeeks(today, 2), 11, 0),
-      location: 'H&R Block — 123 Main St',
-      category: 'Finance',
-      reminderMinutes: 60,
-      notes: "Bring W-2, 1099 forms, and last year's return.",
-    },
-    {
-      id: 'a2',
-      title: 'Dentist Cleaning',
-      dateTime: setTime(addWeeks(today, 3), 14, 30),
-      endTime: setTime(addWeeks(today, 3), 15, 30),
-      location: 'Bright Smile Dental — 456 Oak Ave',
-      category: 'Health',
-      reminderMinutes: 60,
-      notes: 'Regular 6-month checkup and cleaning.',
-    },
-    {
-      id: 'a3',
-      title: 'Eye Exam',
-      dateTime: setTime(addDays(today, 24), 9, 0),
-      endTime: setTime(addDays(today, 24), 10, 0),
-      location: 'Vision Center — 789 Elm Blvd',
-      category: 'Health',
-      reminderMinutes: 120,
-      notes: 'Annual eye exam. Bring current glasses.',
-    },
-    {
-      id: 'a4',
-      title: 'Car Service — Oil Change',
-      dateTime: setTime(addWeeks(today, 6), 8, 0),
-      endTime: setTime(addWeeks(today, 6), 9, 30),
-      location: 'Quick Lube — 321 Auto Way',
-      category: 'Car',
-      reminderMinutes: 60,
-      notes: 'Oil change + tire rotation. 30k mile service.',
-    },
-  ] as Appointment[]
-).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+function adapt(a: ApiAppointment): Appointment {
+  return {
+    id: a.id,
+    title: a.title,
+    dateTime: new Date(a.dateTime),
+    endTime: a.endTime ? new Date(a.endTime) : undefined,
+    location: a.location ?? '',
+    category: toCategory(a.category),
+    reminderMinutes: a.reminderMinutes ?? 60,
+    notes: a.notes ?? undefined,
+  };
+}
 
 export default function AppointmentsScreen() {
   const router = useRouter();
   const sheet = useAiSheet('Help me prep for my next appointment.');
+
+  const appointmentsQuery = useQuery({
+    queryKey: ['appointments'],
+    queryFn: listAppointments,
+  });
+
+  const appointments = useMemo(
+    () =>
+      (appointmentsQuery.data ?? [])
+        .map(adapt)
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()),
+    [appointmentsQuery.data],
+  );
 
   const renderAppointment = ({
     item,
@@ -153,7 +134,7 @@ export default function AppointmentsScreen() {
     item: Appointment;
     index: number;
   }) => {
-    const isLast = index === APPOINTMENTS.length - 1;
+    const isLast = index === appointments.length - 1;
     return (
       <StaggeredListItem index={index} style={styles.timelineItem}>
         <View style={styles.timelineLeft}>
@@ -223,7 +204,14 @@ export default function AppointmentsScreen() {
         </TouchableOpacity>
       </View>
 
-      {APPOINTMENTS.length === 0 ? (
+      {appointmentsQuery.isLoading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
+            Loading the hive…
+          </Text>
+        </View>
+      ) : appointments.length === 0 ? (
         <View style={styles.emptyState}>
           <BeeStanding size={120} />
           <Text style={styles.emptyTitle}>
@@ -239,11 +227,13 @@ export default function AppointmentsScreen() {
         </View>
       ) : (
         <FlatList
-          data={APPOINTMENTS}
+          data={appointments}
           keyExtractor={(item) => item.id}
           renderItem={renderAppointment}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshing={appointmentsQuery.isFetching}
+          onRefresh={() => appointmentsQuery.refetch()}
         />
       )}
 

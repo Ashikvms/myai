@@ -51,7 +51,7 @@ Patterns: **Bento Grid** (Dashboard, Money) · **Honeycomb Tile Grid** (Vault, D
 
 ### 2.1 Dashboard — Bento Grid 2+3+1
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/dashboard/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/dashboard/page.tsx`
 
 **Joyless today:** 5+ stacked same-width sections (lines 176–334) — reads like Confluence. 3 identical stat cards (lines 177–181) — no hero metric. AI Insights / Today's Tasks / Bills Due (lines 194–318) all use the same `space-y-3` rhythm — three lists in a row reads as a spreadsheet.
 
@@ -85,7 +85,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.2 Bills — Origami Card stack with Hive Header
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/bills/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/bills/page.tsx`
 
 **Joyless today:** Full-width strips (line 138+); 5 bills = 5 stripes, reads like CSV. Mark-Paid sweep + coin (lines 149–171) is great but the card *stays put* — "I just did it" has nowhere to land. Bills tab + Subs tab use identical shape; bills are urgent, subs are a roster — different mental models.
 
@@ -102,7 +102,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.3 Tasks — Conversational Stack with Progress Hive
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/tasks/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/tasks/page.tsx`
 
 **Joyless today:** Tasks styled identically regardless of priority/category. Header counts (line 195) are the only progress signal — no visual *bar*. 5 filter pills (lines 207–245) fight for attention with the tasks.
 
@@ -127,7 +127,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.4 Money (hub) — Bento Grid 1+4 with Live Numbers
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/money/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/money/page.tsx`
 
 **Joyless today:** 4 link cards in a 2×2 grid (lines 70–120) — identical, generic "quick links." Hero is AskLayloHero (line 59) — same as dashboard, copy-paste. HoneycombPattern (line 50) sits behind a flat layout.
 
@@ -144,7 +144,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.5 Vault (hub) — Honeycomb Tile Grid
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/vault/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/vault/page.tsx`
 
 **Joyless today:** 3 cards in 2-col grid (lines 50–110); third sits alone. Calls itself a "vault" but nothing reads as containment. HoneycombPattern background but tiles aren't honeycomb-themed.
 
@@ -161,7 +161,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.6 Transactions — Day-Grouped Conversational Stack
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/transactions/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/transactions/page.tsx`
 
 **Joyless today:** Paginated list of uniform thin rows — CSV with rounded corners. Filters hidden in a side-panel (line 198). Every transaction looks like every other.
 
@@ -179,7 +179,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.7 Documents — Honeycomb Tile Grid (compact)
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/documents/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/documents/page.tsx`
 
 **Joyless today:** Grid/list toggle (lines 149–174) — both views uniform, no "filing cabinet" feel. 9 same-size category chips (line 188+). Doc cards all carry `FileText` despite 8 distinct categories.
 
@@ -195,7 +195,7 @@ Mobile = single column: greeting → hero stat → insight → today's task → 
 
 ### 2.8 Reminders — Conversational Stack with Time Distance
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/reminders/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/reminders/page.tsx`
 
 **Joyless today:** Reminders styled like tasks (line 145+) — same card shape, same chips. But reminders are passive (they fire), tasks are active (you do them). No representation of *time* — every reminder sits at the same vertical rhythm.
 
@@ -214,7 +214,7 @@ The form *does* the calming. Time as visual axis.
 
 ### 2.9 Appointments — Calendar Ribbon
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/appointments/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/appointments/page.tsx`
 
 **Joyless today:** Cards stacked chronologically — no calendar, though appointments are inherently calendar-shaped. "Show past" toggle (line 91) is afterthought.
 
@@ -230,7 +230,7 @@ The form *does* the calming. Time as visual axis.
 
 ### 2.10 Settings — Settings Hub Grid
 
-**File:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(app)/settings/page.tsx`
+**File:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(app)/settings/page.tsx`
 
 **Joyless today:** Vertical stack of `SectionCard` (lines 109+). 5 sections each using 100% of the 720 px width — even when content is three toggles. Profile and Notifications get identical visual weight despite different shapes.
 
@@ -248,7 +248,7 @@ The form *does* the calming. Time as visual axis.
 
 User's ask: a droplet falls, ripples, the form choreographs into place. Storyboard frame-by-frame below.
 
-**Files:** `/Users/ashiks/Desktop/myai/laylo/apps/web/src/app/(marketing)/login/page.tsx` + `signup/page.tsx`. New shared component `apps/web/src/components/motion/droplet-entrance.tsx`.
+**Files:** `/Users/ashiks/Documents/myai/laylo/apps/web/src/app/(marketing)/login/page.tsx` + `signup/page.tsx`. New shared component `apps/web/src/components/motion/droplet-entrance.tsx`.
 
 **Total duration:** 1,800 ms (1.8 s). Below = rushed; above = waiting too long to type.
 

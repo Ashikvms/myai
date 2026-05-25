@@ -1,25 +1,33 @@
 /**
- * Bee mascot — Phase 3b mobile.
+ * Bee mascot — mobile port of the elaborate web bee
+ * (apps/web/src/components/illustrations/bee.tsx).
  *
- * Five poses share the same visual anatomy: gold body ellipse, two
- * black stripes, two wings, two black eye dots, two antennae with gold
- * tips. The bee is theme-independent (gold + black always).
+ * 1:1 visual parity: chunky antennae with yellow orb tips, two angled
+ * eyebrows (outer ends HIGH, inner ends LOW = cool/confident look),
+ * solid black mouth bar, outlined wings, 4 px black outline on body.
+ * Theme-independent (fixed gold + black + white — looks identical in
+ * light AND dark mode).
  *
- * Implementation note: react-native-svg is not in the workspace and
- * the brief forbids adding npm packages. We compose the bee from
- * absolutely positioned <View> primitives — same visual language as
- * the rest of the codebase (TabIcon, banks tile avatar). All pieces
- * scale with the `size` prop so a 96 px bee in an empty state and a
- * 32 px bee in a chip share the same source of truth.
+ * Spec source: DESIGN_SYSTEM.md §8.2 + REDESIGN_BRIEF.md §6.
  *
- * Spec source: DESIGN_SYSTEM.md §8.2.
+ * Existing screens import `BeeLooking` and `BeeMail`; we keep those
+ * names as aliases of `BeeLookingAround` and `BeeEnvelope` so the
+ * port doesn't ripple into the screen files (owned by other agents).
  */
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import * as React from 'react';
+import Svg, {
+  Circle,
+  Ellipse,
+  G,
+  Line,
+  Path,
+  Rect,
+  Text as SvgText,
+} from 'react-native-svg';
 
 export type BeeProps = {
   size?: number;
-  /** Override the gold body color. Rarely needed — defaults to brand gold. */
+  /** Reserved for backward-compat — fixed brand palette ignores it. */
   color?: string;
 };
 
@@ -27,419 +35,444 @@ const GOLD = '#F8E71C';
 const BLACK = '#0A0A0A';
 const WHITE = '#FFFFFF';
 
-/**
- * Frame wraps every pose. Gives every bee the same square footprint
- * and a consistent baseline (96 viewbox).
- */
-function BeeFrame({ size, children }: { size: number; children: React.ReactNode }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View style={{ width: size, height: size, position: 'relative' }}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
-/**
- * Reusable body parts. All take a `unit` (size / 96) so positions and
- * dimensions scale with the requested size.
- */
-function Body({ unit, color }: { unit: number; color: string }) {
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        left: 18 * unit,
-        top: 32 * unit,
-        width: 60 * unit,
-        height: 44 * unit,
-        borderRadius: 30 * unit,
-        backgroundColor: color,
-      }}
-    />
-  );
-}
-
-function Stripes({ unit }: { unit: number }) {
-  // Two black stripes laid across the body like a bumblebee.
-  return (
-    <>
-      <View
-        style={{
-          position: 'absolute',
-          left: 35 * unit,
-          top: 32 * unit,
-          width: 8 * unit,
-          height: 44 * unit,
-          backgroundColor: BLACK,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 53 * unit,
-          top: 32 * unit,
-          width: 8 * unit,
-          height: 44 * unit,
-          backgroundColor: BLACK,
-        }}
-      />
-    </>
-  );
-}
-
-function Wings({ unit }: { unit: number }) {
-  // Two ellipses behind the body — drawn first so they sit underneath.
-  return (
-    <>
-      <View
-        style={{
-          position: 'absolute',
-          left: 12 * unit,
-          top: 22 * unit,
-          width: 28 * unit,
-          height: 22 * unit,
-          borderRadius: 14 * unit,
-          borderWidth: 1.5,
-          borderColor: WHITE,
-          opacity: 0.7,
-          backgroundColor: 'transparent',
-          transform: [{ rotate: '-15deg' }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 56 * unit,
-          top: 22 * unit,
-          width: 28 * unit,
-          height: 22 * unit,
-          borderRadius: 14 * unit,
-          borderWidth: 1.5,
-          borderColor: WHITE,
-          opacity: 0.7,
-          backgroundColor: 'transparent',
-          transform: [{ rotate: '15deg' }],
-        }}
-      />
-    </>
-  );
-}
-
-function Eyes({
-  unit,
-  closed = false,
+function BeeFrame({
+  size = 96,
+  children,
 }: {
-  unit: number;
-  closed?: boolean;
+  size?: number;
+  children: React.ReactNode;
 }) {
-  if (closed) {
-    // Closed = thin horizontal lines instead of dots.
-    return (
-      <>
-        <View
-          style={{
-            position: 'absolute',
-            left: 30 * unit,
-            top: 46 * unit,
-            width: 6 * unit,
-            height: 1.5,
-            backgroundColor: BLACK,
-            borderRadius: 1,
-          }}
+  return (
+    <Svg width={size} height={size} viewBox="0 0 96 96" fill="none">
+      {children}
+    </Svg>
+  );
+}
+
+/** Standing bee — primary brand pose. Chunky antennae, eyebrows, mouth bar. */
+export function BeeStanding({ size = 96 }: BeeProps) {
+  return (
+    <BeeFrame size={size}>
+      {/* Antenna stalks */}
+      <Path d="M36 28 L28 8" stroke={BLACK} strokeWidth={3.2} strokeLinecap="round" />
+      <Path d="M60 28 L68 8" stroke={BLACK} strokeWidth={3.2} strokeLinecap="round" />
+      {/* Antenna dots — chunky yellow orbs with black outline */}
+      <Circle cx={28} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      <Circle cx={68} cy={8} r={4.5} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      {/* Wings — outlined ovals tucked behind face */}
+      <Ellipse
+        cx={16}
+        cy={48}
+        rx={13}
+        ry={8}
+        fill={WHITE}
+        fillOpacity={0.22}
+        stroke={BLACK}
+        strokeOpacity={0.85}
+        strokeWidth={2.4}
+      />
+      <Ellipse
+        cx={80}
+        cy={48}
+        rx={13}
+        ry={8}
+        fill={WHITE}
+        fillOpacity={0.22}
+        stroke={BLACK}
+        strokeOpacity={0.85}
+        strokeWidth={2.4}
+      />
+      {/* Face — round body with 4 px black outline */}
+      <Circle cx={48} cy={52} r={30} fill={GOLD} stroke={BLACK} strokeWidth={4} />
+      {/* Two angled eyebrows */}
+      <Path d="M22 44 L42 50" stroke={BLACK} strokeWidth={6} strokeLinecap="round" />
+      <Path d="M54 50 L74 44" stroke={BLACK} strokeWidth={6} strokeLinecap="round" />
+      {/* Mouth — single solid black bar */}
+      <Rect x={28} y={62} width={40} height={7} rx={3.5} fill={BLACK} />
+    </BeeFrame>
+  );
+}
+
+/** Looking-around bee — head tilted; curiosity / "where is it?" empty states. */
+export function BeeLookingAround({ size = 96 }: BeeProps) {
+  return (
+    <BeeFrame size={size}>
+      <G transform="rotate(-8 48 48)">
+        <Path
+          d="M40 22 Q34 16 28 16"
+          stroke={BLACK}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          fill="none"
         />
-        <View
-          style={{
-            position: 'absolute',
-            left: 60 * unit,
-            top: 46 * unit,
-            width: 6 * unit,
-            height: 1.5,
-            backgroundColor: BLACK,
-            borderRadius: 1,
-          }}
+        <Path
+          d="M56 22 Q62 14 68 14"
+          stroke={BLACK}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          fill="none"
         />
-      </>
-    );
-  }
-  return (
-    <>
-      <View
-        style={{
-          position: 'absolute',
-          left: 30 * unit,
-          top: 44 * unit,
-          width: 4 * unit,
-          height: 4 * unit,
-          borderRadius: 2 * unit,
-          backgroundColor: BLACK,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 62 * unit,
-          top: 44 * unit,
-          width: 4 * unit,
-          height: 4 * unit,
-          borderRadius: 2 * unit,
-          backgroundColor: BLACK,
-        }}
-      />
-    </>
-  );
-}
-
-function Antennae({ unit, droop = false }: { unit: number; droop?: boolean }) {
-  const rotateLeft = droop ? '-50deg' : '-25deg';
-  const rotateRight = droop ? '50deg' : '25deg';
-  return (
-    <>
-      <View
-        style={{
-          position: 'absolute',
-          left: 30 * unit,
-          top: 18 * unit,
-          width: 1.5,
-          height: 14 * unit,
-          backgroundColor: BLACK,
-          transform: [{ rotate: rotateLeft }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 25 * unit,
-          top: 14 * unit,
-          width: 4 * unit,
-          height: 4 * unit,
-          borderRadius: 2 * unit,
-          backgroundColor: GOLD,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 64 * unit,
-          top: 18 * unit,
-          width: 1.5,
-          height: 14 * unit,
-          backgroundColor: BLACK,
-          transform: [{ rotate: rotateRight }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          left: 65 * unit,
-          top: 14 * unit,
-          width: 4 * unit,
-          height: 4 * unit,
-          borderRadius: 2 * unit,
-          backgroundColor: GOLD,
-        }}
-      />
-    </>
-  );
-}
-
-/**
- * Pose 1 — Standing bee. Default. Used in 404, onboarding hero,
- * generic empty states.
- */
-export function BeeStanding({ size = 96, color = GOLD }: BeeProps) {
-  const unit = size / 96;
-  return (
-    <BeeFrame size={size}>
-      <Wings unit={unit} />
-      <Body unit={unit} color={color} />
-      <Stripes unit={unit} />
-      <Eyes unit={unit} />
-      <Antennae unit={unit} />
+        <Circle cx={28} cy={16} r={2} fill={GOLD} />
+        <Circle cx={68} cy={14} r={2} fill={GOLD} />
+        <Ellipse
+          cx={28}
+          cy={42}
+          rx={14}
+          ry={10}
+          stroke={WHITE}
+          strokeOpacity={0.5}
+          strokeWidth={1.5}
+          fill="none"
+        />
+        <Ellipse
+          cx={68}
+          cy={42}
+          rx={14}
+          ry={10}
+          stroke={WHITE}
+          strokeOpacity={0.5}
+          strokeWidth={1.5}
+          fill="none"
+        />
+        <Ellipse cx={48} cy={52} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+        <Path
+          d="M34 44 Q48 50 62 44"
+          stroke={BLACK}
+          strokeWidth={5}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <Path
+          d="M34 60 Q48 66 62 60"
+          stroke={BLACK}
+          strokeWidth={5}
+          strokeLinecap="round"
+          fill="none"
+        />
+        <Circle cx={44} cy={50} r={2} fill={BLACK} />
+        <Circle cx={56} cy={50} r={2} fill={BLACK} />
+      </G>
     </BeeFrame>
   );
 }
 
-/**
- * Pose 2 — Looking bee (head tilted). Used as a curious onboarding
- * accent.
- */
-export function BeeLooking({ size = 96, color = GOLD }: BeeProps) {
-  const unit = size / 96;
+/** Magnifying-glass bee — search empty states. */
+export function BeeMagnifying({ size = 96 }: BeeProps) {
   return (
     <BeeFrame size={size}>
-      <View
-        style={{
-          width: size,
-          height: size,
-          position: 'absolute',
-          transform: [{ rotate: '8deg' }],
-        }}
-      >
-        <Wings unit={unit} />
-        <Body unit={unit} color={color} />
-        <Stripes unit={unit} />
-        <Eyes unit={unit} />
-        <Antennae unit={unit} />
-      </View>
-    </BeeFrame>
-  );
-}
-
-/**
- * Pose 3 — Magnifying bee. A small magnifying-glass circle sits next
- * to the body for "search empty" states. Substitute for the brief's
- * "working bee" pose.
- */
-export function BeeMagnifying({ size = 96, color = GOLD }: BeeProps) {
-  const unit = size / 96;
-  return (
-    <BeeFrame size={size}>
-      <Wings unit={unit} />
-      <Body unit={unit} color={color} />
-      <Stripes unit={unit} />
-      <Eyes unit={unit} />
-      <Antennae unit={unit} />
-      {/* Magnifying glass: ring + handle */}
-      <View
-        style={{
-          position: 'absolute',
-          right: 4 * unit,
-          bottom: 6 * unit,
-          width: 22 * unit,
-          height: 22 * unit,
-          borderRadius: 11 * unit,
-          borderWidth: 2,
-          borderColor: BLACK,
-          backgroundColor: 'transparent',
-        }}
+      <Path
+        d="M40 22 Q36 14 32 12"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
       />
-      <View
-        style={{
-          position: 'absolute',
-          right: 0,
-          bottom: 0,
-          width: 10 * unit,
-          height: 2,
-          backgroundColor: BLACK,
-          transform: [{ rotate: '45deg' }],
-        }}
+      <Path
+        d="M56 22 Q60 14 64 12"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Circle cx={32} cy={12} r={2} fill={GOLD} />
+      <Circle cx={64} cy={12} r={2} fill={GOLD} />
+      <Ellipse
+        cx={28}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse
+        cx={68}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse cx={48} cy={52} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      <Path
+        d="M34 44 Q48 50 62 44"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M34 60 Q48 66 62 60"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Circle cx={42} cy={50} r={2} fill={BLACK} />
+      <Circle cx={54} cy={50} r={2} fill={BLACK} />
+      {/* Magnifying glass */}
+      <Circle
+        cx={76}
+        cy={70}
+        r={9}
+        stroke={BLACK}
+        strokeWidth={2}
+        fill={WHITE}
+        fillOpacity={0.9}
+      />
+      <Line
+        x1={84}
+        y1={78}
+        x2={92}
+        y2={86}
+        stroke={BLACK}
+        strokeWidth={3}
+        strokeLinecap="round"
       />
     </BeeFrame>
   );
 }
 
-/**
- * Pose 4 — Sleeping bee. Closed eyes + drooping antennae + a soft "z".
- * Used for "all done" / inbox-zero / "all quiet" empty states.
- */
-export function BeeSleeping({ size = 96, color = GOLD }: BeeProps) {
-  const unit = size / 96;
+/** Sleeping bee — closed eyes + z's. "All done" / "inbox zero". */
+export function BeeSleeping({ size = 96 }: BeeProps) {
   return (
     <BeeFrame size={size}>
-      <Wings unit={unit} />
-      <Body unit={unit} color={color} />
-      <Stripes unit={unit} />
-      <Eyes unit={unit} closed />
-      <Antennae unit={unit} droop />
-      <Text
-        style={{
-          position: 'absolute',
-          right: 6 * unit,
-          top: 10 * unit,
-          fontSize: 14 * unit,
-          fontWeight: '700',
-          color: BLACK,
-        }}
-      >
+      <Path
+        d="M40 24 Q36 28 32 30"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M56 24 Q60 28 64 30"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Circle cx={32} cy={30} r={2} fill={GOLD} />
+      <Circle cx={64} cy={30} r={2} fill={GOLD} />
+      <Ellipse
+        cx={28}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse
+        cx={68}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse cx={48} cy={54} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      <Path
+        d="M34 46 Q48 52 62 46"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M34 62 Q48 68 62 62"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M40 51 Q42 53 44 51"
+        stroke={BLACK}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M52 51 Q54 53 56 51"
+        stroke={BLACK}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <SvgText x={76} y={26} fontSize={10} fontWeight="700" fill={BLACK}>
         z
-      </Text>
-      <Text
-        style={{
-          position: 'absolute',
-          right: 14 * unit,
-          top: 0,
-          fontSize: 10 * unit,
-          fontWeight: '700',
-          color: BLACK,
-        }}
-      >
-        z
-      </Text>
+      </SvgText>
+      <SvgText x={82} y={18} fontSize={12} fontWeight="700" fill={BLACK}>
+        Z
+      </SvgText>
     </BeeFrame>
   );
 }
 
-/**
- * Pose 5 — Mail bee. Small white envelope tucked under the body for
- * "no notifications" / inbox-quiet empty states.
- */
-export function BeeMail({ size = 96, color = GOLD }: BeeProps) {
-  const unit = size / 96;
+/** Bee holding a tiny envelope — "no notifications" / "nothing buzzing". */
+export function BeeEnvelope({ size = 96 }: BeeProps) {
   return (
     <BeeFrame size={size}>
-      <Wings unit={unit} />
-      <Body unit={unit} color={color} />
-      <Stripes unit={unit} />
-      <Eyes unit={unit} />
-      <Antennae unit={unit} />
+      <Path
+        d="M40 22 Q36 14 32 12"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M56 22 Q60 14 64 12"
+        stroke={BLACK}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Circle cx={32} cy={12} r={2} fill={GOLD} />
+      <Circle cx={64} cy={12} r={2} fill={GOLD} />
+      <Ellipse
+        cx={28}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse
+        cx={68}
+        cy={42}
+        rx={14}
+        ry={10}
+        stroke={WHITE}
+        strokeOpacity={0.5}
+        strokeWidth={1.5}
+        fill="none"
+      />
+      <Ellipse cx={48} cy={50} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      <Path
+        d="M34 42 Q48 48 62 42"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M34 58 Q48 64 62 58"
+        stroke={BLACK}
+        strokeWidth={5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Circle cx={42} cy={48} r={2} fill={BLACK} />
+      <Circle cx={54} cy={48} r={2} fill={BLACK} />
       {/* Envelope */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 32 * unit,
-          bottom: 4 * unit,
-          width: 32 * unit,
-          height: 18 * unit,
-          backgroundColor: WHITE,
-          borderWidth: 1.5,
-          borderColor: BLACK,
-          borderRadius: 2,
-        }}
+      <Rect
+        x={36}
+        y={68}
+        width={24}
+        height={16}
+        rx={1.5}
+        stroke={BLACK}
+        strokeWidth={2}
+        fill={WHITE}
       />
-      {/* Envelope flap */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 32 * unit,
-          bottom: 13 * unit,
-          width: 32 * unit,
-          height: 9 * unit,
-          backgroundColor: 'transparent',
-          borderTopWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderColor: BLACK,
-          transform: [{ skewX: '-20deg' }],
-        }}
+      <Path
+        d="M36 68 L48 78 L60 68"
+        stroke={BLACK}
+        strokeWidth={2}
+        strokeLinejoin="round"
+        fill="none"
       />
     </BeeFrame>
   );
 }
 
+const HIGHLIGHT_YELLOW = '#F8E71C';
+
 /**
- * Convenience map for places that pick a pose dynamically.
+ * BeeLogoMark — round-faced brand mark for nav, app icon, small chips.
+ * Same fixed-colour palette as the poses; reads on both yellow + black bg.
+ * 64×64 viewBox; designed to read at 28–48 px.
+ */
+export function BeeLogoMark({ size = 40 }: BeeProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Path d="M24 18 L19 6" stroke="#0A0A0A" strokeWidth={2.6} strokeLinecap="round" />
+      <Path d="M40 18 L45 6" stroke="#0A0A0A" strokeWidth={2.6} strokeLinecap="round" />
+      <Circle cx={19} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
+      <Circle cx={45} cy={6} r={3.4} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={1.5} />
+      <Ellipse
+        cx={11}
+        cy={32}
+        rx={9}
+        ry={5.5}
+        fill="#FFFFFF"
+        fillOpacity={0.18}
+        stroke="#0A0A0A"
+        strokeOpacity={0.85}
+        strokeWidth={2}
+      />
+      <Ellipse
+        cx={53}
+        cy={32}
+        rx={9}
+        ry={5.5}
+        fill="#FFFFFF"
+        fillOpacity={0.18}
+        stroke="#0A0A0A"
+        strokeOpacity={0.85}
+        strokeWidth={2}
+      />
+      <Circle cx={32} cy={34} r={20} fill={HIGHLIGHT_YELLOW} stroke="#0A0A0A" strokeWidth={3.2} />
+      <Path d="M16 28 L28 33" stroke="#0A0A0A" strokeWidth={4} strokeLinecap="round" />
+      <Path d="M36 33 L48 28" stroke="#0A0A0A" strokeWidth={4} strokeLinecap="round" />
+      <Rect x={20} y={41} width={24} height={4.5} rx={2.25} fill="#0A0A0A" />
+    </Svg>
+  );
+}
+
+/**
+ * Back-compat aliases.
+ *
+ * The mobile screens (owned by the functionality engineer) import
+ * `BeeLooking` and `BeeMail` — the historical mobile names. The web
+ * uses the more descriptive `BeeLookingAround` and `BeeEnvelope`.
+ * Keep both spellings exported so neither codebase has to chase the
+ * rename in this pass.
+ */
+export const BeeLooking = BeeLookingAround;
+export const BeeMail = BeeEnvelope;
+
+/**
+ * Convenience map for places that pick a pose dynamically. The legacy
+ * keys (`mail`, `looking`) are preserved; the web names (`envelope`,
+ * `lookingAround`) are added for parity with the web export.
  */
 export const BEE_POSES = {
   standing: BeeStanding,
-  looking: BeeLooking,
+  looking: BeeLookingAround,
+  lookingAround: BeeLookingAround,
   magnifying: BeeMagnifying,
   sleeping: BeeSleeping,
-  mail: BeeMail,
+  mail: BeeEnvelope,
+  envelope: BeeEnvelope,
+  logoMark: BeeLogoMark,
 } as const;
 
 export type BeePose = keyof typeof BEE_POSES;
 
-// Keep StyleSheet around in case future variants want named styles.
-// Currently unused but documented for downstream illustrations.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _styles = StyleSheet.create({
-  hidden: { display: 'none' },
-});
+export const Bee = {
+  Standing: BeeStanding,
+  LookingAround: BeeLookingAround,
+  Magnifying: BeeMagnifying,
+  Sleeping: BeeSleeping,
+  Envelope: BeeEnvelope,
+  LogoMark: BeeLogoMark,
+};

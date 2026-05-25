@@ -5,7 +5,7 @@
  * checkbox tick), AskAi sparkle on every row. Empty state uses the
  * sleeping bee with copy-bank wording.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
   StyleSheet,
   Platform,
   Pressable,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -23,6 +25,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
@@ -34,6 +37,12 @@ import { StaggeredListItem } from '../../src/components/motion/staggered-list-it
 import { SparkleBurst } from '../../src/components/celebrations/sparkle-burst';
 import { InboxZeroOverlay } from '../../src/components/celebrations/inbox-zero-overlay';
 import { markInboxZeroShown } from '../../src/lib/inbox-zero-flag';
+import {
+  completeTask,
+  listTasks,
+  uncompleteTask,
+  type ApiTask,
+} from '../../src/lib/api/resources';
 
 const FILTERS = ['All', 'Today', 'Upcoming', 'Overdue', 'Completed'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -47,56 +56,28 @@ interface Task {
   done: boolean;
 }
 
-const TASKS: Task[] = [
-  {
-    id: '1',
-    title: 'Renew car insurance',
-    description: 'Policy expires on March 30. Compare rates online first.',
-    priority: 'high',
-    dueDate: 'Mar 25',
-    done: false,
-  },
-  {
-    id: '2',
-    title: 'Schedule dentist appointment',
-    description: 'Annual checkup and cleaning. Call Dr. Smith’s office.',
-    priority: 'medium',
-    dueDate: 'Mar 20',
-    done: false,
-  },
-  {
-    id: '3',
-    title: 'Pay electricity bill',
-    description: 'Amount due: $142.50. Set up autopay after this.',
-    priority: 'high',
-    dueDate: 'Mar 18',
-    done: true,
-  },
-  {
-    id: '4',
-    title: 'File tax returns',
-    description: 'Gather W-2 and 1099 forms. Use TurboTax this year.',
-    priority: 'high',
-    dueDate: 'Apr 15',
-    done: false,
-  },
-  {
-    id: '5',
-    title: 'Update passport',
-    description: 'Current passport expires in June. Apply for renewal.',
-    priority: 'medium',
-    dueDate: 'Apr 1',
-    done: false,
-  },
-  {
-    id: '6',
-    title: 'Cancel unused gym membership',
-    description: 'Planet Fitness membership. $30/month savings.',
-    priority: 'low',
-    dueDate: 'Mar 31',
-    done: false,
-  },
-];
+function formatDue(iso: string | null): string {
+  if (!iso) return 'No due date';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'No due date';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function adapt(api: ApiTask): Task {
+  return {
+    id: api.id,
+    title: api.title,
+    description: api.description ?? '',
+    priority:
+      api.priority === 'HIGH'
+        ? 'high'
+        : api.priority === 'MEDIUM'
+          ? 'medium'
+          : 'low',
+    dueDate: formatDue(api.dueDate),
+    done: api.status === 'COMPLETED',
+  };
+}
 
 function PriorityBadge({ priority }: { priority: Task['priority'] }) {
   const label = priority.charAt(0).toUpperCase() + priority.slice(1);
@@ -152,8 +133,52 @@ function GoldCheckbox({ done, onPress }: { done: boolean; onPress: () => void })
 
 export default function TasksScreen() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
-  const [tasks, setTasks] = useState(TASKS);
   const sheet = useAiSheet('Help me plan my tasks today.');
+  const queryClient = useQueryClient();
+
+  const tasksQuery = useQuery({
+    queryKey: ['tasks'],
+    queryFn: listTasks,
+  });
+
+  const tasks = useMemo(
+    () => (tasksQuery.data ?? []).map(adapt),
+    [tasksQuery.data],
+  );
+
+  const toggleMutation = useMutation({
+    mutationFn: async (input: { id: string; done: boolean }) => {
+      if (input.done) {
+        return completeTask(input.id);
+      }
+      return uncompleteTask(input.id);
+    },
+    onMutate: async ({ id, done }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      const prev = queryClient.getQueryData<ApiTask[]>(['tasks']);
+      // Optimistic flip — keeps the checkbox snappy even on slow networks.
+      queryClient.setQueryData<ApiTask[]>(['tasks'], (old) =>
+        (old ?? []).map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                status: done ? 'COMPLETED' : 'PENDING',
+                completedAt: done ? new Date().toISOString() : null,
+              }
+            : t,
+        ),
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['tasks'], ctx.prev);
+      Alert.alert('Hmm, sync stalled. Try again?');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 
   // Track which task just got celebrated so the burst plays once per
   // completion. Reset to null after the burst finishes (~700ms).
@@ -169,7 +194,6 @@ export default function TasksScreen() {
   useEffect(() => {
     const pending = tasks.filter((t) => !t.done).length;
     if (prevPendingRef.current > 0 && pending === 0) {
-      // Just hit zero — celebrate, but only once per session.
       if (markInboxZeroShown()) {
         setZeroOverlay(true);
       }
@@ -187,19 +211,16 @@ export default function TasksScreen() {
   });
 
   const toggleTask = (id: string) => {
-    setTasks((prev) => {
-      const next = prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
-      const becameDone = next.find((t) => t.id === id)?.done === true;
-      if (becameDone) {
-        setBurstTaskId(id);
-        // Auto-clear the burst marker so it can replay on the next
-        // completion (e.g. user re-checks a different task).
-        setTimeout(() => {
-          setBurstTaskId((curr) => (curr === id ? null : curr));
-        }, 800);
-      }
-      return next;
-    });
+    const current = tasks.find((t) => t.id === id);
+    if (!current) return;
+    const nextDone = !current.done;
+    if (nextDone) {
+      setBurstTaskId(id);
+      setTimeout(() => {
+        setBurstTaskId((curr) => (curr === id ? null : curr));
+      }, 800);
+    }
+    toggleMutation.mutate({ id, done: nextDone });
   };
 
   const renderTask = ({ item, index }: { item: Task; index: number }) => (
@@ -287,29 +308,44 @@ export default function TasksScreen() {
       </ScrollView>
 
       {/* Task List */}
-      <FlatList
-        data={filteredTasks}
-        renderItem={renderTask}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.taskList}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <BeeSleeping size={120} />
-            <Text style={styles.emptyText}>Inbox zero unlocked</Text>
-            <Text style={styles.emptyDesc}>
-              Nothing on the to-do list. Free as a bee.
-            </Text>
-            <View style={{ marginTop: spacing.lg }}>
-              <AskAiButton
-                variant="chip"
-                label="Ask BillBee to add something"
-                onPress={() => sheet.open('Add a new task to my list.')}
-              />
+      {tasksQuery.isLoading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={tokens.accent} />
+          <Text style={styles.emptyDesc}>Loading the hive…</Text>
+        </View>
+      ) : tasksQuery.isError ? (
+        <View style={styles.emptyState}>
+          <BeeSleeping size={120} />
+          <Text style={styles.emptyText}>Hmm, sync stalled.</Text>
+          <Text style={styles.emptyDesc}>Pull down to retry.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredTasks}
+          renderItem={renderTask}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.taskList}
+          showsVerticalScrollIndicator={false}
+          refreshing={tasksQuery.isFetching}
+          onRefresh={() => tasksQuery.refetch()}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <BeeSleeping size={120} />
+              <Text style={styles.emptyText}>Inbox zero unlocked</Text>
+              <Text style={styles.emptyDesc}>
+                Nothing on the to-do list. Free as a bee.
+              </Text>
+              <View style={{ marginTop: spacing.lg }}>
+                <AskAiButton
+                  variant="chip"
+                  label="Ask BillBee to add something"
+                  onPress={() => sheet.open('Add a new task to my list.')}
+                />
+              </View>
             </View>
-          </View>
-        }
-      />
+          }
+        />
+      )}
 
       <AiBottomSheet
         visible={sheet.visible}

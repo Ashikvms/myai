@@ -337,7 +337,7 @@ UX/scalability concerns flagged in the L-section of the audit checklist. Both co
 
 - `npm audit --omit=dev` could not be executed in this sandboxed environment (permission denied). Recommend running it manually before Phase 4 merge:
   ```
-  cd /Users/ashiks/Desktop/myai/laylo && npm audit --omit=dev --json > audit.json
+  cd /Users/ashiks/Documents/myai/laylo && npm audit --omit=dev --json > audit.json
   ```
   and triaging any HIGH/CRITICAL beyond the existing 37-vuln baseline (mostly transitive Expo/React-Native issues from Phase 2b).
 - ZAP baseline scan and JWT bypass attempt are listed in spec §11 as Security Analyst owned — recommend running once Phase 4 staging URL is up.
