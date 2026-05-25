@@ -26,7 +26,26 @@
 - **Theme switcher** — `ThemeProvider` + 3-segment Light/Dark/System toggle in Settings, persists via expo-secure-store, ThemedStatusBar flips with theme.
 - **Docs reorg** — root keeps `README.md`, `CLAUDE.md`, `SESSION_MEMORY.md`, `BRAND_GUIDE.md`. Everything else under `docs/{design,security,architecture,operations,internal}` + `docs/README.md` index.
 
-### Phase 2 NEXT (NOT STARTED — pick up here)
+### Phase 2 IN FLIGHT (4 background agents on `feat/google-integrations`)
+Launched 2026-05-25 ~17:25 PT. Agents work in parallel; check back via the agent IDs OR look at git log on `feat/google-integrations` for landed commits.
+
+| Agent | Scope | ID |
+|---|---|---|
+| Backend Senior | OAuth scopes + token encryption + Calendar sync (two-way) + Gmail polling + AI extraction calls + BullMQ jobs + audit log + IDOR tests | `acca33a8999d01a1b` |
+| AI Prompts Senior | `extractBillFromEmail`, `extractAppointmentFromEmail`, `summarizeInboxTriage` in `packages/ai/` | `a0015c9bb4ee53fdc` |
+| Web UI Senior | Settings Google Connect card, Dashboard Inbox Triage card, badges on bills/appts, typed API client | `ac873ea7d2ce31ab6` |
+| Mobile UI Senior | expo-auth-session OAuth flow, Settings + Dashboard + Tasks CTA + badges | `a1363add96d39c20e` |
+
+**Branch base:** `feat/google-integrations` was branched off `feat/ios-app-polish` so it includes Phase 1 work. To split for PR, rebase onto `main` after merging Phase 1, OR cherry-pick the Google commits onto a fresh branch off `main`.
+
+**To resume Phase 2:** check `git log feat/google-integrations` for what landed. If agents stalled, read their prompts in this session's history. Critical contracts the agents are coding against:
+- DB: new `googleAccessTokenCiphertext`/`googleRefreshTokenCiphertext`/`googleScopes` fields on User; new `GoogleCalendarEvent` + `GmailMessage` + `GoogleDataAccessLog` models; `source`+`sourceRef` columns added to Appointment/Bill/Reminder
+- API endpoints: `GET /api/google/status`, `POST /api/google/{link,unlink,calendar/sync,gmail/poll}`, `GET /api/google/{calendar/events,gmail/messages}`
+- AI functions: 3 new functions in `packages/ai/src/service.ts`
+- New env vars in `apps/api/.env.example`: `GOOGLE_CALENDAR_SCOPES`, `GOOGLE_GMAIL_SCOPES`, `GOOGLE_REDIRECT_URI`, `GOOGLE_LINK_REDIRECT_URI`
+- Mobile: new `expo-auth-session` flow using deep-link scheme `lifeadminai://google-oauth?code=...&state=...`
+
+### Phase 2 NEXT (was-pending — for reference if agents need redo)
 Per user direction:
 - **Google Calendar = TWO-WAY sync** with Tasks/Appointments
 - **Gmail = auto-detect bills/receipts + appointment confirmations + inbox triage** (3 of 3 use cases)
