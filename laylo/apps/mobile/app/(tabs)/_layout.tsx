@@ -21,7 +21,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens } from '../../src/lib/tokens';
+import { useTokens, type Tokens } from '../../src/lib/tokens';
 import {
   HomeIcon,
   WalletIcon,
@@ -39,6 +39,8 @@ type TabIconProps = {
 
 function TabIcon({ Icon, focused }: TabIconProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTokens();
+  const styles = React.useMemo(() => makeStyles(t), [t]);
   const indicator = useSharedValue(focused ? 1 : 0);
 
   React.useEffect(() => {
@@ -54,7 +56,7 @@ function TabIcon({ Icon, focused }: TabIconProps) {
 
   return (
     <View style={styles.iconWrap}>
-      <Icon color={focused ? tokens.accent : tokens.textMuted} size={24} />
+      <Icon color={focused ? t.accent : t.textMuted} size={24} />
       {/* Active-tab underline: 3-stop gold gradient (transparent →
           gold → transparent) so the stripe has soft edges instead of
           a flat hard bar. Scale + fade animate when focus changes. */}
@@ -73,22 +75,16 @@ function TabIcon({ Icon, focused }: TabIconProps) {
 }
 
 export default function TabLayout() {
+  const t = useTokens();
+  const styles = React.useMemo(() => makeStyles(t), [t]);
   return (
-    // Wrap the Tabs in a host View so the atmospheric gradient sits
-    // behind the tab navigator + screens. The gradient is decorative,
-    // `pointerEvents="none"`, and animates its dark layer with
-    // Reanimated when the theme flips — softening the bg flash that
-    // a hard `--color-bg` swap would otherwise produce. Opaque screen
-    // containers occlude it (the existing tab screens paint `t.bg`),
-    // but it shows through safe-area insets and during route
-    // transitions, which is where the flash is most noticeable.
     <View style={styles.host}>
       <GradientBackground />
       <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: tokens.accent,
-        tabBarInactiveTintColor: tokens.textMuted,
+        tabBarActiveTintColor: t.accent,
+        tabBarInactiveTintColor: t.textMuted,
         tabBarLabelStyle: styles.tabLabel,
         tabBarStyle: styles.tabBar,
       }}
@@ -144,7 +140,8 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
   // Full-bleed host for the gradient + Tabs navigator. The Tabs
   // primitive paints its own scene container, so this view only
   // exists to give the GradientBackground a sized parent.
@@ -152,9 +149,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderTopWidth: 1,
-    borderTopColor: tokens.border,
+    borderTopColor: t.border,
     height: Platform.OS === 'ios' ? 88 : 68,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 28 : 8,
@@ -191,4 +188,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     overflow: 'hidden',
   },
-});
+  });
+}
+type Styles = ReturnType<typeof makeStyles>;

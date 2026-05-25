@@ -22,6 +22,7 @@ import {
   useAiSheet,
 } from '../../src/components/ai';
 import { ArchiveIcon } from '../../src/components/icons/tab-icons';
+import { HexFrame } from '../../src/components/illustrations/hex-frame';
 import { HoneycombPattern } from '../../src/components/illustrations/honeycomb-pattern';
 import { WobblePressable } from '../../src/components/motion/wobble-pressable';
 import { getDashboard } from '../../src/lib/api/resources';
@@ -119,9 +120,16 @@ export default function VaultTab() {
             >
               <View style={styles.hubInner}>
                 <View style={styles.hubLeft}>
-                  <View style={styles.hubAvatar}>
-                    <Text style={styles.hubAvatarText}>{h.glyph}</Text>
-                  </View>
+                  <HexFrame
+                    size={56}
+                    bg={t.surface}
+                    borderColor={t.accent}
+                    borderWidth={1.25}
+                  >
+                    <View style={styles.hubAvatar}>
+                      <Text style={styles.hubAvatarText}>{h.glyph}</Text>
+                    </View>
+                  </HexFrame>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.hubTitle}>{h.title}</Text>
                     <Text style={styles.hubDesc}>{h.description}</Text>
@@ -209,17 +217,20 @@ function makeStyles(t: Tokens) {
     flex: 1,
   },
   hubAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    backgroundColor: t.surface2,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
+    // Fill the hex interior with a soft accent so the hexagon reads
+    // distinct from the card surface. HexFrame masks the corners with
+    // `bg` = card surface, leaving this colour visible only inside the
+    // 6-sided polygon.
+    backgroundColor: t.surface2,
   },
   hubAvatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: t.text,
+    color: t.accent,
   },
   hubTitle: {
     fontSize: 16,

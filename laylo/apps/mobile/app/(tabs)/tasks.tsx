@@ -407,10 +407,27 @@ export default function TasksScreen() {
           data={filteredTasks}
           renderItem={renderTask}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.taskList}
+          // `flex: 1` on the list + `flexGrow: 1` on the content container
+          // ensures the list always fills the available vertical space —
+          // critical for two reasons:
+          //   1. Pull-to-refresh works even when the list is empty (the
+          //      gesture surface needs an actual scrollable area).
+          //   2. The empty-state mascot stays visually centered inside
+          //      the remaining space below the filter chips, instead of
+          //      hugging the top with a big black void underneath.
+          style={styles.taskListWrapper}
+          contentContainerStyle={[
+            styles.taskList,
+            filteredTasks.length === 0 && styles.taskListEmpty,
+          ]}
           showsVerticalScrollIndicator={false}
           refreshing={tasksQuery.isFetching}
           onRefresh={() => tasksQuery.refetch()}
+          // Always allow the bounce gesture so pull-to-refresh works even
+          // when content is shorter than the viewport (RN default disables
+          // bounce on non-overflowing content, which kills pull-to-refresh
+          // on the empty state).
+          alwaysBounceVertical
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <BeeSleeping size={120} />
@@ -577,10 +594,20 @@ function makeStyles(t: Tokens) {
   filterTextActive: {
     color: t.bg,
   },
+  taskListWrapper: {
+    flex: 1,
+  },
   taskList: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 100,
     gap: spacing.md,
+  },
+  // Applied when the list has zero items — `flexGrow: 1` lets the empty
+  // state expand into the remaining vertical space so pull-to-refresh
+  // works and the mascot reads as centered, not stranded at the top.
+  taskListEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   taskCard: {
     flexDirection: 'row',

@@ -246,11 +246,16 @@ export function BeeMagnifying(props: BeeProps) {
   );
 }
 
-/** Sleeping bee — closed eyes + z's. "All done" / "inbox zero". */
+/** Sleeping bee — closed eye arcs + soft smile + z's. "All done" / "inbox zero".
+ *
+ *  Peaceful, content pose: NO angry eyebrows (the previous thick `strokeWidth={5}`
+ *  arcs at y=46/62 read as a hostile monobrow + frown). Replaced with two
+ *  upward-arcing closed eyes (⌒ ⌒) and a soft smile (‿). Antennae drooped,
+ *  Zs float top-right. Visual parity with the mobile port. */
 export function BeeSleeping(props: BeeProps) {
   return (
     <BeeFrame {...props} title="Sleeping bee">
-      {/* Antennae — drooped */}
+      {/* Antennae — drooped/relaxed angle */}
       <path
         d="M40 24 Q36 28 32 30"
         stroke={BLACK}
@@ -290,32 +295,26 @@ export function BeeSleeping(props: BeeProps) {
       />
       {/* Body */}
       <ellipse cx={48} cy={54} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      {/* Closed eyes — two upward-arcing curves (⌒ ⌒) read as "resting" */}
       <path
-        d="M34 46 Q48 52 62 46"
+        d="M36 52 Q42 46 48 52"
         stroke={BLACK}
-        strokeWidth={5}
+        strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
       <path
-        d="M34 62 Q48 68 62 62"
+        d="M48 52 Q54 46 60 52"
         stroke={BLACK}
-        strokeWidth={5}
+        strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
-      {/* Sleeping eyes — small arcs */}
+      {/* Soft smile — thin gentle arc */}
       <path
-        d="M40 51 Q42 53 44 51"
+        d="M40 62 Q48 66 56 62"
         stroke={BLACK}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M52 51 Q54 53 56 51"
-        stroke={BLACK}
-        strokeWidth={1.75}
+        strokeWidth={2}
         strokeLinecap="round"
         fill="none"
       />

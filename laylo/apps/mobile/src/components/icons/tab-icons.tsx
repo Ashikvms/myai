@@ -8,9 +8,14 @@
  * 24 px size + 1.75 px stroke.
  *
  * Spec: DESIGN_SYSTEM.md §8.3 (Lucide stroke 1.75, 20 px default).
+ *
+ * Note: SettingsIcon uses react-native-svg (already a dep, used by the
+ * bee SVG) because the previous View-primitive version read as a
+ * crosshair rather than a gear.
  */
 import React from 'react';
 import { View, Text } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 const STROKE = 1.75;
 
@@ -183,44 +188,38 @@ export function ArchiveIcon({ color, size = 22 }: IconProps) {
   );
 }
 
-/** Settings — gear approximated by ring + four ticks. */
+/**
+ * Settings — proper gear glyph rendered with react-native-svg.
+ *
+ * Path adapted from the Lucide `settings` icon (ISC licence) — eight
+ * gear teeth around a central hub. Using a real SVG path means the
+ * teeth are wedge-shaped, not stick-like, so the icon reads as a gear
+ * instead of a crosshair.
+ */
 export function SettingsIcon({ color, size = 22 }: IconProps) {
+  // Lucide-style gear with 8 teeth; trimmed and re-pathed so it sits
+  // nicely on a 24x24 viewBox at our default tab size.
+  const gearPath =
+    'M19.14 12.94c.04-.31.06-.62.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94 0 .31.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z';
   return (
     <IconFrame size={size}>
-      {/* Outer ring */}
-      <View
-        style={{
-          width: size * 0.62,
-          height: size * 0.62,
-          borderRadius: size * 0.31,
-          borderWidth: STROKE,
-          borderColor: color,
-        }}
-      />
-      {/* Inner dot */}
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 0.18,
-          height: size * 0.18,
-          borderRadius: size * 0.09,
-          borderWidth: STROKE,
-          borderColor: color,
-        }}
-      />
-      {/* Four tick marks */}
-      {[0, 90, 180, 270].map((deg) => (
-        <View
-          key={deg}
-          style={{
-            position: 'absolute',
-            width: STROKE,
-            height: size * 0.2,
-            backgroundColor: color,
-            transform: [{ rotate: `${deg}deg` }, { translateY: -size * 0.4 }],
-          }}
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d={gearPath}
+          stroke={color}
+          strokeWidth={STROKE}
+          strokeLinejoin="round"
+          strokeLinecap="round"
         />
-      ))}
+        <Circle
+          cx={12}
+          cy={12}
+          r={3}
+          stroke={color}
+          strokeWidth={STROKE}
+          fill="none"
+        />
+      </Svg>
     </IconFrame>
   );
 }

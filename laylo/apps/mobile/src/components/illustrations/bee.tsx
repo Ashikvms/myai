@@ -236,10 +236,16 @@ export function BeeMagnifying({ size = 96 }: BeeProps) {
   );
 }
 
-/** Sleeping bee — closed eyes + z's. "All done" / "inbox zero". */
+/** Sleeping bee — closed eye arcs + soft smile + z's. "All done" / "inbox zero".
+ *
+ *  Peaceful, content pose: NO angry eyebrows (the old `strokeWidth={5}` arcs
+ *  at y=46 read as a hostile monobrow + the matching arc at y=62 read as a
+ *  frown). Replaced with two upward-arcing closed eyes (⌒ ⌒) and a soft
+ *  smile (‿). Antennae are drooped, Zs float top-right. */
 export function BeeSleeping({ size = 96 }: BeeProps) {
   return (
     <BeeFrame size={size}>
+      {/* Antennae — drooped/relaxed angle */}
       <Path
         d="M40 24 Q36 28 32 30"
         stroke={BLACK}
@@ -256,6 +262,7 @@ export function BeeSleeping({ size = 96 }: BeeProps) {
       />
       <Circle cx={32} cy={30} r={2} fill={GOLD} />
       <Circle cx={64} cy={30} r={2} fill={GOLD} />
+      {/* Wings */}
       <Ellipse
         cx={28}
         cy={42}
@@ -276,35 +283,32 @@ export function BeeSleeping({ size = 96 }: BeeProps) {
         strokeWidth={1.5}
         fill="none"
       />
+      {/* Body */}
       <Ellipse cx={48} cy={54} rx={26} ry={22} fill={GOLD} stroke={BLACK} strokeWidth={2} />
+      {/* Closed eyes — two upward-arcing curves (⌒ ⌒) read as "resting" */}
       <Path
-        d="M34 46 Q48 52 62 46"
+        d="M36 52 Q42 46 48 52"
         stroke={BLACK}
-        strokeWidth={5}
+        strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
       <Path
-        d="M34 62 Q48 68 62 62"
+        d="M48 52 Q54 46 60 52"
         stroke={BLACK}
-        strokeWidth={5}
+        strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
+      {/* Soft smile — thin gentle arc */}
       <Path
-        d="M40 51 Q42 53 44 51"
+        d="M40 62 Q48 66 56 62"
         stroke={BLACK}
-        strokeWidth={1.75}
+        strokeWidth={2}
         strokeLinecap="round"
         fill="none"
       />
-      <Path
-        d="M52 51 Q54 53 56 51"
-        stroke={BLACK}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        fill="none"
-      />
+      {/* Z's — top-right, indicates sleep */}
       <SvgText x={76} y={26} fontSize={10} fontWeight="700" fill={BLACK}>
         z
       </SvgText>

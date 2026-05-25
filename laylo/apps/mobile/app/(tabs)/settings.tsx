@@ -153,13 +153,8 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Google Account — Calendar + Gmail integration */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Connected Services</Text>
-        <GoogleConnectCard />
-      </View>
-
-      {/* Appearance */}
+      {/* Appearance — promoted above Connected Services so the theme
+          switcher is visible without scrolling past the Google card. */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
@@ -209,6 +204,12 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
+      </View>
+
+      {/* Google Account — Calendar + Gmail integration */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Connected Services</Text>
+        <GoogleConnectCard />
       </View>
 
       {/* Plan */}
