@@ -1,5 +1,11 @@
 # CLAUDE.md — BillBee
 
+> **Global plugin: `andrej-karpathy-skills`** is installed globally. Its general principles
+> (think before coding, surgical changes, simple > clever, verify don't assume) apply by
+> default to all work. The project-specific rules below **ALWAYS take precedence** when
+> they conflict — especially the LOCKED infrastructure in Step 12 (NO AWS, NO Firebase,
+> etc.) and the 21 absolute rules in Step 8.
+
 ## Step 0: Session Start
 Read `SESSION_MEMORY.md` at the start of every session before doing anything.
 
