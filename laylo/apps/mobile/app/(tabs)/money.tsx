@@ -9,7 +9,7 @@
  * Live counts: dashboard query feeds the hub-card descriptions so the
  * user sees "$2,408 monthly" instead of marketing copy.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
   AskAiButton,
@@ -47,6 +47,8 @@ function formatCurrency(n: number): string {
 }
 
 export default function MoneyTab() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const sheet = useAiSheet('Help me understand my money this month.');
   const dashboardQuery = useQuery({
@@ -157,7 +159,7 @@ export default function MoneyTab() {
 
         {/* Footnote */}
         <View style={styles.footnote}>
-          <WalletIcon color={tokens.textSubtle} size={18} />
+          <WalletIcon color={t.textSubtle} size={18} />
           <Text style={styles.footnoteText}>
             Tip: long-press any card to ask BillBee about it.
           </Text>
@@ -173,8 +175,9 @@ export default function MoneyTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   scroll: {
     paddingHorizontal: spacing.lg,
     paddingTop: Platform.OS === 'ios' ? 60 : 44,
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     marginBottom: spacing.xs,
   },
@@ -198,17 +201,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 40,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   hubList: {
     gap: spacing.md,
   },
   hubCard: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     overflow: 'hidden',
   },
   hubInner: {
@@ -226,27 +229,27 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hubAvatarText: {
     fontSize: 18,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   hubTitle: {
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   hubDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   hubRight: {
     flexDirection: 'row',
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 22,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '300',
   },
   footnote: {
@@ -267,7 +270,11 @@ const styles = StyleSheet.create({
   },
   footnoteText: {
     fontSize: 13,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

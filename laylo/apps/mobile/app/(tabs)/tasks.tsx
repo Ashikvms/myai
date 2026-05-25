@@ -26,13 +26,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
   AskAiButton,
   useAiSheet,
 } from '../../src/components/ai';
 import { BeeSleeping } from '../../src/components/illustrations/bee';
+import { GradientPill, GRADIENT_PALETTES } from '../../src/components/ui/gradient-pill';
 import { StaggeredListItem } from '../../src/components/motion/staggered-list-item';
 import { SparkleBurst } from '../../src/components/celebrations/sparkle-burst';
 import { InboxZeroOverlay } from '../../src/components/celebrations/inbox-zero-overlay';
@@ -79,7 +80,13 @@ function adapt(api: ApiTask): Task {
   };
 }
 
-function PriorityBadge({ priority }: { priority: Task['priority'] }) {
+function PriorityBadge({
+  priority,
+  styles,
+}: {
+  priority: Task['priority'];
+  styles: Styles;
+}) {
   const label = priority.charAt(0).toUpperCase() + priority.slice(1);
   return (
     <View style={styles.priorityBadge}>
@@ -95,7 +102,15 @@ function PriorityBadge({ priority }: { priority: Task['priority'] }) {
  * the gold fill paints in (opacity + scale) and the checkmark is
  * revealed by a quick scale-from-0 over 220ms. Honors reduced motion.
  */
-function GoldCheckbox({ done, onPress }: { done: boolean; onPress: () => void }) {
+function GoldCheckbox({
+  done,
+  onPress,
+  styles,
+}: {
+  done: boolean;
+  onPress: () => void;
+  styles: Styles;
+}) {
   const reduceMotion = useReducedMotion();
   const fill = useSharedValue(done ? 1 : 0);
   const tickScale = useSharedValue(done ? 1 : 0);
@@ -132,6 +147,8 @@ function GoldCheckbox({ done, onPress }: { done: boolean; onPress: () => void })
 }
 
 export default function TasksScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const sheet = useAiSheet('Help me plan my tasks today.');
   const queryClient = useQueryClient();
@@ -228,8 +245,13 @@ export default function TasksScreen() {
       <View style={{ position: 'relative' }}>
         <PressableTaskCard
           onLongPress={() => sheet.open(`Break "${item.title}" into steps for me.`)}
+          styles={styles}
         >
-          <GoldCheckbox done={item.done} onPress={() => toggleTask(item.id)} />
+          <GoldCheckbox
+            done={item.done}
+            onPress={() => toggleTask(item.id)}
+            styles={styles}
+          />
           <View style={styles.taskContent}>
             <View style={styles.taskTopRow}>
               <Text
@@ -238,7 +260,7 @@ export default function TasksScreen() {
               >
                 {item.title}
               </Text>
-              <PriorityBadge priority={item.priority} />
+              <PriorityBadge priority={item.priority} styles={styles} />
             </View>
             <Text style={styles.taskDesc} numberOfLines={1}>
               {item.description}
@@ -285,32 +307,40 @@ export default function TasksScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filtersRow}
       >
-        {FILTERS.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterChip,
-              activeFilter === filter && styles.filterChipActive,
-            ]}
-            onPress={() => setActiveFilter(filter)}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === filter && styles.filterTextActive,
-              ]}
+        {FILTERS.map((filter) => {
+          const active = activeFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              onPress={() => setActiveFilter(filter)}
+              activeOpacity={0.8}
             >
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              {active && (
+                <GradientPill
+                  colors={GRADIENT_PALETTES.blackSheen}
+                  direction="diagonal"
+                  borderRadius={radius.sm}
+                  style={styles.filterChipActiveFill}
+                />
+              )}
+              <Text
+                style={[
+                  styles.filterText,
+                  active && styles.filterTextActive,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Task List */}
       {tasksQuery.isLoading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={styles.emptyDesc}>Loading the hive…</Text>
         </View>
       ) : tasksQuery.isError ? (
@@ -370,9 +400,11 @@ export default function TasksScreen() {
 function PressableTaskCard({
   children,
   onLongPress,
+  styles,
 }: {
   children: React.ReactNode;
   onLongPress?: () => void;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -398,10 +430,11 @@ function PressableTaskCard({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.bg,
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -415,7 +448,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     marginBottom: spacing.xs,
   },
@@ -423,18 +456,18 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 40,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   addButton: {
     width: 44,
     height: 44,
     borderRadius: radius.md,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonText: {
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     fontSize: 24,
     fontWeight: '600',
     marginTop: -2,
@@ -450,19 +483,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
+    // Allow the absolutely-positioned active gradient underlay to sit
+    // behind the label without bleeding past the chip's rounded corners.
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
+  // Active filter chip: keep the dark border for definition; the
+  // gradient underlay supplies the fill (so the chip reads consistent
+  // with the auth/settings segment toggles).
   filterChipActive: {
-    backgroundColor: tokens.text,
-    borderColor: tokens.text,
+    borderColor: t.text,
+  },
+  filterChipActiveFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   filterTextActive: {
-    color: tokens.bg,
+    color: t.bg,
   },
   taskList: {
     paddingHorizontal: spacing.lg,
@@ -471,11 +513,11 @@ const styles = StyleSheet.create({
   },
   taskCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     gap: spacing.md,
   },
   checkbox: {
@@ -483,7 +525,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: radius.sm,
     borderWidth: 2,
-    borderColor: tokens.borderStrong,
+    borderColor: t.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -491,10 +533,10 @@ const styles = StyleSheet.create({
   },
   checkboxFill: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
   },
   checkmark: {
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -508,17 +550,17 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     flex: 1,
     marginRight: spacing.sm,
   },
   taskTitleDone: {
     textDecorationLine: 'line-through',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   taskDesc: {
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     lineHeight: 18,
     marginBottom: spacing.md - 2,
   },
@@ -529,19 +571,19 @@ const styles = StyleSheet.create({
   },
   taskDue: {
     fontSize: 12,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   priorityBadge: {
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 4,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
   priorityText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   emptyState: {
     alignItems: 'center',
@@ -552,12 +594,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   emptyDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

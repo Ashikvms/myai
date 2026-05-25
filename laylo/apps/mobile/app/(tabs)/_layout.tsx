@@ -29,6 +29,7 @@ import {
   ArchiveIcon,
   SettingsIcon,
 } from '../../src/components/icons/tab-icons';
+import { GradientPill, GRADIENT_PALETTES } from '../../src/components/ui/gradient-pill';
 
 type TabIconProps = {
   Icon: React.ComponentType<{ color: string; size?: number }>;
@@ -53,7 +54,19 @@ function TabIcon({ Icon, focused }: TabIconProps) {
   return (
     <View style={styles.iconWrap}>
       <Icon color={focused ? tokens.accent : tokens.textMuted} size={24} />
-      <Animated.View style={[styles.activeBar, indicatorStyle]} />
+      {/* Active-tab underline: 3-stop gold gradient (transparent →
+          gold → transparent) so the stripe has soft edges instead of
+          a flat hard bar. Scale + fade animate when focus changes. */}
+      <Animated.View style={[styles.activeBarWrap, indicatorStyle]} pointerEvents="none">
+        <GradientPill
+          colors={GRADIENT_PALETTES.goldFade}
+          locations={[0, 0.5, 1]}
+          direction="horizontal"
+          width="100%"
+          height="100%"
+          borderRadius={2}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -150,12 +163,14 @@ const styles = StyleSheet.create({
     width: 32,
     paddingTop: 2,
   },
-  activeBar: {
+  // Wrapper for the gradient stripe; sizing matches the previous flat
+  // bar (3 × 24) so existing icon spacing is unchanged.
+  activeBarWrap: {
     position: 'absolute',
     bottom: -10,
     height: 3,
     width: 24,
     borderRadius: 2,
-    backgroundColor: tokens.accent,
+    overflow: 'hidden',
   },
 });

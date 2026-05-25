@@ -9,7 +9,7 @@
  * State handling for the sheet itself lives at the call-site so a
  * single sheet can be re-used across multiple triggers on the screen.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -26,7 +26,7 @@ import Animated, {
   withTiming,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { tokens, radius, spacing } from '../../lib/tokens';
+import { useTokens, radius, spacing } from '../../lib/tokens';
 import { SparkleIcon } from './sparkle-icon';
 
 export type AskAiButtonProps = {
@@ -52,6 +52,79 @@ export function AskAiButton({
   const reduceMotion = useReducedMotion();
   const glow = useSharedValue(0.5);
   const scale = useSharedValue(1);
+  const t = useTokens();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        iconButton: {
+          width: 28,
+          height: 28,
+          borderRadius: radius.sm,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: t.accentDim,
+          backgroundColor: 'transparent',
+        },
+        iconInner: {
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        glowRing: {
+          position: 'absolute',
+          top: -4,
+          right: -4,
+          bottom: -4,
+          left: -4,
+          borderRadius: radius.sm + 2,
+          borderWidth: 2,
+          borderColor: t.accent,
+        },
+        chip: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs + 2,
+          paddingHorizontal: spacing.md - 2,
+          paddingVertical: spacing.xs,
+          borderRadius: radius.sm,
+          borderWidth: 1,
+          borderColor: t.accentDim,
+          backgroundColor: 'transparent',
+        },
+        chipLabel: {
+          fontSize: 13,
+          fontWeight: '500',
+          color: t.textMuted,
+        },
+        pill: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.sm + 2,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: t.accent,
+          backgroundColor: 'transparent',
+        },
+        pillGlow: {
+          position: 'absolute',
+          top: -3,
+          right: -3,
+          bottom: -3,
+          left: -3,
+          borderRadius: radius.md + 2,
+          borderWidth: 2,
+          borderColor: t.accent,
+        },
+        pillLabel: {
+          fontSize: 14,
+          fontWeight: '600',
+          color: t.text,
+        },
+      }),
+    [t],
+  );
 
   useEffect(() => {
     if (pulse && !reduceMotion) {
@@ -101,7 +174,7 @@ export function AskAiButton({
             <Animated.View style={[styles.glowRing, glowStyle]} pointerEvents="none" />
           )}
           <View style={styles.iconInner}>
-            <SparkleIcon size={16} color={tokens.accent} />
+            <SparkleIcon size={16} color={t.accent} />
           </View>
         </Animated.View>
       </Pressable>
@@ -119,7 +192,7 @@ export function AskAiButton({
         style={style}
       >
         <Animated.View style={[styles.chip, pressStyle]}>
-          <SparkleIcon size={14} color={tokens.accent} dim />
+          <SparkleIcon size={14} color={t.accent} dim />
           <Text style={styles.chipLabel}>{label}</Text>
         </Animated.View>
       </Pressable>
@@ -140,78 +213,10 @@ export function AskAiButton({
         {pulse && (
           <Animated.View style={[styles.pillGlow, glowStyle]} pointerEvents="none" />
         )}
-        <SparkleIcon size={16} color={tokens.accent} />
+        <SparkleIcon size={16} color={t.accent} />
         <Text style={styles.pillLabel}>{label}</Text>
       </Animated.View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  iconButton: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: tokens.accentDim,
-    backgroundColor: 'transparent',
-  },
-  iconInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glowRing: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    bottom: -4,
-    left: -4,
-    borderRadius: radius.sm + 2,
-    borderWidth: 2,
-    borderColor: tokens.accent,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-    paddingHorizontal: spacing.md - 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: tokens.accentDim,
-    backgroundColor: 'transparent',
-  },
-  chipLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: tokens.textMuted,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: tokens.accent,
-    backgroundColor: 'transparent',
-  },
-  pillGlow: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    bottom: -3,
-    left: -3,
-    borderRadius: radius.md + 2,
-    borderWidth: 2,
-    borderColor: tokens.accent,
-  },
-  pillLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-});

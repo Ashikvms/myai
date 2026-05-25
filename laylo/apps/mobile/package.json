@@ -23,6 +23,7 @@
     "expo-dev-client": "^55.0.16",
     "expo-document-picker": "~12.0.0",
     "expo-font": "~12.0.0",
+    "expo-linear-gradient": "~13.0.2",
     "expo-linking": "~6.3.0",
     "expo-notifications": "~0.28.0",
     "expo-router": "~3.5.0",

@@ -14,7 +14,7 @@
  * DESIGN_SYSTEM.md §6.2 #7 / §6.7) and respects useReducedMotion(). No
  * third-party sheet library — react-native Modal is the host.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -38,7 +38,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens, radius, spacing } from '../../lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../lib/tokens';
 import { SparkleIcon } from '../ai/sparkle-icon';
 import {
   explainTransaction,
@@ -67,6 +67,8 @@ export function TransactionDetailSheet({
 }: TransactionDetailSheetProps) {
   const reduceMotion = useReducedMotion();
   const visible = transactionId !== null;
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   const translateY = useSharedValue(SHEET_HEIGHT);
   const backdropOpacity = useSharedValue(0);
@@ -249,7 +251,7 @@ export function TransactionDetailSheet({
 
             {loading && !detail ? (
               <View style={styles.loadingWrap}>
-                <ActivityIndicator color={tokens.accent} />
+                <ActivityIndicator color={t.accent} />
                 <Text style={styles.loadingText}>Loading transaction…</Text>
               </View>
             ) : errorMsg && !detail ? (
@@ -269,11 +271,11 @@ export function TransactionDetailSheet({
                 keyboardShouldPersistTaps="handled"
               >
                 {/* Card 1 — Header */}
-                <HeaderCard detail={detail} onClose={onClose} />
+                <HeaderCard detail={detail} onClose={onClose} styles={styles} />
 
                 {/* Card 2 — When */}
-                <Card>
-                  <CardHeader title="When" />
+                <Card styles={styles}>
+                  <CardHeader title="When" styles={styles} />
                   <Text style={styles.cardBody}>
                     {formatLongDate(detail.date)}
                   </Text>
@@ -290,8 +292,8 @@ export function TransactionDetailSheet({
                   detail.isoLocationRegion ||
                   detail.isoLocationCountry ||
                   detail.paymentChannel) && (
-                  <Card>
-                    <CardHeader title="Where" />
+                  <Card styles={styles}>
+                    <CardHeader title="Where" styles={styles} />
                     {(detail.isoLocationCity ||
                       detail.isoLocationRegion ||
                       detail.isoLocationCountry) && (
@@ -315,8 +317,8 @@ export function TransactionDetailSheet({
 
                 {/* Card 4 — Category */}
                 {(detail.category || detail.categoryDetailed) && (
-                  <Card>
-                    <CardHeader title="Category" />
+                  <Card styles={styles}>
+                    <CardHeader title="Category" styles={styles} />
                     <Text style={styles.cardBody}>
                       {detail.category ?? '—'}
                     </Text>
@@ -330,8 +332,8 @@ export function TransactionDetailSheet({
                 )}
 
                 {/* Card 5 — Bank */}
-                <Card>
-                  <CardHeader title="Bank" />
+                <Card styles={styles}>
+                  <CardHeader title="Bank" styles={styles} />
                   <Text style={styles.cardBody}>
                     Charged to{' '}
                     {detail.bankAccount.institutionName ??
@@ -343,15 +345,15 @@ export function TransactionDetailSheet({
                 </Card>
 
                 {/* Card 6 — AI Explainer */}
-                <Card>
-                  <CardHeader title="Ask BillBee" />
+                <Card styles={styles}>
+                  <CardHeader title="Ask BillBee" styles={styles} />
                   <TouchableOpacity
                     style={styles.explainButton}
                     onPress={handleExplain}
                     disabled={explaining}
                     activeOpacity={0.85}
                   >
-                    <SparkleIcon size={16} color={tokens.accent} />
+                    <SparkleIcon size={16} color={t.accent} />
                     <Text style={styles.explainButtonText}>
                       {explaining
                         ? 'Thinking…'
@@ -373,15 +375,15 @@ export function TransactionDetailSheet({
                 </Card>
 
                 {/* Card 7 — Notes */}
-                <Card>
+                <Card styles={styles}>
                   <View style={styles.noteHeader}>
-                    <CardHeader title="Notes" />
+                    <CardHeader title="Notes" styles={styles} />
                     {(savingNote || noteSavedAt !== null) && (
                       <View style={styles.noteStatusRow}>
                         {savingNote ? (
                           <ActivityIndicator
                             size="small"
-                            color={tokens.textSubtle}
+                            color={t.textSubtle}
                           />
                         ) : (
                           <Animated.View
@@ -401,14 +403,14 @@ export function TransactionDetailSheet({
                     onBlur={handleNoteBlur}
                     multiline
                     placeholder="Add a note for future-you…"
-                    placeholderTextColor={tokens.textSubtle}
+                    placeholderTextColor={t.textSubtle}
                     textAlignVertical="top"
                   />
                 </Card>
 
                 {/* Card 8 — Receipt placeholder */}
-                <Card>
-                  <CardHeader title="Receipt" />
+                <Card styles={styles}>
+                  <CardHeader title="Receipt" styles={styles} />
                   <Text style={styles.cardSub}>
                     📎 Attach receipt — coming soon
                   </Text>
@@ -416,8 +418,8 @@ export function TransactionDetailSheet({
 
                 {/* Card 9 — Pattern stats (skip if txCount === 1) */}
                 {pattern && pattern.txCount > 1 && (
-                  <Card>
-                    <CardHeader title="Pattern" />
+                  <Card styles={styles}>
+                    <CardHeader title="Pattern" styles={styles} />
                     <Text style={styles.cardBody}>
                       {pattern.txCount} charges in the last 30 days
                     </Text>
@@ -440,9 +442,10 @@ export function TransactionDetailSheet({
 
                 {/* Card 10 — Linked bill / subscription */}
                 {(detail.bill || detail.subscription) && (
-                  <Card>
+                  <Card styles={styles}>
                     <CardHeader
                       title={detail.bill ? 'Linked bill' : 'Linked subscription'}
+                      styles={styles}
                     />
                     <Text style={styles.cardBody}>
                       {(detail.bill ?? detail.subscription)?.name}
@@ -511,20 +514,28 @@ function getMerchantInitial(detail: TransactionDetail): string {
 
 // ── Subcomponents ────────────────────────────────────────────────
 
-function Card({ children }: { children: React.ReactNode }) {
+function Card({
+  children,
+  styles,
+}: {
+  children: React.ReactNode;
+  styles: Styles;
+}) {
   return <View style={styles.card}>{children}</View>;
 }
 
-function CardHeader({ title }: { title: string }) {
+function CardHeader({ title, styles }: { title: string; styles: Styles }) {
   return <Text style={styles.cardHeader}>{title}</Text>;
 }
 
 function HeaderCard({
   detail,
   onClose,
+  styles,
 }: {
   detail: TransactionDetail;
   onClose: () => void;
+  styles: Styles;
 }) {
   const isInflow = detail.amount < 0;
   const initial = getMerchantInitial(detail);
@@ -574,239 +585,243 @@ function HeaderCard({
 
 // ── Styles ───────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-  },
-  kavWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    height: SHEET_HEIGHT,
-    backgroundColor: tokens.surface,
-    borderTopLeftRadius: radius.md,
-    borderTopRightRadius: radius.md,
-    paddingTop: spacing.md,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: tokens.borderStrong,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: tokens.border,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: tokens.textMuted,
-  },
-  errorText: {
-    fontSize: 14,
-    color: tokens.danger,
-    textAlign: 'center',
-  },
-  dismissButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: tokens.surface2,
-  },
-  dismissText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl + spacing.lg,
-  },
-  card: {
-    backgroundColor: tokens.surface,
-    borderWidth: 1,
-    borderColor: tokens.border,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  cardHeader: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    color: tokens.textMuted,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-  },
-  cardBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: tokens.text,
-    fontWeight: '500',
-  },
-  cardSub: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: tokens.textMuted,
-    marginTop: 2,
-  },
-  // ── Header card ──
-  headerCard: {
-    paddingTop: spacing.sm,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  closeIcon: {
-    fontSize: 28,
-    color: tokens.textMuted,
-    fontWeight: '300',
-    lineHeight: 28,
-    paddingHorizontal: spacing.xs,
-  },
-  headerBody: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  merchantAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: tokens.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  merchantAvatarText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: tokens.textMuted,
-  },
-  merchantName: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: tokens.text,
-    textAlign: 'center',
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  amountText: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: '700',
-    color: tokens.text,
-  },
-  amountInflowText: {
-    color: tokens.success,
-  },
-  pendingChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
-  },
-  pendingChipText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: tokens.warning,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  // ── AI explainer ──
-  explainButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: tokens.accentDim,
-    alignSelf: 'flex-start',
-  },
-  explainButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-  explanationBox: {
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
-    borderLeftWidth: 3,
-    borderLeftColor: tokens.accent,
-  },
-  explanationText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: tokens.text,
-  },
-  explanationMockTag: {
-    marginTop: spacing.sm,
-    fontSize: 11,
-    fontWeight: '600',
-    color: tokens.textSubtle,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  // ── Note ──
-  noteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  noteStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  noteSavedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    backgroundColor: tokens.accentSoft,
-  },
-  noteSavedCheck: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: tokens.text,
-  },
-  noteSavedText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-  noteInput: {
-    minHeight: 80,
-    backgroundColor: tokens.surface2,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    fontSize: 14,
-    lineHeight: 20,
-    color: tokens.text,
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: '#000',
+    },
+    kavWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      height: SHEET_HEIGHT,
+      backgroundColor: t.surface,
+      borderTopLeftRadius: radius.md,
+      borderTopRightRadius: radius.md,
+      paddingTop: spacing.md,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: t.borderStrong,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: t.border,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.md,
+      paddingHorizontal: spacing.xl,
+    },
+    loadingText: {
+      fontSize: 13,
+      color: t.textMuted,
+    },
+    errorText: {
+      fontSize: 14,
+      color: t.danger,
+      textAlign: 'center',
+    },
+    dismissButton: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: t.surface2,
+    },
+    dismissText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: t.text,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xxl + spacing.lg,
+    },
+    card: {
+      backgroundColor: t.surface,
+      borderWidth: 1,
+      borderColor: t.border,
+      borderRadius: radius.md,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    cardHeader: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+      color: t.textMuted,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    cardBody: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: t.text,
+      fontWeight: '500',
+    },
+    cardSub: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: t.textMuted,
+      marginTop: 2,
+    },
+    // ── Header card ──
+    headerCard: {
+      paddingTop: spacing.sm,
+    },
+    headerTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    closeIcon: {
+      fontSize: 28,
+      color: t.textMuted,
+      fontWeight: '300',
+      lineHeight: 28,
+      paddingHorizontal: spacing.xs,
+    },
+    headerBody: {
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    merchantAvatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: t.surface2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    merchantAvatarText: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: t.textMuted,
+    },
+    merchantName: {
+      fontSize: 18,
+      lineHeight: 24,
+      fontWeight: '600',
+      color: t.text,
+      textAlign: 'center',
+    },
+    amountRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    amountText: {
+      fontSize: 28,
+      lineHeight: 32,
+      fontWeight: '700',
+      color: t.text,
+    },
+    amountInflowText: {
+      color: t.success,
+    },
+    pendingChip: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+      backgroundColor: t.surface2,
+    },
+    pendingChipText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: t.warning,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    // ── AI explainer ──
+    explainButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: t.accentDim,
+      alignSelf: 'flex-start',
+    },
+    explainButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.text,
+    },
+    explanationBox: {
+      marginTop: spacing.md,
+      padding: spacing.md,
+      borderRadius: radius.sm,
+      backgroundColor: t.surface2,
+      borderLeftWidth: 3,
+      borderLeftColor: t.accent,
+    },
+    explanationText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: t.text,
+    },
+    explanationMockTag: {
+      marginTop: spacing.sm,
+      fontSize: 11,
+      fontWeight: '600',
+      color: t.textSubtle,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    // ── Note ──
+    noteHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    noteStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    noteSavedPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+      backgroundColor: t.accentSoft,
+    },
+    noteSavedCheck: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: t.text,
+    },
+    noteSavedText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: t.text,
+    },
+    noteInput: {
+      minHeight: 80,
+      backgroundColor: t.surface2,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+      fontSize: 14,
+      lineHeight: 20,
+      color: t.text,
+    },
+  });
+}
+
+type Styles = ReturnType<typeof makeStyles>;

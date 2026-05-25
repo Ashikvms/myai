@@ -9,9 +9,10 @@
  *    When `mode === 'system'` we resolve via `useColorScheme()`.
  *
  * On mount we hydrate from SecureStore (see `theme-mode.ts`). Until
- * the read completes we default to 'system' so the first paint matches
- * the OS theme — avoids a perceptible flash for users who already
- * picked the OS-matching variant.
+ * the read completes we default to 'dark' — BillBee ships dark-first
+ * as the brand presentation (black canvas + gold accents). Users who
+ * previously chose a different mode keep their stored preference; only
+ * fresh installs get dark as the starting point.
  *
  * Every `setMode` call is persisted; the write is fire-and-forget so
  * the UI doesn't await disk I/O.
@@ -52,9 +53,10 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Default to 'system' so the first paint matches the OS — the
-  // hydrate below overrides if the user previously picked light/dark.
-  const [mode, setModeState] = useState<ThemeMode>('system');
+  // Default to 'dark' so fresh installs launch into the black/gold
+  // brand presentation. The hydrate below restores the user's stored
+  // preference (light/dark/system) on subsequent launches.
+  const [mode, setModeState] = useState<ThemeMode>('dark');
   const systemScheme = useColorScheme();
 
   useEffect(() => {

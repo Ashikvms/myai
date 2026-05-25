@@ -11,7 +11,7 @@
  *
  * Reduced-motion: renders nothing.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   Easing,
@@ -22,7 +22,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens, radius } from '../../lib/tokens';
+import { useTokens, radius } from '../../lib/tokens';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -34,16 +34,46 @@ export type GoldSweepProps = {
 
 export function GoldSweep({ active, showCoin = true }: GoldSweepProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTokens();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        clip: {
+          overflow: 'hidden',
+          borderRadius: radius.md,
+        },
+        sweep: {
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: '60%',
+          backgroundColor: t.accent,
+          opacity: 0.22,
+          // Slight skew gives the sweep a real "shimmer" feel.
+          transform: [{ skewX: '-15deg' }],
+        },
+        coin: {
+          position: 'absolute',
+          right: 16,
+          top: 12,
+        },
+        coinText: {
+          fontSize: 18,
+        },
+      }),
+    [t],
+  );
   if (reduceMotion || !active) return null;
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clip]}>
-      <Sweep />
-      {showCoin && <Coin />}
+      <Sweep sweepStyle={styles.sweep} />
+      {showCoin && <Coin coinStyle={styles.coin} coinTextStyle={styles.coinText} />}
     </View>
   );
 }
 
-function Sweep() {
+function Sweep({ sweepStyle }: { sweepStyle: object }) {
   // Translate the band from -screenWidth → +screenWidth so it visibly
   // crosses any reasonable card width.
   const x = useSharedValue(-SCREEN_W);
@@ -66,11 +96,17 @@ function Sweep() {
   }));
 
   return (
-    <Animated.View pointerEvents="none" style={[styles.sweep, style]} />
+    <Animated.View pointerEvents="none" style={[sweepStyle, style]} />
   );
 }
 
-function Coin() {
+function Coin({
+  coinStyle,
+  coinTextStyle,
+}: {
+  coinStyle: object;
+  coinTextStyle: object;
+}) {
   const ty = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -91,34 +127,8 @@ function Coin() {
   }));
 
   return (
-    <Animated.View style={[styles.coin, style]}>
-      <Text style={styles.coinText}>🪙</Text>
+    <Animated.View style={[coinStyle, style]}>
+      <Text style={coinTextStyle}>🪙</Text>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  clip: {
-    overflow: 'hidden',
-    borderRadius: radius.md,
-  },
-  sweep: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: '60%',
-    backgroundColor: tokens.accent,
-    opacity: 0.22,
-    // Slight skew gives the sweep a real "shimmer" feel.
-    transform: [{ skewX: '-15deg' }],
-  },
-  coin: {
-    position: 'absolute',
-    right: 16,
-    top: 12,
-  },
-  coinText: {
-    fontSize: 18,
-  },
-});

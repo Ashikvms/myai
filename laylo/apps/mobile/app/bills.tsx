@@ -25,7 +25,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import {
   AiBottomSheet,
   AskAiButton,
@@ -162,6 +162,8 @@ function adaptSub(s: ApiSubscription): Subscription {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function BillsScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>('bills');
   const sheet = useAiSheet('Help me with my bills.');
@@ -219,6 +221,7 @@ export default function BillsScreen() {
         onLongPress={() =>
           sheet.open(`Why did the ${item.name} bill go up?`)
         }
+        styles={styles}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
@@ -230,10 +233,12 @@ export default function BillsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.cardName}>{item.name}</Text>
               <View style={styles.badgeRow}>
-                <Badge label={item.category} />
-                {item.autopay && <Badge label="Autopay" />}
-                {isPaid && <Badge label="Paid" tone="success" />}
-                {!isPaid && isDueSoon && <Badge label="Due soon" tone="danger" />}
+                <Badge label={item.category} styles={styles} t={t} />
+                {item.autopay && <Badge label="Autopay" styles={styles} t={t} />}
+                {isPaid && <Badge label="Paid" tone="success" styles={styles} t={t} />}
+                {!isPaid && isDueSoon && (
+                  <Badge label="Due soon" tone="danger" styles={styles} t={t} />
+                )}
               </View>
             </View>
           </View>
@@ -273,6 +278,7 @@ export default function BillsScreen() {
       <StaggeredListItem index={index}>
       <PressableMoneyCard
         onLongPress={() => sheet.open(`Is the ${item.name} subscription worth keeping?`)}
+        styles={styles}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleRow}>
@@ -284,9 +290,11 @@ export default function BillsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.cardName}>{item.name}</Text>
               <View style={styles.badgeRow}>
-                <Badge label={item.category} />
-                {item.autopay && <Badge label="Autopay" />}
-                {isDueSoon && <Badge label="Renews soon" tone="danger" />}
+                <Badge label={item.category} styles={styles} t={t} />
+                {item.autopay && <Badge label="Autopay" styles={styles} t={t} />}
+                {isDueSoon && (
+                  <Badge label="Renews soon" tone="danger" styles={styles} t={t} />
+                )}
               </View>
             </View>
           </View>
@@ -369,7 +377,7 @@ export default function BillsScreen() {
       {/* List */}
       {isLoading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
             Loading the hive…
           </Text>
@@ -424,9 +432,13 @@ export default function BillsScreen() {
 function Badge({
   label,
   tone,
+  styles,
+  t,
 }: {
   label: string;
   tone?: 'danger' | 'success';
+  styles: Styles;
+  t: Tokens;
 }) {
   return (
     <View
@@ -439,8 +451,8 @@ function Badge({
       <Text
         style={[
           styles.badgeText,
-          tone === 'danger' && { color: tokens.danger },
-          tone === 'success' && { color: tokens.success },
+          tone === 'danger' && { color: t.danger },
+          tone === 'success' && { color: t.success },
         ]}
       >
         {label}
@@ -453,10 +465,12 @@ function PressableMoneyCard({
   children,
   onPress,
   onLongPress,
+  styles,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   onLongPress?: () => void;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -483,8 +497,9 @@ function PressableMoneyCard({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,16 +512,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -514,14 +529,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     borderRadius: radius.sm,
     padding: 4,
   },
@@ -532,15 +547,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: tokens.bg,
+    backgroundColor: t.bg,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   tabTextActive: {
-    color: tokens.text,
+    color: t.text,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -550,20 +565,20 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   summaryCardAccent: {
-    borderColor: tokens.accent,
+    borderColor: t.accent,
   },
   summaryLabel: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textMuted,
+    color: t.textMuted,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -572,7 +587,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   listContent: {
     paddingHorizontal: spacing.lg,
@@ -581,11 +596,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   card: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     // Clip the GoldSweep band so it doesn't bleed beyond the card edge.
     overflow: 'hidden',
   },
@@ -604,25 +619,25 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardAvatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   cardName: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginBottom: spacing.xs + 2,
   },
   cardAmount: {
     fontSize: 22,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -633,12 +648,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -647,11 +662,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: tokens.border,
+    borderTopColor: t.border,
   },
   cardDate: {
     fontSize: 13,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   cardFooterRight: {
@@ -662,7 +677,7 @@ const styles = StyleSheet.create({
   dueSoonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: tokens.danger,
+    color: t.danger,
   },
   emptyState: {
     flex: 1,
@@ -674,7 +689,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

@@ -4,7 +4,7 @@
  * Black + gold tokens. Bee mascot fronts the hero slide. Copy
  * rebranded from "AI assistant" → "your bumblebee for life's admin".
  */
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import {
   BeeStanding,
   BeeLooking,
@@ -62,6 +62,8 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -156,10 +158,11 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.bg,
+    backgroundColor: t.bg,
   },
   skipContainer: {
     alignItems: 'flex-end',
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: tokens.textMuted,
+    color: t.textMuted,
     fontWeight: '500',
   },
   scrollView: { flex: 1 },
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 40,
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 40,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
     marginBottom: spacing.lg,
     letterSpacing: -0.5,
@@ -204,7 +207,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
     paddingHorizontal: spacing.sm,
   },
@@ -222,12 +225,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     marginRight: spacing.md + 2,
   },
   featureText: {
     fontSize: 15,
-    color: tokens.text,
+    color: t.text,
     fontWeight: '500',
   },
   footer: {
@@ -244,22 +247,26 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: tokens.border,
+    backgroundColor: t.border,
   },
   dotActive: {
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     width: 24,
   },
   nextButton: {
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     borderRadius: radius.md,
     paddingVertical: spacing.lg + 2,
     alignItems: 'center',
   },
   nextButtonText: {
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

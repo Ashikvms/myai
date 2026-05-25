@@ -11,7 +11,7 @@
  * Reduced-motion: still mounts (it's celebratory), but particles snap
  * to their final positions without animation.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Modal,
   Pressable,
@@ -28,7 +28,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens, radius, spacing } from '../../lib/tokens';
+import { useTokens, radius, spacing } from '../../lib/tokens';
 import { BeeSleeping } from '../illustrations/bee';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -39,10 +39,50 @@ export type InboxZeroOverlayProps = {
 };
 
 export function InboxZeroOverlay({ visible, onDismiss }: InboxZeroOverlayProps) {
+  const t = useTokens();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.78)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        center: {
+          alignItems: 'center',
+          paddingHorizontal: spacing.xl,
+        },
+        headline: {
+          marginTop: spacing.xl,
+          fontSize: 28,
+          lineHeight: 34,
+          fontWeight: '800',
+          color: '#FFFFFF',
+          textAlign: 'center',
+          letterSpacing: -0.4,
+        },
+        sub: {
+          marginTop: spacing.sm,
+          fontSize: 14,
+          fontWeight: '500',
+          color: 'rgba(255,255,255,0.75)',
+          textAlign: 'center',
+        },
+        // Used as a hint of brand chroma in case future variants want a card
+        // styling underneath. Kept for downstream tweaks.
+        card: {
+          backgroundColor: t.surface,
+          borderRadius: radius.md,
+          padding: spacing.xl,
+        },
+      }),
+    [t],
+  );
   useEffect(() => {
     if (!visible) return;
-    const t = setTimeout(onDismiss, 2000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(onDismiss, 2000);
+    return () => clearTimeout(timer);
   }, [visible, onDismiss]);
 
   return (
@@ -55,7 +95,7 @@ export function InboxZeroOverlay({ visible, onDismiss }: InboxZeroOverlayProps) 
     >
       <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss}>
         <View style={styles.backdrop}>
-          <ParticleField />
+          <ParticleField accentColor={t.accent} />
           <View style={styles.center}>
             <BeeSleeping size={160} />
             <Text style={styles.headline}>Inbox zero unlocked</Text>
@@ -67,7 +107,7 @@ export function InboxZeroOverlay({ visible, onDismiss }: InboxZeroOverlayProps) 
   );
 }
 
-function ParticleField() {
+function ParticleField({ accentColor }: { accentColor: string }) {
   const reduceMotion = useReducedMotion();
   // 24 particles — 12 gold, 12 black — randomised once per mount.
   const particles = React.useMemo(() => {
@@ -98,6 +138,7 @@ function ParticleField() {
           gold={p.gold}
           drift={p.drift}
           reduced={reduceMotion}
+          accentColor={accentColor}
         />
       ))}
     </View>
@@ -112,6 +153,7 @@ function FallingParticle({
   gold,
   drift,
   reduced,
+  accentColor,
 }: {
   x: number;
   delay: number;
@@ -120,6 +162,7 @@ function FallingParticle({
   gold: boolean;
   drift: number;
   reduced: boolean;
+  accentColor: string;
 }) {
   const ty = useSharedValue(reduced ? SCREEN_H * 0.7 : -40);
   const tx = useSharedValue(0);
@@ -159,7 +202,7 @@ function FallingParticle({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: gold ? tokens.accent : '#0A0A0A',
+          backgroundColor: gold ? accentColor : '#0A0A0A',
         },
         style,
       ]}
@@ -167,38 +210,3 @@ function FallingParticle({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.78)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  center: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  headline: {
-    marginTop: spacing.xl,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: -0.4,
-  },
-  sub: {
-    marginTop: spacing.sm,
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.75)',
-    textAlign: 'center',
-  },
-  // Used as a hint of brand chroma in case future variants want a card
-  // styling underneath. Kept for downstream tweaks.
-  card: {
-    backgroundColor: tokens.surface,
-    borderRadius: radius.md,
-    padding: spacing.xl,
-  },
-});

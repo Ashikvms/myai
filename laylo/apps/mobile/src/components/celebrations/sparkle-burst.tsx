@@ -12,7 +12,7 @@
  *
  * Reduced-motion: renders nothing.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   Easing,
@@ -23,7 +23,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens } from '../../lib/tokens';
+import { useTokens } from '../../lib/tokens';
 
 export type SparkleBurstProps = {
   /** When true, the burst plays once. Reset to false to allow replay. */
@@ -47,6 +47,33 @@ export function SparkleBurst({
   showPlusOne = true,
 }: SparkleBurstProps) {
   const reduceMotion = useReducedMotion();
+  const t = useTokens();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        particle: {
+          position: 'absolute',
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: t.accent,
+        },
+        plusOne: {
+          position: 'absolute',
+        },
+        plusOneText: {
+          fontSize: 13,
+          fontWeight: '800',
+          color: t.accent,
+          letterSpacing: 0.4,
+          // Subtle dark outline so gold reads on light surfaces too.
+          textShadowColor: 'rgba(0,0,0,0.25)',
+          textShadowRadius: 1,
+          textShadowOffset: { width: 0, height: 1 },
+        },
+      }),
+    [t],
+  );
   if (reduceMotion || !active) return null;
 
   // Compute static angle distribution — bursts are visually richer
@@ -76,9 +103,17 @@ export function SparkleBurst({
           dx={p.dx}
           dy={p.dy}
           delay={p.id * 12}
+          particleStyle={styles.particle}
         />
       ))}
-      {showPlusOne && <PlusOne x={originX} y={originY} />}
+      {showPlusOne && (
+        <PlusOne
+          x={originX}
+          y={originY}
+          plusOneStyle={styles.plusOne}
+          plusOneTextStyle={styles.plusOneText}
+        />
+      )}
     </View>
   );
 }
@@ -89,12 +124,14 @@ function Particle({
   dx,
   dy,
   delay,
+  particleStyle,
 }: {
   x: number;
   y: number;
   dx: number;
   dy: number;
   delay: number;
+  particleStyle: object;
 }) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
@@ -135,7 +172,7 @@ function Particle({
   return (
     <Animated.View
       style={[
-        styles.particle,
+        particleStyle,
         { left: x, top: y },
         style,
       ]}
@@ -143,7 +180,17 @@ function Particle({
   );
 }
 
-function PlusOne({ x, y }: { x: number; y: number }) {
+function PlusOne({
+  x,
+  y,
+  plusOneStyle,
+  plusOneTextStyle,
+}: {
+  x: number;
+  y: number;
+  plusOneStyle: object;
+  plusOneTextStyle: object;
+}) {
   const ty = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -164,31 +211,8 @@ function PlusOne({ x, y }: { x: number; y: number }) {
   }));
 
   return (
-    <Animated.View style={[styles.plusOne, { left: x, top: y - 6 }, style]}>
-      <Text style={styles.plusOneText}>+1</Text>
+    <Animated.View style={[plusOneStyle, { left: x, top: y - 6 }, style]}>
+      <Text style={plusOneTextStyle}>+1</Text>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  particle: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: tokens.accent,
-  },
-  plusOne: {
-    position: 'absolute',
-  },
-  plusOneText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: tokens.accent,
-    letterSpacing: 0.4,
-    // Subtle dark outline so gold reads on light surfaces too.
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowRadius: 1,
-    textShadowOffset: { width: 0, height: 1 },
-  },
-});

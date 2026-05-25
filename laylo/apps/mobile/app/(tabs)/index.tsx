@@ -6,7 +6,7 @@
  * + small sparkle on each Insight card. Bee mascot fronts the
  * "all clear" empty state on Today's Tasks.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ import { listAccounts, listTransactions } from '../../src/lib/api/transactions';
 import type { BankAccount, Transaction } from '../../src/lib/api/types';
 import { getDashboard } from '../../src/lib/api/resources';
 import { useAuth } from '../../src/context/auth';
-import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
   AskAiButton,
@@ -143,6 +143,8 @@ function ConnectedAccountsTile({
   onAskAi: (prompt: string) => void;
 }) {
   const router = useRouter();
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [accounts, setAccounts] = useState<BankAccount[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -184,7 +186,7 @@ function ConnectedAccountsTile({
         <View style={{ flex: 1 }}>
           <Text style={styles.banksTileLabel}>Connected Accounts</Text>
           {loading ? (
-            <ActivityIndicator color={tokens.accent} style={{ marginTop: 6 }} />
+            <ActivityIndicator color={t.accent} style={{ marginTop: 6 }} />
           ) : isEmpty ? (
             <Text style={styles.banksTileEmpty}>
               Connect a bank — we&apos;ll handle the honey trail.
@@ -213,6 +215,8 @@ function RecentTransactionsTile({
   onAskAi: (prompt: string) => void;
 }) {
   const router = useRouter();
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [items, setItems] = useState<Transaction[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -243,7 +247,7 @@ function RecentTransactionsTile({
       </View>
       {loading ? (
         <View style={styles.txnLoadingWrap}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={styles.loadingHint}>Following the honey trail…</Text>
         </View>
       ) : !items || items.length === 0 ? (
@@ -253,42 +257,42 @@ function RecentTransactionsTile({
           </Text>
         </View>
       ) : (
-        items.map((t) => {
-          const amt = toNumber(t.amount);
+        items.map((txn) => {
+          const amt = toNumber(txn.amount);
           const isInflow = amt < 0;
           return (
             <PressableCard
-              key={t.id}
+              key={txn.id}
               onPress={() => router.push('/transactions' as never)}
               onLongPress={() =>
-                onAskAi(`Why did the "${t.merchantName || t.name}" transaction repeat?`)
+                onAskAi(`Why did the "${txn.merchantName || txn.name}" transaction repeat?`)
               }
-              style={[styles.txnRow, t.pending && { opacity: 0.6 }]}
+              style={[styles.txnRow, txn.pending && { opacity: 0.6 }]}
             >
               <View style={styles.txnRowIcon}>
                 <Text style={styles.txnRowIconText}>{isInflow ? '↓' : '↑'}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.txnMerchant} numberOfLines={1}>
-                  {t.merchantName || t.name}
+                  {txn.merchantName || txn.name}
                 </Text>
                 <Text style={styles.txnMeta} numberOfLines={1}>
-                  {new Date(t.date).toLocaleDateString('en-US', {
+                  {new Date(txn.date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                   })}
-                  {t.category ? ` · ${t.category}` : ''}
+                  {txn.category ? ` · ${txn.category}` : ''}
                 </Text>
               </View>
-              <Text style={[styles.txnAmount, isInflow && { color: tokens.success }]}>
+              <Text style={[styles.txnAmount, isInflow && { color: t.success }]}>
                 {isInflow ? '+' : '−'}
-                {formatCurrency(Math.abs(amt), t.isoCurrencyCode || 'USD')}
+                {formatCurrency(Math.abs(amt), txn.isoCurrencyCode || 'USD')}
               </Text>
               <AskAiButton
                 variant="icon"
                 onPress={() =>
                   onAskAi(
-                    `Why did the "${t.merchantName || t.name}" transaction repeat?`,
+                    `Why did the "${txn.merchantName || txn.name}" transaction repeat?`,
                   )
                 }
                 style={{ marginLeft: spacing.sm }}
@@ -316,6 +320,8 @@ function firstName(name: string | null | undefined): string {
 }
 
 export default function HomeScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const sheet = useAiSheet('Help me with my life admin today.');
   const { user } = useAuth();
   const router = useRouter();
@@ -383,7 +389,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Ask BillBee"
             >
-              <SparkleIcon size={20} color={tokens.accent} />
+              <SparkleIcon size={20} color={t.accent} />
               <Text style={styles.heroPlaceholder}>
                 Ask BillBee about your bills, tasks, or money…
               </Text>
@@ -425,7 +431,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>AI Insights</Text>
-            <SparkleIcon size={18} color={tokens.accent} />
+            <SparkleIcon size={18} color={t.accent} />
           </View>
           {INSIGHTS.map((insight, index) => (
             <PressableCard
@@ -459,7 +465,7 @@ export default function HomeScreen() {
           </View>
           {dashboardQuery.isLoading ? (
             <View style={styles.emptyTasks}>
-              <ActivityIndicator color={tokens.accent} />
+              <ActivityIndicator color={t.accent} />
               <Text style={styles.emptyDesc}>Loading the hive…</Text>
             </View>
           ) : allDone ? (
@@ -539,10 +545,11 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.bg,
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -555,26 +562,26 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1 },
   greeting: {
     fontSize: 15,
-    color: tokens.textMuted,
+    color: t.textMuted,
     fontWeight: '400',
   },
   userName: {
     fontSize: 32,
     lineHeight: 40,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
     marginTop: 2,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: tokens.text,
+    color: t.text,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -589,7 +596,7 @@ const styles = StyleSheet.create({
   },
   heroGlowLayer: {
     position: 'absolute',
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignSelf: 'center',
   },
   heroGlowOuter: {
@@ -617,9 +624,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderWidth: 2,
-    borderColor: tokens.accent,
+    borderColor: t.accent,
     borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md + 2,
@@ -627,27 +634,27 @@ const styles = StyleSheet.create({
   heroPlaceholder: {
     flex: 1,
     fontSize: 15,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   heroSubmit: {
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroSubmitArrow: {
     fontSize: 18,
     fontWeight: '700',
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
   },
   heroHelper: {
     marginTop: spacing.sm,
     fontSize: 13,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
     paddingHorizontal: spacing.xs,
   },
   statsGrid: {
@@ -657,21 +664,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   statCardAccent: {
-    borderColor: tokens.accent,
+    borderColor: t.accent,
   },
   statLabel: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
     letterSpacing: 1.2,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textTransform: 'uppercase',
   },
   statValue: {
@@ -679,10 +686,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   statValueAccent: {
-    color: tokens.text,
+    color: t.text,
   },
   section: {
     paddingHorizontal: spacing.lg,
@@ -698,26 +705,26 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   seeAll: {
     fontSize: 13,
-    color: tokens.text,
+    color: t.text,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   insightCard: {
     flexDirection: 'row',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     marginBottom: spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   insightBorder: {
     width: 4,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
   },
   insightContent: {
     flex: 1,
@@ -726,46 +733,46 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginBottom: spacing.xs,
   },
   insightDesc: {
     fontSize: 13,
     lineHeight: 18,
-    color: tokens.textMuted,
+    color: t.textMuted,
     marginBottom: spacing.md,
   },
   insightFooter: {
     flexDirection: 'row',
   },
   emptyTasks: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   emptyTitle: {
     marginTop: spacing.md,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   emptyDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   taskCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     gap: spacing.md,
   },
   checkbox: {
@@ -773,16 +780,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: radius.sm,
     borderWidth: 2,
-    borderColor: tokens.borderStrong,
+    borderColor: t.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxDone: {
-    backgroundColor: tokens.accent,
-    borderColor: tokens.accent,
+    backgroundColor: t.accent,
+    borderColor: t.accent,
   },
   checkmark: {
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -790,37 +797,37 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: tokens.text,
+    color: t.text,
   },
   taskTitleDone: {
     textDecorationLine: 'line-through',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   banksTile: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   banksTileHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   banksTileIcon: {
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   banksTileGlyph: {
     fontSize: 18,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   banksTileLabel: {
     fontSize: 11,
     lineHeight: 14,
-    color: tokens.textMuted,
+    color: t.textMuted,
     fontWeight: '600',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -829,19 +836,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
     marginTop: spacing.xs,
   },
   banksTileEmpty: {
     fontSize: 14,
     fontWeight: '500',
-    color: tokens.text,
+    color: t.text,
     marginTop: spacing.xs,
   },
   banksTileCta: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginTop: spacing.md,
   },
   txnSection: {
@@ -855,45 +862,45 @@ const styles = StyleSheet.create({
   },
   loadingHint: {
     fontSize: 12,
-    color: tokens.textMuted,
+    color: t.textMuted,
     fontWeight: '500',
   },
   txnEmpty: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   txnEmptyText: {
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
   },
   txnRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   txnRowIcon: {
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  txnRowIconText: { fontSize: 14, fontWeight: '700', color: tokens.textMuted },
-  txnMerchant: { fontSize: 14, fontWeight: '600', color: tokens.text },
-  txnMeta: { fontSize: 11, color: tokens.textSubtle, marginTop: 2 },
-  txnAmount: { fontSize: 14, fontWeight: '700', color: tokens.text },
+  txnRowIconText: { fontSize: 14, fontWeight: '700', color: t.textMuted },
+  txnMerchant: { fontSize: 14, fontWeight: '600', color: t.text },
+  txnMeta: { fontSize: 11, color: t.textSubtle, marginTop: 2 },
+  txnAmount: { fontSize: 14, fontWeight: '700', color: t.text },
   footerMascot: {
     marginTop: spacing.xxl,
     alignItems: 'center',
@@ -901,8 +908,12 @@ const styles = StyleSheet.create({
   },
   footerMascotText: {
     fontSize: 13,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   bottomSpacer: { height: 80 },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

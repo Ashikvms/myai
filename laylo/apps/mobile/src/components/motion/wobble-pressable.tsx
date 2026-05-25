@@ -25,7 +25,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens, radius } from '../../lib/tokens';
+import { useTokens, radius } from '../../lib/tokens';
 
 export type WobblePressableProps = {
   children: React.ReactNode;
@@ -85,6 +85,8 @@ export function WobblePressable({
     ],
   }));
 
+  const t = useTokens();
+
   return (
     <Pressable
       onPressIn={onPressIn}
@@ -98,7 +100,11 @@ export function WobblePressable({
         {flourish && rings.length > 0 && (
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             {rings.map((id) => (
-              <FlourishRing key={id} onDone={() => removeRing(id)} />
+              <FlourishRing
+                key={id}
+                onDone={() => removeRing(id)}
+                accentColor={t.accent}
+              />
             ))}
           </View>
         )}
@@ -108,7 +114,13 @@ export function WobblePressable({
 }
 
 /** Internal — a single expanding gold ring that fades out. */
-function FlourishRing({ onDone: _onDone }: { onDone: () => void }) {
+function FlourishRing({
+  onDone: _onDone,
+  accentColor,
+}: {
+  onDone: () => void;
+  accentColor: string;
+}) {
   const ringScale = useSharedValue(0.4);
   const ringOpacity = useSharedValue(0.6);
 
@@ -136,7 +148,7 @@ function FlourishRing({ onDone: _onDone }: { onDone: () => void }) {
         {
           borderRadius: radius.md,
           borderWidth: 2,
-          borderColor: tokens.accent,
+          borderColor: accentColor,
         },
         ringStyle,
       ]}

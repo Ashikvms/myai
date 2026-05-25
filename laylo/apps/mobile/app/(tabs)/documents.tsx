@@ -25,7 +25,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import {
   AiBottomSheet,
   AskAiButton,
@@ -120,6 +120,8 @@ function adapt(d: ApiDocument): Document {
 }
 
 export default function DocumentsScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [searched, setSearched] = useState(false);
@@ -150,6 +152,7 @@ export default function DocumentsScreen() {
     <StaggeredListItem index={index}>
     <PressableDocCard
       onLongPress={() => sheet.open(`Summarise the document "${item.title}".`)}
+      styles={styles}
     >
       <View style={styles.docIconWrapper}>
         <Text style={styles.docIconGlyph}>{item.glyph}</Text>
@@ -233,7 +236,7 @@ export default function DocumentsScreen() {
       {/* Document List */}
       {docsQuery.isLoading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
             Loading the hive…
           </Text>
@@ -294,9 +297,11 @@ export default function DocumentsScreen() {
 function PressableDocCard({
   children,
   onLongPress,
+  styles,
 }: {
   children: React.ReactNode;
   onLongPress?: () => void;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -322,10 +327,11 @@ function PressableDocCard({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.bg,
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -339,16 +345,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -356,19 +362,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   uploadButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm + 2,
     borderRadius: radius.md,
-    backgroundColor: tokens.text,
+    backgroundColor: t.text,
   },
   uploadButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.bg,
+    color: t.bg,
   },
   categoriesRow: {
     paddingHorizontal: spacing.lg,
@@ -381,25 +387,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   categoryChipActive: {
-    backgroundColor: tokens.text,
-    borderColor: tokens.text,
+    backgroundColor: t.text,
+    borderColor: t.text,
   },
   categoryChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   categoryChipTextActive: {
-    color: tokens.bg,
+    color: t.bg,
   },
   countText: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.sm,
     fontSize: 13,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   docList: {
@@ -410,31 +416,31 @@ const styles = StyleSheet.create({
   docCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     gap: spacing.md,
   },
   docIconWrapper: {
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   docIconGlyph: {
     fontSize: 14,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   docContent: { flex: 1 },
   docTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginBottom: spacing.xs + 2,
   },
   docMeta: {
@@ -446,16 +452,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
   categoryText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   docDate: {
     fontSize: 12,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
   },
   docRight: {
     flexDirection: 'row',
@@ -464,7 +470,7 @@ const styles = StyleSheet.create({
   },
   docSize: {
     fontSize: 12,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     fontWeight: '500',
   },
   emptyState: {
@@ -476,13 +482,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   emptyDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

@@ -4,7 +4,7 @@
  * Black + gold tokens. Switches, plan card, and CTA all consume the
  * shared token table. Sign-out keeps the danger semantic.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,11 +17,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../../src/lib/tokens';
 import { AvatarBadge } from '../../src/components/icons/tab-icons';
 import { useAuth } from '../../src/context/auth';
 import { useTheme } from '../../src/context/theme';
 import type { ThemeMode } from '../../src/lib/theme-mode';
+import { GradientPill, GRADIENT_PALETTES } from '../../src/components/ui/gradient-pill';
 
 const THEME_OPTIONS: ReadonlyArray<{
   value: ThemeMode;
@@ -45,6 +46,8 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [signingOut, setSigningOut] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -78,9 +81,9 @@ export default function SettingsScreen() {
   const isPro = planLabel === 'PRO';
 
   const switchProps = (value: boolean) => ({
-    trackColor: { false: tokens.border, true: tokens.accent },
-    thumbColor: value ? '#FFFFFF' : tokens.surface2,
-    ios_backgroundColor: tokens.border,
+    trackColor: { false: t.border, true: t.accent },
+    thumbColor: value ? '#FFFFFF' : t.surface2,
+    ios_backgroundColor: t.border,
   });
 
   return (
@@ -97,8 +100,8 @@ export default function SettingsScreen() {
           <AvatarBadge
             initials={initialsFromName(user?.name)}
             size={56}
-            bg={tokens.surface2}
-            textColor={tokens.text}
+            bg={t.surface2}
+            textColor={t.text}
           />
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{user?.name ?? 'Signed in'}</Text>
@@ -118,6 +121,7 @@ export default function SettingsScreen() {
             onChange={setPushNotifications}
             switchProps={switchProps}
             divider
+            styles={styles}
           />
           <Row
             label="Email Notifications"
@@ -126,6 +130,7 @@ export default function SettingsScreen() {
             onChange={setEmailNotifications}
             switchProps={switchProps}
             divider
+            styles={styles}
           />
           <Row
             label="Bill Reminders"
@@ -134,6 +139,7 @@ export default function SettingsScreen() {
             onChange={setBillReminders}
             switchProps={switchProps}
             divider
+            styles={styles}
           />
           <Row
             label="Task Reminders"
@@ -141,6 +147,7 @@ export default function SettingsScreen() {
             value={taskReminders}
             onChange={setTaskReminders}
             switchProps={switchProps}
+            styles={styles}
           />
         </View>
       </View>
@@ -166,13 +173,21 @@ export default function SettingsScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
-                    style={[styles.themeTab, active && styles.themeTabActive]}
+                    style={styles.themeTab}
                     onPress={() => setThemeMode(opt.value)}
                     activeOpacity={0.85}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                     accessibilityLabel={opt.label}
                   >
+                    {active && (
+                      <GradientPill
+                        colors={GRADIENT_PALETTES.blackSheen}
+                        direction="diagonal"
+                        borderRadius={radius.sm - 2}
+                        style={styles.themeTabActiveFill}
+                      />
+                    )}
                     <Text
                       style={[
                         styles.themeTabText,
@@ -251,7 +266,7 @@ export default function SettingsScreen() {
           disabled={signingOut}
         >
           {signingOut ? (
-            <ActivityIndicator color={tokens.danger} />
+            <ActivityIndicator color={t.danger} />
           ) : (
             <Text style={styles.signOutText}>Sign out of the hive</Text>
           )}
@@ -270,6 +285,7 @@ function Row({
   onChange,
   switchProps,
   divider = false,
+  styles,
 }: {
   label: string;
   desc: string;
@@ -277,6 +293,7 @@ function Row({
   onChange: (b: boolean) => void;
   switchProps: (v: boolean) => Record<string, unknown>;
   divider?: boolean;
+  styles: Styles;
 }) {
   return (
     <>
@@ -292,205 +309,214 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: tokens.bg,
-  },
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: spacing.lg,
-  },
-  eyebrow: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    color: tokens.textSubtle,
-    letterSpacing: 1.4,
-    marginBottom: spacing.xs,
-  },
-  headerTitle: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '700',
-    color: tokens.text,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    color: tokens.textSubtle,
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-    marginBottom: spacing.md - 2,
-    paddingLeft: spacing.xs,
-  },
-  card: {
-    backgroundColor: tokens.surface,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: tokens.border,
-  },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: tokens.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: tokens.border,
-    gap: spacing.md,
-  },
-  profileInfo: { flex: 1 },
-  profileName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-  profileEmail: {
-    fontSize: 13,
-    color: tokens.textMuted,
-    marginTop: 2,
-  },
-  editLink: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: tokens.text,
-    textDecorationLine: 'underline',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: spacing.lg,
-  },
-  settingLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: tokens.text,
-  },
-  settingDesc: {
-    fontSize: 13,
-    color: tokens.textMuted,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: tokens.border,
-    marginHorizontal: spacing.lg,
-  },
-  planRow: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  planLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md - 2,
-    marginBottom: spacing.xs,
-  },
-  freeBadge: {
-    backgroundColor: tokens.surface2,
-    paddingHorizontal: spacing.md - 2,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  freeBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: tokens.text,
-    letterSpacing: 0.6,
-  },
-  upgradeButton: {
-    backgroundColor: tokens.accent,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    paddingVertical: spacing.md + 2,
-    borderRadius: radius.md,
-    alignItems: 'center',
-  },
-  upgradeButtonText: {
-    color: tokens.textOnAccent,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  aboutLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: tokens.text,
-  },
-  aboutValue: {
-    fontSize: 13,
-    color: tokens.textMuted,
-  },
-  chevron: {
-    fontSize: 22,
-    color: tokens.textSubtle,
-    fontWeight: '300',
-  },
-  signOutButton: {
-    backgroundColor: tokens.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: tokens.border,
-  },
-  signOutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: tokens.danger,
-  },
-  bottomSpacer: {
-    height: 120,
-  },
-  // Appearance / theme toggle — borrows the segmented control look from
-  // `app/auth.tsx` (tabContainer + tabActive) so the control feels
-  // native to the app's existing style language.
-  themeRow: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  themeInfo: {
-    flex: 0,
-  },
-  themeToggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: tokens.surface2,
-    borderRadius: radius.sm,
-    padding: 4,
-  },
-  themeTab: {
-    flex: 1,
-    paddingVertical: spacing.sm + 2,
-    alignItems: 'center',
-    borderRadius: radius.sm - 2,
-  },
-  themeTabActive: {
-    backgroundColor: tokens.accent,
-  },
-  themeTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: tokens.textMuted,
-  },
-  themeTabTextActive: {
-    color: tokens.textOnAccent,
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: t.bg,
+    },
+    header: {
+      paddingHorizontal: spacing.xl,
+      paddingTop: Platform.OS === 'ios' ? 60 : 48,
+      paddingBottom: spacing.lg,
+    },
+    eyebrow: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+      color: t.textSubtle,
+      letterSpacing: 1.4,
+      marginBottom: spacing.xs,
+    },
+    headerTitle: {
+      fontSize: 32,
+      lineHeight: 40,
+      fontWeight: '700',
+      color: t.text,
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+    },
+    sectionTitle: {
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+      color: t.textSubtle,
+      textTransform: 'uppercase',
+      letterSpacing: 1.4,
+      marginBottom: spacing.md - 2,
+      paddingLeft: spacing.xs,
+    },
+    card: {
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    profileCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: t.border,
+      gap: spacing.md,
+    },
+    profileInfo: { flex: 1 },
+    profileName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: t.text,
+    },
+    profileEmail: {
+      fontSize: 13,
+      color: t.textMuted,
+      marginTop: 2,
+    },
+    editLink: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.text,
+      textDecorationLine: 'underline',
+    },
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing.lg,
+    },
+    settingInfo: {
+      flex: 1,
+      marginRight: spacing.lg,
+    },
+    settingLabel: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: t.text,
+    },
+    settingDesc: {
+      fontSize: 13,
+      color: t.textMuted,
+      marginTop: 2,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: t.border,
+      marginHorizontal: spacing.lg,
+    },
+    planRow: {
+      padding: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    planLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md - 2,
+      marginBottom: spacing.xs,
+    },
+    freeBadge: {
+      backgroundColor: t.surface2,
+      paddingHorizontal: spacing.md - 2,
+      paddingVertical: 3,
+      borderRadius: radius.sm,
+    },
+    freeBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: t.text,
+      letterSpacing: 0.6,
+    },
+    upgradeButton: {
+      backgroundColor: t.accent,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      paddingVertical: spacing.md + 2,
+      borderRadius: radius.md,
+      alignItems: 'center',
+    },
+    upgradeButtonText: {
+      color: t.textOnAccent,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    aboutRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    aboutLabel: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: t.text,
+    },
+    aboutValue: {
+      fontSize: 13,
+      color: t.textMuted,
+    },
+    chevron: {
+      fontSize: 22,
+      color: t.textSubtle,
+      fontWeight: '300',
+    },
+    signOutButton: {
+      backgroundColor: t.surface,
+      borderRadius: radius.md,
+      padding: spacing.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: t.border,
+    },
+    signOutText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: t.danger,
+    },
+    bottomSpacer: {
+      height: 120,
+    },
+    // Appearance / theme toggle — borrows the segmented control look from
+    // `app/auth.tsx` (tabContainer + tabActive) so the control feels
+    // native to the app's existing style language.
+    themeRow: {
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    themeInfo: {
+      flex: 0,
+    },
+    themeToggleContainer: {
+      flexDirection: 'row',
+      backgroundColor: t.surface2,
+      borderRadius: radius.sm,
+      padding: 4,
+    },
+    themeTab: {
+      flex: 1,
+      paddingVertical: spacing.sm + 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.sm - 2,
+      overflow: 'hidden',
+    },
+    // Gradient fill underlay for the active option (replaces the previous
+    // flat `themeTabActive` background). Same treatment as the auth tab
+    // toggle so the two segment selectors feel like one design system.
+    themeTabActiveFill: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    themeTabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.textMuted,
+    },
+    themeTabTextActive: {
+      color: t.textOnAccent,
+    },
+  });
+}
+
+type Styles = ReturnType<typeof makeStyles>;

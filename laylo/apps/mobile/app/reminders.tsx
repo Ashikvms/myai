@@ -25,7 +25,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMail } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
@@ -109,6 +109,8 @@ function adaptReminder(r: ApiReminder): Reminder {
 }
 
 export default function RemindersScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const remindersQuery = useQuery({
@@ -189,6 +191,7 @@ export default function RemindersScreen() {
       <PressableReminderCard
         dismissed={!isPending}
         onLongPress={() => sheet.open(`Why was the reminder "${item.title}" set?`)}
+        styles={styles}
       >
         <View style={styles.cardRow}>
           <View style={styles.iconContainer}>
@@ -299,7 +302,7 @@ export default function RemindersScreen() {
 
       {remindersQuery.isLoading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
             Loading the hive…
           </Text>
@@ -346,10 +349,12 @@ function PressableReminderCard({
   children,
   onLongPress,
   dismissed,
+  styles,
 }: {
   children: React.ReactNode;
   onLongPress?: () => void;
   dismissed?: boolean;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -379,8 +384,9 @@ function PressableReminderCard({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -393,16 +399,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -410,21 +416,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonText: {
     fontSize: 22,
     fontWeight: '600',
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     marginTop: -1,
   },
   filterRow: {
@@ -443,22 +449,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   filterChipActive: {
-    backgroundColor: tokens.text,
-    borderColor: tokens.text,
+    backgroundColor: t.text,
+    borderColor: t.text,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   filterChipTextActive: {
-    color: tokens.bg,
+    color: t.bg,
   },
   filterCount: {
-    backgroundColor: tokens.border,
+    backgroundColor: t.border,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 6,
@@ -469,10 +475,10 @@ const styles = StyleSheet.create({
   filterCountText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   filterCountTextActive: {
-    color: tokens.bg,
+    color: t.bg,
   },
   listContent: {
     paddingHorizontal: spacing.lg,
@@ -481,11 +487,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   card: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   cardDismissed: {
     opacity: 0.55,
@@ -499,30 +505,30 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconText: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   cardContent: { flex: 1 },
   cardTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginBottom: spacing.xs,
   },
   cardTitleDismissed: {
     textDecorationLine: 'line-through',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   cardDateTime: {
     fontSize: 12,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
     marginBottom: spacing.sm,
   },
   badgeRow: {
@@ -534,25 +540,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   dismissButton: {
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dismissIcon: {
     fontSize: 16,
     fontWeight: '700',
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
   },
   emptyState: {
     flex: 1,
@@ -564,14 +570,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   emptySubtitle: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
     lineHeight: 18,
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

@@ -24,7 +24,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeStanding } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
@@ -111,6 +111,8 @@ function adapt(a: ApiAppointment): Appointment {
 }
 
 export default function AppointmentsScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const sheet = useAiSheet('Help me prep for my next appointment.');
 
@@ -144,6 +146,7 @@ export default function AppointmentsScreen() {
 
         <PressableApptCard
           onLongPress={() => sheet.open(`Help me prep for "${item.title}".`)}
+          styles={styles}
         >
           <View style={styles.cardTopRow}>
             <View style={styles.cardAvatar}>
@@ -206,7 +209,7 @@ export default function AppointmentsScreen() {
 
       {appointmentsQuery.isLoading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={[styles.emptyTitle, { marginTop: spacing.md }]}>
             Loading the hive…
           </Text>
@@ -249,9 +252,11 @@ export default function AppointmentsScreen() {
 function PressableApptCard({
   children,
   onLongPress,
+  styles,
 }: {
   children: React.ReactNode;
   onLongPress?: () => void;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -278,8 +283,9 @@ function PressableApptCard({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,16 +298,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -309,21 +315,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addButtonText: {
     fontSize: 22,
     fontWeight: '600',
-    color: tokens.textOnAccent,
+    color: t.textOnAccent,
     marginTop: -1,
   },
   listContent: {
@@ -341,25 +347,25 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     marginTop: 20,
     borderWidth: 2,
-    borderColor: tokens.bg,
+    borderColor: t.bg,
   },
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: tokens.border,
+    backgroundColor: t.border,
     marginTop: 4,
   },
   card: {
     flex: 1,
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -371,29 +377,29 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardAvatarText: {
     fontSize: 15,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     marginBottom: 2,
   },
   cardDateTime: {
     fontSize: 12,
     fontWeight: '500',
-    color: tokens.textMuted,
+    color: t.textMuted,
   },
   locationText: {
     fontSize: 13,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     marginBottom: spacing.sm,
   },
   badgeRow: {
@@ -405,20 +411,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
   },
   notes: {
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     lineHeight: 18,
     marginTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: tokens.border,
+    borderTopColor: t.border,
     paddingTop: spacing.sm,
   },
   emptyState: {
@@ -431,7 +437,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

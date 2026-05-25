@@ -35,7 +35,7 @@ import type {
   Transaction,
   TransactionsQuery,
 } from '../src/lib/api/types';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import { AiBottomSheet, AskAiButton, useAiSheet } from '../src/components/ai';
 import { BeeMagnifying } from '../src/components/illustrations/bee';
 import { StaggeredListItem } from '../src/components/motion/staggered-list-item';
@@ -74,6 +74,8 @@ function formatDate(iso: string): string {
 }
 
 export default function TransactionsScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const router = useRouter();
   const sheet = useAiSheet('Help me understand this transaction.');
 
@@ -192,6 +194,7 @@ export default function TransactionsScreen() {
             )
           }
           dim={t.pending ?? false}
+          styles={styles}
         >
           <View style={styles.rowIcon}>
             <Text style={styles.rowIconText}>{isInflow ? '↓' : '↑'}</Text>
@@ -229,10 +232,10 @@ export default function TransactionsScreen() {
         </StaggeredListItem>
       );
     },
-    [accountById, sheet],
+    [accountById, sheet, styles],
   );
 
-  const keyExtractor = useCallback((t: Transaction) => t.id, []);
+  const keyExtractor = useCallback((txn: Transaction) => txn.id, []);
 
   return (
     <View style={styles.container}>
@@ -258,13 +261,13 @@ export default function TransactionsScreen() {
           onSubmitEditing={submitSearch}
           returnKeyType="search"
           placeholder="Search merchant or description…"
-          placeholderTextColor={tokens.textSubtle}
+          placeholderTextColor={t.textSubtle}
         />
       </View>
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={tokens.accent} />
+          <ActivityIndicator color={t.accent} />
           <Text style={styles.loadingHint}>Following the honey trail…</Text>
         </View>
       ) : (
@@ -278,7 +281,7 @@ export default function TransactionsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={tokens.accent}
+              tintColor={t.accent}
             />
           }
           onEndReached={onEndReached}
@@ -306,7 +309,7 @@ export default function TransactionsScreen() {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator color={tokens.accent} />
+                <ActivityIndicator color={t.accent} />
               </View>
             ) : null
           }
@@ -335,6 +338,7 @@ export default function TransactionsScreen() {
               ]}
               activeId={accountId}
               onSelect={setAccountId}
+              styles={styles}
             />
             <View style={styles.sheetButtons}>
               <TouchableOpacity
@@ -377,11 +381,13 @@ function PressableTxnRow({
   onPress,
   onLongPress,
   dim,
+  styles,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   onLongPress?: () => void;
   dim?: boolean;
+  styles: Styles;
 }) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
@@ -417,10 +423,12 @@ function ScrollableRow({
   options,
   activeId,
   onSelect,
+  styles,
 }: {
   options: { id: string; label: string }[];
   activeId: string;
   onSelect: (id: string) => void;
+  styles: Styles;
 }) {
   return (
     <View style={styles.pillRow}>
@@ -442,8 +450,9 @@ function ScrollableRow({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,16 +465,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -473,91 +482,91 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterIcon: { fontSize: 18, color: tokens.text },
+  filterIcon: { fontSize: 18, color: t.text },
   searchWrap: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md - 2,
     paddingBottom: spacing.sm,
   },
   searchInput: {
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md + 2,
     paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     fontSize: 14,
-    color: tokens.text,
+    color: t.text,
   },
   loadingWrap: { paddingTop: 60, alignItems: 'center', gap: spacing.sm },
   loadingHint: {
     fontSize: 12,
-    color: tokens.textMuted,
+    color: t.textMuted,
     fontWeight: '500',
   },
   listContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 40 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     paddingHorizontal: spacing.md + 2,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
     gap: spacing.md - 2,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   rowIcon: {
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowIconText: { fontSize: 14, fontWeight: '700', color: tokens.textMuted },
+  rowIconText: { fontSize: 14, fontWeight: '700', color: t.textMuted },
   rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  rowMerchant: { fontSize: 14, fontWeight: '600', color: tokens.text, flex: 1 },
-  rowMeta: { fontSize: 11, color: tokens.textSubtle, marginTop: 2 },
-  rowAmount: { fontSize: 14, fontWeight: '700', color: tokens.text },
-  amountInflow: { color: tokens.success },
+  rowMerchant: { fontSize: 14, fontWeight: '600', color: t.text, flex: 1 },
+  rowMeta: { fontSize: 11, color: t.textSubtle, marginTop: 2 },
+  rowAmount: { fontSize: 14, fontWeight: '700', color: t.text },
+  amountInflow: { color: t.success },
   pendingBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
-  pendingText: { fontSize: 10, fontWeight: '700', color: tokens.warning },
+  pendingText: { fontSize: 10, fontWeight: '700', color: t.warning },
   separator: { height: spacing.sm },
   emptyCard: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
     marginTop: spacing.xl,
   },
   emptyTitle: {
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   emptyDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
     maxWidth: 260,
   },
@@ -568,33 +577,33 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderTopLeftRadius: radius.md,
     borderTopRightRadius: radius.md,
     padding: spacing.xl,
     paddingBottom: Platform.OS === 'ios' ? spacing.xxl + 4 : spacing.xl,
     borderWidth: 1,
     borderBottomWidth: 0,
-    borderColor: tokens.borderStrong,
+    borderColor: t.borderStrong,
   },
   sheetHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: tokens.border,
+    backgroundColor: t.border,
     alignSelf: 'center',
     marginBottom: spacing.lg,
   },
   sheetTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: tokens.text,
+    color: t.text,
     marginBottom: spacing.lg,
   },
   sheetLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: tokens.textMuted,
+    color: t.textMuted,
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -604,26 +613,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
   },
-  pillActive: { backgroundColor: tokens.text },
-  pillText: { fontSize: 12, fontWeight: '600', color: tokens.textMuted },
-  pillTextActive: { color: tokens.bg },
+  pillActive: { backgroundColor: t.text },
+  pillText: { fontSize: 12, fontWeight: '600', color: t.textMuted },
+  pillTextActive: { color: t.bg },
   sheetButtons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   sheetClearButton: {
     flex: 1,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
   },
-  sheetClearText: { fontSize: 14, fontWeight: '600', color: tokens.text },
+  sheetClearText: { fontSize: 14, fontWeight: '600', color: t.text },
   sheetApplyButton: {
     flex: 2,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     alignItems: 'center',
   },
-  sheetApplyText: { fontSize: 14, fontWeight: '700', color: tokens.textOnAccent },
+  sheetApplyText: { fontSize: 14, fontWeight: '700', color: t.textOnAccent },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+

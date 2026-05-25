@@ -14,7 +14,7 @@
  *   DESIGN_SYSTEM.md §6.2 #7 (280 ms, Easing.out(Easing.cubic)).
  * - Respects useReducedMotion(): snaps when reduced-motion is on.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -36,7 +36,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { tokens, radius, spacing } from '../../lib/tokens';
+import { useTokens, radius, spacing } from '../../lib/tokens';
 import { SparkleIcon } from './sparkle-icon';
 import { askAi } from '../../lib/api/resources';
 
@@ -71,6 +71,136 @@ export function AiBottomSheet({
   const reduceMotion = useReducedMotion();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
+  const t = useTokens();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1 },
+        backdrop: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: '#000',
+        },
+        kavWrap: {
+          flex: 1,
+          justifyContent: 'flex-end',
+        },
+        sheet: {
+          backgroundColor: t.surface,
+          borderTopLeftRadius: radius.md,
+          borderTopRightRadius: radius.md,
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing.md,
+          paddingBottom: Platform.OS === 'ios' ? spacing.xxl + spacing.md : spacing.xl,
+          borderWidth: 1,
+          borderBottomWidth: 0,
+          borderColor: t.borderStrong,
+        },
+        handle: {
+          width: 40,
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: t.border,
+          alignSelf: 'center',
+          marginBottom: spacing.lg,
+        },
+        headerRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: spacing.lg,
+        },
+        titleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+        },
+        title: {
+          fontSize: 22,
+          lineHeight: 28,
+          fontWeight: '600',
+          color: t.text,
+        },
+        closeIcon: {
+          fontSize: 28,
+          color: t.textMuted,
+          fontWeight: '300',
+          lineHeight: 28,
+        },
+        suggestionsRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        suggestionChip: {
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.xs + 2,
+          borderRadius: radius.sm,
+          borderWidth: 1,
+          borderColor: t.accentDim,
+          backgroundColor: 'transparent',
+        },
+        suggestionText: {
+          fontSize: 13,
+          fontWeight: '500',
+          color: t.textMuted,
+        },
+        input: {
+          minHeight: 96,
+          backgroundColor: t.surface2,
+          borderRadius: radius.sm,
+          padding: spacing.md,
+          fontSize: 15,
+          lineHeight: 22,
+          color: t.text,
+          marginBottom: spacing.lg,
+        },
+        submitButton: {
+          backgroundColor: t.accent,
+          paddingVertical: spacing.md,
+          borderRadius: radius.md,
+          alignItems: 'center',
+        },
+        submitButtonDisabled: {
+          opacity: 0.5,
+        },
+        submitText: {
+          color: t.textOnAccent,
+          fontSize: 16,
+          fontWeight: '700',
+        },
+        errorBox: {
+          marginTop: spacing.md,
+          padding: spacing.md,
+          borderRadius: radius.sm,
+          backgroundColor: 'rgba(239,68,68,0.10)',
+          borderLeftWidth: 4,
+          borderLeftColor: t.danger,
+        },
+        errorText: {
+          fontSize: 13,
+          fontWeight: '500',
+          color: t.danger,
+        },
+        answerScroll: {
+          marginTop: spacing.lg,
+          maxHeight: 200,
+        },
+        answerWrap: {
+          padding: spacing.md,
+          borderRadius: radius.sm,
+          backgroundColor: t.accentSoft,
+          borderLeftWidth: 4,
+          borderLeftColor: t.accent,
+        },
+        answerText: {
+          fontSize: 14,
+          lineHeight: 20,
+          color: t.text,
+        },
+      }),
+    [t],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -149,7 +279,7 @@ export function AiBottomSheet({
             {/* Header */}
             <View style={styles.headerRow}>
               <View style={styles.titleRow}>
-                <SparkleIcon size={20} color={tokens.accent} />
+                <SparkleIcon size={20} color={t.accent} />
                 <Text style={styles.title}>{title}</Text>
               </View>
               <TouchableOpacity
@@ -184,7 +314,7 @@ export function AiBottomSheet({
               value={prompt}
               onChangeText={setPrompt}
               placeholder="Ask anything about your bills, tasks, or money…"
-              placeholderTextColor={tokens.textSubtle}
+              placeholderTextColor={t.textSubtle}
               multiline
               autoFocus
               textAlignVertical="top"
@@ -203,7 +333,7 @@ export function AiBottomSheet({
               accessibilityLabel="Send to BillBee"
             >
               {submitting ? (
-                <ActivityIndicator color={tokens.textOnAccent} />
+                <ActivityIndicator color={t.textOnAccent} />
               ) : (
                 <Text style={styles.submitText}>Ask BillBee</Text>
               )}
@@ -231,128 +361,3 @@ export function AiBottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-  },
-  kavWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: tokens.surface,
-    borderTopLeftRadius: radius.md,
-    borderTopRightRadius: radius.md,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? spacing.xxl + spacing.md : spacing.xl,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: tokens.borderStrong,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: tokens.border,
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  title: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-  closeIcon: {
-    fontSize: 28,
-    color: tokens.textMuted,
-    fontWeight: '300',
-    lineHeight: 28,
-  },
-  suggestionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  suggestionChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: tokens.accentDim,
-    backgroundColor: 'transparent',
-  },
-  suggestionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: tokens.textMuted,
-  },
-  input: {
-    minHeight: 96,
-    backgroundColor: tokens.surface2,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    fontSize: 15,
-    lineHeight: 22,
-    color: tokens.text,
-    marginBottom: spacing.lg,
-  },
-  submitButton: {
-    backgroundColor: tokens.accent,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    color: tokens.textOnAccent,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  errorBox: {
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderLeftWidth: 4,
-    borderLeftColor: tokens.danger,
-  },
-  errorText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: tokens.danger,
-  },
-  answerScroll: {
-    marginTop: spacing.lg,
-    maxHeight: 200,
-  },
-  answerWrap: {
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    backgroundColor: tokens.accentSoft,
-    borderLeftWidth: 4,
-    borderLeftColor: tokens.accent,
-  },
-  answerText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: tokens.text,
-  },
-});

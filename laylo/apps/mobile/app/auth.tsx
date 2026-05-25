@@ -25,6 +25,7 @@ import { BeeEntrance } from '../src/components/motion/bee-entrance';
 import { FloatingBee } from '../src/components/motion/floating-bee';
 import { WelcomeBeeBubble } from '../src/components/illustrations/welcome-bee-bubble';
 import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
+import { GradientPill, GRADIENT_PALETTES } from '../src/components/ui/gradient-pill';
 
 type Tab = 'signin' | 'signup';
 
@@ -144,12 +145,24 @@ export default function AuthScreen() {
             <Text style={styles.logoTitle}>BillBee</Text>
           </View>
 
-          {/* Tab Toggle */}
+          {/* Tab Toggle — active state uses a subtle accent→accentHover
+              gradient (GradientPill) rather than a flat fill. The
+              gradient sits behind the touch target as an absolutely-
+              positioned underlay so the TouchableOpacity stays clean. */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'signin' && styles.tabActive]}
+              style={styles.tab}
               onPress={() => switchTab('signin')}
+              activeOpacity={0.85}
             >
+              {activeTab === 'signin' && (
+                <GradientPill
+                  colors={GRADIENT_PALETTES.blackSheen}
+                  direction="diagonal"
+                  borderRadius={radius.sm - 2}
+                  style={styles.tabActiveFill}
+                />
+              )}
               <Text
                 style={[styles.tabText, activeTab === 'signin' && styles.tabTextActive]}
               >
@@ -157,9 +170,18 @@ export default function AuthScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'signup' && styles.tabActive]}
+              style={styles.tab}
               onPress={() => switchTab('signup')}
+              activeOpacity={0.85}
             >
+              {activeTab === 'signup' && (
+                <GradientPill
+                  colors={GRADIENT_PALETTES.blackSheen}
+                  direction="diagonal"
+                  borderRadius={radius.sm - 2}
+                  style={styles.tabActiveFill}
+                />
+              )}
               <Text
                 style={[styles.tabText, activeTab === 'signup' && styles.tabTextActive]}
               >
@@ -328,9 +350,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: 'center',
     borderRadius: radius.sm - 2,
+    // The active gradient is an absolutely-positioned underlay, so the
+    // touch target itself stays flat.
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  tabActive: {
-    backgroundColor: tokens.bg,
+  // Active background = gradient pill that fills the tab. Sits behind
+  // the label via `position: absolute` so the gradient + text don't
+  // fight for layout.
+  tabActiveFill: {
+    ...StyleSheet.absoluteFillObject,
   },
   tabText: {
     fontSize: 13,
@@ -338,7 +367,8 @@ const styles = StyleSheet.create({
     color: tokens.textMuted,
   },
   tabTextActive: {
-    color: tokens.text,
+    // Reads on the black sheen gradient — yellow text on black accent.
+    color: tokens.textOnAccent,
   },
   formError: {
     backgroundColor: 'rgba(239,68,68,0.10)',

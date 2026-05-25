@@ -4,7 +4,7 @@
  * Plaid behaviour preserved verbatim — only colour tokens changed.
  * Empty state uses the standing bee + copy-bank line.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -31,15 +31,8 @@ import {
   triggerSync,
 } from '../src/lib/api/plaid';
 import type { PlaidItem, PlaidItemStatus } from '../src/lib/api/types';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, type Tokens, radius, spacing } from '../src/lib/tokens';
 import { BeeStanding } from '../src/components/illustrations/bee';
-
-const STATUS_LABEL: Record<PlaidItemStatus, { label: string; color: string }> = {
-  ACTIVE: { label: 'Active', color: tokens.success },
-  LOGIN_REQUIRED: { label: 'Re-auth', color: tokens.warning },
-  ERROR: { label: 'Error', color: tokens.danger },
-  DISCONNECTED: { label: 'Off', color: tokens.textSubtle },
-};
 
 function formatLastSync(iso: string | null): string {
   if (!iso) return 'Never synced';
@@ -57,6 +50,19 @@ function formatLastSync(iso: string | null): string {
 }
 
 export default function BanksScreen() {
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
+  const statusLabel = useMemo<
+    Record<PlaidItemStatus, { label: string; color: string }>
+  >(
+    () => ({
+      ACTIVE: { label: 'Active', color: t.success },
+      LOGIN_REQUIRED: { label: 'Re-auth', color: t.warning },
+      ERROR: { label: 'Error', color: t.danger },
+      DISCONNECTED: { label: 'Off', color: t.textSubtle },
+    }),
+    [t],
+  );
   const router = useRouter();
   const [items, setItems] = useState<PlaidItem[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,7 +208,7 @@ export default function BanksScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={tokens.accent}
+            tintColor={t.accent}
           />
         }
       >
@@ -214,7 +220,7 @@ export default function BanksScreen() {
           onPress={handleConnect}
         >
           {linking ? (
-            <ActivityIndicator color={tokens.textOnAccent} />
+            <ActivityIndicator color={t.textOnAccent} />
           ) : (
             <Text style={styles.connectButtonText}>+ Connect a bank</Text>
           )}
@@ -225,7 +231,7 @@ export default function BanksScreen() {
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={tokens.accent} />
+            <ActivityIndicator color={t.accent} />
             <Text style={styles.loadingHint}>Hang on, organising your hive…</Text>
           </View>
         ) : !items || items.length === 0 ? (
@@ -240,7 +246,7 @@ export default function BanksScreen() {
           </View>
         ) : (
           items.map((item) => {
-            const status = STATUS_LABEL[item.status];
+            const status = statusLabel[item.status];
             const busy = busyById[item.id];
             const accountsCount = item.accounts?.length ?? 0;
             return (
@@ -283,7 +289,7 @@ export default function BanksScreen() {
                     onPress={() => handleSync(item.id)}
                   >
                     {busy === 'sync' ? (
-                      <ActivityIndicator size="small" color={tokens.text} />
+                      <ActivityIndicator size="small" color={t.text} />
                     ) : (
                       <Text style={styles.actionSecondaryText}>Sync</Text>
                     )}
@@ -294,7 +300,7 @@ export default function BanksScreen() {
                     onPress={() => handleDisconnect(item.id)}
                   >
                     {busy === 'disconnect' ? (
-                      <ActivityIndicator size="small" color={tokens.danger} />
+                      <ActivityIndicator size="small" color={t.danger} />
                     ) : (
                       <Text style={styles.actionDangerText}>Disconnect</Text>
                     )}
@@ -309,8 +315,9 @@ export default function BanksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.bg },
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -323,16 +330,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 18, fontWeight: '600', color: tokens.text },
+  backIcon: { fontSize: 18, fontWeight: '600', color: t.text },
   eyebrow: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
@@ -340,7 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   scroll: {
@@ -349,65 +356,65 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   connectButton: {
-    backgroundColor: tokens.accent,
+    backgroundColor: t.accent,
     paddingVertical: spacing.md + 2,
     borderRadius: radius.md,
     alignItems: 'center',
   },
-  connectButtonText: { color: tokens.textOnAccent, fontSize: 16, fontWeight: '700' },
+  connectButtonText: { color: t.textOnAccent, fontSize: 16, fontWeight: '700' },
   helperText: {
     fontSize: 12,
-    color: tokens.textSubtle,
+    color: t.textSubtle,
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
     textAlign: 'center',
   },
   loadingWrap: { paddingTop: 40, alignItems: 'center', gap: spacing.sm },
-  loadingHint: { fontSize: 12, color: tokens.textMuted, fontWeight: '500' },
+  loadingHint: { fontSize: 12, color: t.textMuted, fontWeight: '500' },
   emptyCard: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   emptyTitle: {
     marginTop: spacing.lg,
     fontSize: 16,
     fontWeight: '600',
-    color: tokens.text,
+    color: t.text,
     textAlign: 'center',
   },
   emptyDesc: {
     marginTop: spacing.xs,
     fontSize: 13,
-    color: tokens.textMuted,
+    color: t.textMuted,
     textAlign: 'center',
     maxWidth: 260,
   },
   itemCard: {
-    backgroundColor: tokens.surface,
+    backgroundColor: t.surface,
     borderRadius: radius.md,
     padding: spacing.lg,
     marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: tokens.border,
+    borderColor: t.border,
   },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   itemAvatar: {
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: tokens.surface2,
+    backgroundColor: t.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemAvatarText: { color: tokens.text, fontSize: 13, fontWeight: '700' },
+  itemAvatarText: { color: t.text, fontSize: 13, fontWeight: '700' },
   itemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  itemName: { fontSize: 15, fontWeight: '600', color: tokens.text, flex: 1 },
-  itemSubtitle: { fontSize: 12, color: tokens.textSubtle, marginTop: 4 },
-  errorMsg: { fontSize: 11, color: tokens.danger, marginTop: 4 },
+  itemName: { fontSize: 15, fontWeight: '600', color: t.text, flex: 1 },
+  itemSubtitle: { fontSize: 12, color: t.textSubtle, marginTop: 4 },
+  errorMsg: { fontSize: 11, color: t.danger, marginTop: 4 },
   badge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
@@ -421,8 +428,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
   },
-  actionSecondary: { backgroundColor: tokens.surface2 },
-  actionSecondaryText: { color: tokens.text, fontSize: 13, fontWeight: '600' },
+  actionSecondary: { backgroundColor: t.surface2 },
+  actionSecondaryText: { color: t.text, fontSize: 13, fontWeight: '600' },
   actionDanger: { backgroundColor: 'rgba(239,68,68,0.10)' },
-  actionDangerText: { color: tokens.danger, fontSize: 13, fontWeight: '600' },
+  actionDangerText: { color: t.danger, fontSize: 13, fontWeight: '600' },
 });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
+
