@@ -9,16 +9,16 @@
  * `react-native` from a test would crash on `import` syntax.
  */
 /**
- * The workspace root resolved react 18.3.1, but the mobile app pins
- * react@18.2.0 (Expo SDK 51 requirement) which npm placed inside
- * apps/mobile/node_modules/react. Without the moduleNameMapper below,
- * Jest loads BOTH copies — react-test-renderer pulls the root 18.3,
- * the AuthProvider pulls the local 18.2 — and `useContext` ends up
- * comparing context objects from two different React instances. The
- * mapper pins every test to the local 18.2 copy.
+ * Pin every test to a single React install so context comparisons stay
+ * consistent. The mobile package.json now matches the workspace
+ * (`react@^18.3.0`), so the hoisted root copy is the canonical one;
+ * we resolve it dynamically via `require.resolve` instead of guessing
+ * the install layout. Without this mapper, jest-expo + the test
+ * renderer can end up pulling two React instances, which breaks
+ * `useContext` (returned values come from different Context objects).
  */
 const path = require('path');
-const reactDir = path.resolve(__dirname, 'node_modules/react');
+const reactDir = path.dirname(require.resolve('react/package.json'));
 
 module.exports = {
   preset: 'jest-expo',

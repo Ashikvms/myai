@@ -15,8 +15,11 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BeeStanding } from '../src/components/illustrations/bee';
 import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
+import { BeeEntrance } from '../src/components/motion/bee-entrance';
+import { FloatingBee } from '../src/components/motion/floating-bee';
 import { fontFamily, spacing } from '../src/lib/tokens';
 
 const BLACK = '#000000';
@@ -29,11 +32,23 @@ export default function SplashScreen() {
       {/* Subtle hive backdrop — 5 % opacity gold strokes on black. */}
       <HoneycombPattern opacity={0.05} />
 
-      <View style={styles.center}>
-        <BeeStanding size={140} />
-        <Text style={styles.wordmark}>BillBee</Text>
-        <Text style={styles.tagline}>Your bumblebee for life's admin.</Text>
-      </View>
+      {/* SafeAreaView keeps the wordmark + bee comfortably clear of the
+          Dynamic Island even though the splash is centred. The brief flash
+          before routing handoff happens on iPhone 15+ where the notch /
+          status bar would otherwise crop the top edge of the composition
+          when this route is shown during deep links. */}
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.center}>
+          {/* One-shot entrance, then sustained idle: scale in, then bob. */}
+          <BeeEntrance>
+            <FloatingBee>
+              <BeeStanding size={140} />
+            </FloatingBee>
+          </BeeEntrance>
+          <Text style={styles.wordmark}>BillBee</Text>
+          <Text style={styles.tagline}>Your bumblebee for life's admin.</Text>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -42,6 +57,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BLACK,
+  },
+  safe: {
+    flex: 1,
   },
   center: {
     flex: 1,

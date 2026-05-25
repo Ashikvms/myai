@@ -13,7 +13,7 @@
  * Intentionally tolerant of non-numeric prefixes/suffixes (e.g. "$78",
  * "5"): pass the raw number + a `format(n) => string` mapper.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Text, TextProps } from 'react-native';
 import Animated, {
   Easing,
@@ -68,15 +68,33 @@ export function AnimatedNumber({
     });
   }, [value, duration, reduceMotion, progress, format]);
 
-  // Project the shared value onto a React string only when it changes.
-  useAnimatedReaction(
-    () => format(progress.value),
-    (formatted, prev) => {
-      if (formatted !== prev) {
-        runOnJS(setDisplay)(formatted);
-      }
+  // JS-side bridge: takes a raw integer, formats it, and updates React
+  // state. Stable per `format` so the worklet's runOnJS reference doesn't
+  // churn each frame.
+  const applyFormatted = useCallback(
+    (n: number) => {
+      setDisplay(format(n));
     },
     [format],
+  );
+
+  // Project the shared value onto a React string only when the *rounded*
+  // integer changes. Reanimated 3 + Bridgeless mode rejects calls to
+  // non-worklet functions from the UI thread, so the prepare callback
+  // must be self-contained — we can NOT invoke the caller-supplied
+  // `format` here (it's plain JS). Instead the worklet rounds on the UI
+  // thread (cheap, allowed) and bounces the raw integer over to JS via
+  // `runOnJS`, where `applyFormatted` runs `format` and updates state.
+  // Sub-integer ticks are filtered by the equality check on `rounded`,
+  // so we re-render at most once per integer step.
+  useAnimatedReaction(
+    () => Math.round(progress.value),
+    (rounded, prev) => {
+      if (rounded !== prev) {
+        runOnJS(applyFormatted)(rounded);
+      }
+    },
+    [applyFormatted],
   );
 
   return <Text {...textProps}>{display}</Text>;

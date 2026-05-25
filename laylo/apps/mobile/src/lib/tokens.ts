@@ -9,6 +9,7 @@
  * Source of truth: /DESIGN_SYSTEM.md §1.
  */
 import { useColorScheme } from 'react-native';
+import { useThemeOrNull } from '../context/theme';
 
 /**
  * Light mode = "black over yellow". Yellow IS the canvas; black is the
@@ -84,13 +85,24 @@ export const tokensDark = {
 export type Tokens = { [K in keyof typeof tokensLight]: string };
 
 /**
- * Returns the active token map based on the system colour scheme.
+ * Returns the active token map for the current theme.
+ *
+ * Resolution order:
+ *   1. If a `<ThemeProvider>` is mounted, use its `resolvedTheme`
+ *      (which honours the user's persisted light/dark/system choice).
+ *   2. Otherwise fall back to `useColorScheme()` so that components
+ *      rendered outside the provider (eg. isolated unit tests, the
+ *      `loading` fallback rendered before context mounts) still get
+ *      a sensible theme.
+ *
  * Components that need theming should call this each render so they
- * react to OS-level light/dark switches.
+ * react to theme changes instantly.
  */
 export function useTokens(): Tokens {
+  const theme = useThemeOrNull();
   const scheme = useColorScheme();
-  return scheme === 'dark' ? tokensDark : tokensLight;
+  const resolved = theme ? theme.resolvedTheme : scheme === 'dark' ? 'dark' : 'light';
+  return resolved === 'dark' ? tokensDark : tokensLight;
 }
 
 /**

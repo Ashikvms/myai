@@ -20,6 +20,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { tokens, radius, spacing } from '../../src/lib/tokens';
 import { AvatarBadge } from '../../src/components/icons/tab-icons';
 import { useAuth } from '../../src/context/auth';
+import { useTheme } from '../../src/context/theme';
+import type { ThemeMode } from '../../src/lib/theme-mode';
+
+const THEME_OPTIONS: ReadonlyArray<{
+  value: ThemeMode;
+  label: string;
+  icon: string;
+}> = [
+  { value: 'light', label: 'Light', icon: '☀️' },
+  { value: 'dark', label: 'Dark', icon: '🌑' },
+  { value: 'system', label: 'System', icon: '📱' },
+];
 
 function initialsFromName(name: string | null | undefined): string {
   if (!name) return '··';
@@ -32,12 +44,12 @@ function initialsFromName(name: string | null | undefined): string {
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
   const [signingOut, setSigningOut] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [billReminders, setBillReminders] = useState(true);
   const [taskReminders, setTaskReminders] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -137,13 +149,43 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
-          <Row
-            label="Dark Mode"
-            desc="Switch to dark theme"
-            value={darkMode}
-            onChange={setDarkMode}
-            switchProps={switchProps}
-          />
+          <View style={styles.themeRow}>
+            <View style={styles.themeInfo}>
+              <Text style={styles.settingLabel}>Theme</Text>
+              <Text style={styles.settingDesc}>
+                Yellow canvas or black canvas — your call.
+              </Text>
+            </View>
+            <View
+              style={styles.themeToggleContainer}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Theme"
+            >
+              {THEME_OPTIONS.map((opt) => {
+                const active = themeMode === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.themeTab, active && styles.themeTabActive]}
+                    onPress={() => setThemeMode(opt.value)}
+                    activeOpacity={0.85}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={opt.label}
+                  >
+                    <Text
+                      style={[
+                        styles.themeTabText,
+                        active && styles.themeTabTextActive,
+                      ]}
+                    >
+                      {opt.icon} {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
       </View>
 
@@ -417,5 +459,38 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 120,
+  },
+  // Appearance / theme toggle — borrows the segmented control look from
+  // `app/auth.tsx` (tabContainer + tabActive) so the control feels
+  // native to the app's existing style language.
+  themeRow: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  themeInfo: {
+    flex: 0,
+  },
+  themeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: tokens.surface2,
+    borderRadius: radius.sm,
+    padding: 4,
+  },
+  themeTab: {
+    flex: 1,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    borderRadius: radius.sm - 2,
+  },
+  themeTabActive: {
+    backgroundColor: tokens.accent,
+  },
+  themeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: tokens.textMuted,
+  },
+  themeTabTextActive: {
+    color: tokens.textOnAccent,
   },
 });

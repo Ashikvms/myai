@@ -38,6 +38,9 @@ import {
 } from '../../src/components/ai';
 import { BeeSleeping, BeeStanding } from '../../src/components/illustrations/bee';
 import { AnimatedNumber } from '../../src/components/motion/animated-number';
+import { BreathingBee } from '../../src/components/motion/breathing-bee';
+import { FloatingBee } from '../../src/components/motion/floating-bee';
+import { BeeEntrance } from '../../src/components/motion/bee-entrance';
 
 type Stat = {
   label: string;
@@ -461,7 +464,13 @@ export default function HomeScreen() {
             </View>
           ) : allDone ? (
             <View style={styles.emptyTasks}>
-              <BeeSleeping size={84} />
+              {/* Empty-state mascot: breathing + gentle float so the
+                  inbox-zero moment feels alive, not just a static image. */}
+              <BreathingBee>
+                <FloatingBee>
+                  <BeeSleeping size={84} />
+                </FloatingBee>
+              </BreathingBee>
               <Text style={styles.emptyTitle}>Inbox zero unlocked</Text>
               <Text style={styles.emptyDesc}>
                 Nothing on the to-do list. Free as a bee.
@@ -499,9 +508,15 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Footer mascot */}
+        {/* Footer mascot — one-shot entrance on first paint, then idle. */}
         <View style={styles.footerMascot}>
-          <BeeStanding size={64} />
+          <BeeEntrance>
+            <BreathingBee>
+              <FloatingBee>
+                <BeeStanding size={64} />
+              </FloatingBee>
+            </BreathingBee>
+          </BeeEntrance>
           <Text style={styles.footerMascotText}>
             Tucked away safely.
           </Text>

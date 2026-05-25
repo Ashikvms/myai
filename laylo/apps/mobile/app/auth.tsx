@@ -17,10 +17,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/auth';
 import { tokens, radius, spacing } from '../src/lib/tokens';
 import { BreathingBee } from '../src/components/motion/breathing-bee';
+import { BeeEntrance } from '../src/components/motion/bee-entrance';
+import { FloatingBee } from '../src/components/motion/floating-bee';
 import { WelcomeBeeBubble } from '../src/components/illustrations/welcome-bee-bubble';
 import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
 
@@ -29,6 +31,7 @@ type Tab = 'signin' | 'signup';
 export default function AuthScreen() {
   const router = useRouter();
   const { login, signup, isLoading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<Tab>('signin');
   const [name, setName] = useState('');
@@ -112,18 +115,32 @@ export default function AuthScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Belt-and-suspenders for the Dynamic Island / notch: SafeAreaView
+            // already inserts `insets.top`, but the bee composition is tall
+            // enough that on iPhone 15+ devices the top of the bee can still
+            // graze the Dynamic Island when the user pulls down. Adding a
+            // generous extra cushion on top of the safe inset keeps the
+            // antennae well clear at every scroll position.
+            { paddingTop: spacing.xxxl + insets.top * 0.4 },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo + speech bubble */}
+          {/* Logo + speech bubble. Entrance plays once on mount; the inner
+              BreathingBee + FloatingBee then sustain a gentle idle. */}
           <View style={styles.logoContainer}>
-            <BreathingBee>
-              <WelcomeBeeBubble
-                variant={activeTab === 'signin' ? 'login' : 'signup'}
-                beeSize={140}
-              />
-            </BreathingBee>
+            <BeeEntrance>
+              <FloatingBee>
+                <BreathingBee>
+                  <WelcomeBeeBubble
+                    variant={activeTab === 'signin' ? 'login' : 'signup'}
+                    beeSize={104}
+                  />
+                </BreathingBee>
+              </FloatingBee>
+            </BeeEntrance>
             <Text style={styles.logoTitle}>BillBee</Text>
           </View>
 

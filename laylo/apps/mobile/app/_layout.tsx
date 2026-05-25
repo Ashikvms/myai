@@ -4,8 +4,19 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '../src/context/auth';
+import { ThemeProvider, useTheme } from '../src/context/theme';
 import { useBricolageFont } from '../src/lib/fonts';
-import { tokens } from '../src/lib/tokens';
+import { tokens, useTokens } from '../src/lib/tokens';
+
+/**
+ * Mirrors `resolvedTheme` to the OS status bar so the clock + battery
+ * icons stay legible after a theme switch. `expo-status-bar` swaps
+ * tint instantly when the `style` prop changes — no native reload.
+ */
+function ThemedStatusBar() {
+  const { resolvedTheme } = useTheme();
+  return <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />;
+}
 
 /**
  * Gate `(tabs)` and the other authenticated stack screens behind
@@ -24,6 +35,7 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrating } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const t = useTokens();
 
   useEffect(() => {
     if (isHydrating) return;
@@ -46,8 +58,8 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
 
   if (isHydrating) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={tokens.accent} />
+      <View style={[styles.loading, { backgroundColor: t.bg }]}>
+        <ActivityIndicator color={t.accent} />
       </View>
     );
   }
@@ -80,30 +92,32 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <AuthRedirect>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
-            }}
-          >
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="auth" />
-            <Stack.Screen
-              name="(tabs)"
-              options={{ gestureEnabled: false }}
-            />
-            <Stack.Screen name="index" />
-            <Stack.Screen name="bills" options={{ headerShown: false }} />
-            <Stack.Screen name="appointments" options={{ headerShown: false }} />
-            <Stack.Screen name="reminders" options={{ headerShown: false }} />
-            <Stack.Screen name="banks" options={{ headerShown: false }} />
-            <Stack.Screen name="transactions" options={{ headerShown: false }} />
-          </Stack>
-        </AuthRedirect>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ThemedStatusBar />
+          <AuthRedirect>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'fade',
+              }}
+            >
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="auth" />
+              <Stack.Screen
+                name="(tabs)"
+                options={{ gestureEnabled: false }}
+              />
+              <Stack.Screen name="index" />
+              <Stack.Screen name="bills" options={{ headerShown: false }} />
+              <Stack.Screen name="appointments" options={{ headerShown: false }} />
+              <Stack.Screen name="reminders" options={{ headerShown: false }} />
+              <Stack.Screen name="banks" options={{ headerShown: false }} />
+              <Stack.Screen name="transactions" options={{ headerShown: false }} />
+            </Stack>
+          </AuthRedirect>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
