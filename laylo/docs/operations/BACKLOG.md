@@ -6,6 +6,24 @@ Prioritized queue of features + improvements deferred from active work. Each ent
 
 ## 🔥 Pre-launch (must do before specific milestones)
 
+### Copy + typography QA sweep (web + app)
+**Trigger:** UX polish round
+**Added:** 2026-05-25 (user feedback — visible truncation + sizing inconsistencies)
+**Estimated:** 1-2 days for a thorough pass
+**Examples spotted by user:**
+- Dashboard stat card "SUBSCRIPTIONS" wraps as "SUBSCRIPTI ONS" — needs shorter label ("SUBS") OR auto-shrink OR wider tile
+- Words cut off mid-syllable on small tiles
+- Sizing inconsistencies across cards (some labels two-line, others single-line)
+- Grammar pass needed on every user-facing string
+
+**Scope:**
+- Sweep every screen on web + app for text overflow / awkward wrapping
+- Normalize label-length conventions per tile size (e.g., uppercase eyebrow labels = 11 chars max, two-line allowed = 18 chars max)
+- Grammar + tone audit against `BRAND_GUIDE.md` §2 voice
+- Add `numberOfLines={1}` + `adjustsFontSizeToFit` on RN text where appropriate
+- On web, add `text-balance` / `text-wrap: pretty` to headlines
+- Verify copy bank strings render without truncation in every consumer
+
 ### Apple App Store compliance
 **Trigger:** before TestFlight / public submission
 **Added:** 2026-05-25 (user request)
