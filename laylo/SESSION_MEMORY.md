@@ -26,7 +26,27 @@
 - **Theme switcher** — `ThemeProvider` + 3-segment Light/Dark/System toggle in Settings, persists via expo-secure-store, ThemedStatusBar flips with theme.
 - **Docs reorg** — root keeps `README.md`, `CLAUDE.md`, `SESSION_MEMORY.md`, `BRAND_GUIDE.md`. Everything else under `docs/{design,security,architecture,operations,internal}` + `docs/README.md` index.
 
-### Phase 2 IN FLIGHT (4 background agents on `feat/google-integrations`)
+### Phase 2 COMPLETE + polish landed (commit `87d5fd0` on `feat/google-integrations`)
+
+All 4 Phase 2 agents shipped + 2 polish agents shipped + flying-bee design fix:
+- **Backend** (`apps/api/`): Google OAuth with refresh_token capture, AES-256-GCM token encryption mirroring Plaid pattern, Calendar two-way sync, Gmail polling + AI extraction bridge, BullMQ jobs (`GOOGLE_CALENDAR_SYNC` daily, `GMAIL_POLLING_SYNC` hourly, `INBOX_TRIAGE` daily), `GoogleDataAccessLog` audit, HMAC-signed state, `SAFE_GOOGLE_ERRORS` allowlist, rate limiters. **Migration `20260525222334_add_google_integrations` applied to live Railway DB.** 28 new tests, 169 total passing.
+- **AI prompts** (`packages/ai/`): `extractBillFromEmail`, `extractAppointmentFromEmail`, `summarizeInboxTriage` with prompt caching (`anthropic.beta.promptCaching`). 19 new tests, all passing.
+- **Web UI** (`apps/web/`): `GoogleConnectCard` (Settings), `InboxTriageCard` (Dashboard), `CalendarEventsList`, `GmailBillsList`, `SourceBadge`, typed API client at `apps/web/src/lib/api/google.ts`. Playwright spec (note: `@playwright/test` not yet installed).
+- **Mobile UI** (`apps/mobile/`): `GoogleConnectCard`, `InboxTriageCard`, `CalendarEventsList`, OAuth state machine + 10 tests at `src/lib/google-oauth.ts`. Uses `expo-auth-session` + `expo-web-browser` + `expo-crypto` (installed + pod-linked). Deep-link scheme: `lifeadminai://google-oauth?code=...&state=...`.
+- **Animation polish**: ambient `BeeFlyBy` (4 instances on auth pages, web + mobile), smoother `BreathingBee` (6s cycle, ±2.5% scale, sin easing), `BreathingBee` "Missed you 🐝" removed from login on both platforms (signup keeps "Let's get you set up 🐝").
+- **Subtle gradient backgrounds**: web `body::before` radial gradient layer; mobile `GradientBackground` (expo-linear-gradient, Reanimated opacity crossfade between light/dark layers). 220-300ms ease-out softens theme flip flash. No new colors.
+- **New `BeeFlying` illustration**: separate from logo `BeeStanding` — small cartoon bee (yellow body + 2 stripes + grey wings + 1 eye). Used in both web + mobile `BeeFlyBy`. Theme-independent fixed brand hexes.
+
+### Phase 2 user-required next steps
+- Set Google OAuth env vars in `apps/api/.env`: `GOOGLE_CALENDAR_SCOPES`, `GOOGLE_GMAIL_SCOPES`, `GOOGLE_LINK_REDIRECT_URI`, `GOOGLE_LINK_SUCCESS_REDIRECT` (defaults in `.env.example`). Existing `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` already present.
+- In Google Cloud Console, ADD Calendar + Gmail scopes to the OAuth consent screen + verify the new redirect URI (`/api/google/link/callback`).
+- For end-to-end testing: log in via Google OAuth (which now requests broader scopes), then visit Settings → Google to confirm `linked` status.
+- App Store deferred per user direction ("bare minimum").
+
+### Phase 2 NEXT (was-pending — original handoff, preserved below)
+Original handoff plan below kept for reference; all items above are now SHIPPED.
+
+### Phase 2 IN FLIGHT (HISTORICAL — all 4 agents on `feat/google-integrations` finished)
 Launched 2026-05-25 ~17:25 PT. Agents work in parallel; check back via the agent IDs OR look at git log on `feat/google-integrations` for landed commits.
 
 | Agent | Scope | ID |
