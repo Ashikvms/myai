@@ -4,6 +4,7 @@ import { logger } from './config/logger';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import passport from 'passport';
 import { errorHandler } from './middleware/errorHandler';
 import { globalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
@@ -17,7 +18,7 @@ import dashboardRouter from './routes/dashboard';
 import settingsRouter from './routes/settings';
 import aiRouter from './routes/ai';
 import plaidRouter, { plaidWebhookHandler } from './routes/plaid';
-import transactionsRouter from './routes/transactions';
+import transactionsRouter, { aiExplainTransactionRouter } from './routes/transactions';
 import accountsRouter from './routes/accounts';
 import { healthRouter } from './routes/health';
 import { startJobQueue } from './jobs/queue';
@@ -70,6 +71,14 @@ app.use(globalLimiter);
 
 app.use('/health', healthRouter);
 
+// ── Passport (Google OAuth) ────────────
+//
+// Required by passport.authenticate('google', ...) middleware mounted
+// inside /api/auth. Sessions are NOT used (we issue our own JWTs), so we
+// only call .initialize() — no .session().
+
+app.use(passport.initialize());
+
 // ── Routes ─────────────────────────────
 
 app.use('/api/auth', authRoutes);
@@ -82,6 +91,8 @@ app.use('/api/reminders', remindersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/ai', aiRouter);
+// Item 28: POST /api/ai/explain-transaction/:id (handler in transactions.ts)
+app.use('/api/ai', aiExplainTransactionRouter);
 app.use('/api/plaid', plaidRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/accounts', accountsRouter);

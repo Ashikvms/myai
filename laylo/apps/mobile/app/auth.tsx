@@ -1,3 +1,9 @@
+/**
+ * Auth — Phase 3b restyle.
+ *
+ * Black + gold tokens. Bee mascot fronts the logo, copy uses
+ * "Welcome back" / "Join the hive" per the personality bank.
+ */
 import React, { useState } from 'react';
 import {
   View,
@@ -13,6 +19,10 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/auth';
+import { tokens, radius, spacing } from '../src/lib/tokens';
+import { BreathingBee } from '../src/components/motion/breathing-bee';
+import { WelcomeBeeBubble } from '../src/components/illustrations/welcome-bee-bubble';
+import { HoneycombPattern } from '../src/components/illustrations/honeycomb-pattern';
 
 type Tab = 'signin' | 'signup';
 
@@ -50,22 +60,40 @@ export default function AuthScreen() {
 
   const handleSubmit = async () => {
     if (!validate()) return;
+    setErrors({});
 
     try {
       if (activeTab === 'signin') {
-        await login(email, password);
+        await login(email.trim(), password);
       } else {
-        await signup(name, email, password);
+        await signup(name.trim(), email.trim(), password);
       }
+      // The AuthRedirect in _layout.tsx forwards us to /(tabs) once
+      // the auth context flips. Explicit navigate handles slow renders.
       router.replace('/(tabs)');
-    } catch {
-      setErrors({ form: 'Something went wrong. Please try again.' });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? // Surface the API error message when meaningful, fall back
+            // to the on-brand "stung" copy otherwise.
+            err.message.includes('401') || err.message.includes('400')
+            ? activeTab === 'signin'
+              ? 'Email or password incorrect.'
+              : 'Could not create your account. Try a different email?'
+            : 'Hmm, sync stalled. Try again?'
+          : 'Hmm, sync stalled. Try again?';
+      setErrors({ form: message });
     }
   };
 
   const handleGoogleAuth = () => {
-    // Mock Google auth — navigate to tabs
-    router.replace('/(tabs)');
+    // Mobile Google OAuth needs `expo-auth-session` + native config
+    // (iosClientId in the GoogleSignin SDK or a custom URL scheme).
+    // Out of scope for this functionality pass — surface the limit so
+    // the user reaches for the email form instead.
+    setErrors({
+      form: 'Google sign-in on mobile is coming soon. Use email for now.',
+    });
   };
 
   const switchTab = (tab: Tab) => {
@@ -78,6 +106,7 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <HoneycombPattern opacity={0.04} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -87,51 +116,37 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
+          {/* Logo + speech bubble */}
           <View style={styles.logoContainer}>
-            <View style={styles.logoIcon}>
-              <Text style={styles.logoEmoji}>{'\u2728'}</Text>
-            </View>
-            <Text style={styles.logoTitle}>Life Admin AI</Text>
-            <Text style={styles.logoSubtitle}>
-              {activeTab === 'signin'
-                ? 'Welcome back'
-                : 'Create your account'}
-            </Text>
+            <BreathingBee>
+              <WelcomeBeeBubble
+                variant={activeTab === 'signin' ? 'login' : 'signup'}
+                beeSize={140}
+              />
+            </BreathingBee>
+            <Text style={styles.logoTitle}>BillBee</Text>
           </View>
 
           {/* Tab Toggle */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === 'signin' && styles.tabActive,
-              ]}
+              style={[styles.tab, activeTab === 'signin' && styles.tabActive]}
               onPress={() => switchTab('signin')}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'signin' && styles.tabTextActive,
-                ]}
+                style={[styles.tabText, activeTab === 'signin' && styles.tabTextActive]}
               >
-                Sign In
+                Welcome back
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === 'signup' && styles.tabActive,
-              ]}
+              style={[styles.tab, activeTab === 'signup' && styles.tabActive]}
               onPress={() => switchTab('signup')}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'signup' && styles.tabTextActive,
-                ]}
+                style={[styles.tabText, activeTab === 'signup' && styles.tabTextActive]}
               >
-                Sign Up
+                Join the hive
               </Text>
             </TouchableOpacity>
           </View>
@@ -151,15 +166,13 @@ export default function AuthScreen() {
                 <TextInput
                   style={[styles.input, errors.name ? styles.inputError : null]}
                   placeholder="John Doe"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={tokens.textSubtle}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
                   autoComplete="name"
                 />
-                {errors.name && (
-                  <Text style={styles.errorText}>{errors.name}</Text>
-                )}
+                {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
               </View>
             )}
 
@@ -168,16 +181,14 @@ export default function AuthScreen() {
               <TextInput
                 style={[styles.input, errors.email ? styles.inputError : null]}
                 placeholder="you@example.com"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={tokens.textSubtle}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
               />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
-              )}
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -189,8 +200,8 @@ export default function AuthScreen() {
                     styles.passwordInput,
                     errors.password ? styles.inputError : null,
                   ]}
-                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-                  placeholderTextColor="#9CA3AF"
+                  placeholder="••••••••"
+                  placeholderTextColor={tokens.textSubtle}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -200,9 +211,7 @@ export default function AuthScreen() {
                   style={styles.eyeButton}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Text style={styles.eyeIcon}>
-                    {showPassword ? '\uD83D\uDE48' : '\uD83D\uDC41\uFE0F'}
-                  </Text>
+                  <Text style={styles.eyeIcon}>{showPassword ? '⊝' : '⊙'}</Text>
                 </TouchableOpacity>
               </View>
               {errors.password && (
@@ -220,14 +229,14 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
               onPress={handleSubmit}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={tokens.textOnAccent} size="small" />
               ) : (
                 <Text style={styles.submitButtonText}>
-                  {activeTab === 'signin' ? 'Sign In' : 'Create Account'}
+                  {activeTab === 'signin' ? 'Welcome back' : 'Join the hive'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -243,12 +252,12 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={styles.googleButton}
               onPress={handleGoogleAuth}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               <Text style={styles.googleIcon}>G</Text>
               <Text style={styles.googleButtonText}>
                 {activeTab === 'signin'
-                  ? 'Sign in with Google'
+                  ? 'Continue with Google'
                   : 'Sign up with Google'}
               </Text>
             </TouchableOpacity>
@@ -262,202 +271,163 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: tokens.bg,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl + spacing.sm,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  logoEmoji: {
-    fontSize: 32,
+    marginBottom: spacing.xxl,
+    gap: spacing.md,
   },
   logoTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
+    fontSize: 32,
+    lineHeight: 40,
+    fontWeight: '700',
+    color: tokens.text,
     letterSpacing: -0.5,
   },
   logoSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 4,
+    fontSize: 15,
+    color: tokens.textMuted,
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+    backgroundColor: tokens.surface2,
+    borderRadius: radius.sm,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: radius.sm - 2,
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: tokens.bg,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: tokens.textMuted,
   },
   tabTextActive: {
-    color: '#6366F1',
+    color: tokens.text,
   },
   formError: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderLeftWidth: 4,
+    borderLeftColor: tokens.danger,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   formErrorText: {
-    color: '#EF4444',
-    fontSize: 14,
+    color: tokens.danger,
+    fontSize: 13,
     textAlign: 'center',
+    fontWeight: '500',
   },
-  form: {
-    gap: 4,
-  },
-  fieldGroup: {
-    marginBottom: 16,
-  },
+  form: { gap: spacing.xs },
+  fieldGroup: { marginBottom: spacing.lg },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '500',
+    color: tokens.textMuted,
+    marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: tokens.surface,
+    borderWidth: 1,
+    borderColor: tokens.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md + 2,
+    fontSize: 15,
+    color: tokens.text,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: tokens.danger,
   },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    paddingRight: 52,
-  },
+  passwordContainer: { position: 'relative' },
+  passwordInput: { paddingRight: 52 },
   eyeButton: {
     position: 'absolute',
-    right: 16,
+    right: spacing.lg,
     top: 0,
     bottom: 0,
     justifyContent: 'center',
   },
-  eyeIcon: {
-    fontSize: 20,
-  },
+  eyeIcon: { fontSize: 18, color: tokens.textMuted },
   errorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    marginTop: 4,
-    marginLeft: 4,
+    color: tokens.danger,
+    fontSize: 12,
+    marginTop: spacing.xs,
+    marginLeft: spacing.xs,
   },
   forgotButton: {
     alignSelf: 'flex-end',
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   forgotText: {
-    color: '#6366F1',
-    fontSize: 14,
+    color: tokens.text,
+    fontSize: 13,
     fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   submitButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: tokens.accent,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    marginTop: spacing.sm,
   },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
+  submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
+    color: tokens.textOnAccent,
+    fontSize: 16,
     fontWeight: '700',
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: spacing.xl - 4,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: tokens.border },
   dividerText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    marginHorizontal: 16,
+    color: tokens.textSubtle,
+    fontSize: 13,
+    marginHorizontal: spacing.lg,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 10,
+    backgroundColor: tokens.surface,
+    borderWidth: 1,
+    borderColor: tokens.border,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md + 2,
+    gap: spacing.md - 2,
   },
   googleIcon: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#4285F4',
+    color: tokens.text,
   },
   googleButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: tokens.text,
   },
 });

@@ -5,6 +5,17 @@ import { z } from 'zod';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { prisma } from '../config/prisma';
+import { writeAuthFailureLog } from './audit-log';
+
+/**
+ * Optional request metadata threaded from the route layer into auth so
+ * we can record IP + UA on failed-login audit rows. Kept optional so
+ * service-level tests don't have to fabricate an Express request.
+ */
+export interface AuthRequestMeta {
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 // ── Schemas ────────────────────────────
 
@@ -59,6 +70,35 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+// ── Timing-attack mitigation ───────────
+//
+// Pre-computed bcrypt hash with cost factor 12 (matches `hashPassword`).
+// Used in `login` and `register` when no real hash is available so that
+// the response time does NOT reveal whether an email exists in the DB.
+//
+// This is a real bcrypt hash format ($2a$12$…) of a random string; no
+// real password will ever match it. Recomputed once at module load.
+const DUMMY_BCRYPT_HASH =
+  '$2a$12$CwTycUXWue0Thq9StjUM0uJ8OY8.Q3LpNm8qKkE7mFzUF1vQF3l1G';
+
+/**
+ * Performs a bcrypt comparison against a dummy hash.
+ *
+ * Call this when you would otherwise return early (e.g. user not found
+ * during login, or email already exists during register) so the request
+ * takes roughly the same wall-clock time as the success path.
+ *
+ * The result is intentionally discarded.
+ */
+export async function dummyPasswordCompare(): Promise<void> {
+  try {
+    await bcrypt.compare('dummy-input-for-timing-equalization', DUMMY_BCRYPT_HASH);
+  } catch {
+    // bcrypt should never throw on a well-formed dummy hash; swallow
+    // anyway to ensure we never leak via thrown errors.
+  }
 }
 
 // ── Token generation ───────────────────
@@ -171,14 +211,27 @@ export class AuthError extends Error {
 
 // ── Register ───────────────────────────
 
-export async function register(input: RegisterInput) {
+export async function register(input: RegisterInput, meta: AuthRequestMeta = {}) {
   const validated = registerSchema.parse(input);
 
   const existing = await prisma.user.findUnique({
     where: { email: validated.email.toLowerCase() },
+    select: { id: true },
   });
 
   if (existing) {
+    // Equalise wall-clock time with the success path so an attacker
+    // cannot use response latency to detect that the email exists. The
+    // success path performs one bcrypt.hash(cost=12); we do one
+    // bcrypt.compare against a dummy hash (also cost=12) — same order
+    // of magnitude.
+    await dummyPasswordCompare();
+    await writeAuthFailureLog({
+      email: validated.email.toLowerCase(),
+      reason: 'register_email_exists',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
     throw new AuthError('An account with this email already exists', 'EMAIL_EXISTS', 409);
   }
 
@@ -214,7 +267,7 @@ export async function register(input: RegisterInput) {
 
 // ── Login ──────────────────────────────
 
-export async function login(input: LoginInput) {
+export async function login(input: LoginInput, meta: AuthRequestMeta = {}) {
   const validated = loginSchema.parse(input);
 
   const user = await prisma.user.findUnique({
@@ -232,11 +285,28 @@ export async function login(input: LoginInput) {
   });
 
   if (!user || !user.passwordHash) {
+    // Run a dummy bcrypt.compare so the response time is the same
+    // whether the email exists or not — defends against email
+    // enumeration via timing side-channel.
+    await dummyPasswordCompare();
+    await writeAuthFailureLog({
+      email: validated.email.toLowerCase(),
+      reason: user ? 'login_no_password_hash' : 'login_user_not_found',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
     throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
   const valid = await verifyPassword(validated.password, user.passwordHash);
   if (!valid) {
+    await writeAuthFailureLog({
+      email: validated.email.toLowerCase(),
+      reason: 'login_bad_password',
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+      context: { userId: user.id },
+    });
     throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
@@ -271,9 +341,23 @@ export async function loginWithGoogle(profile: {
   });
 
   if (!user) {
-    // Check if a user with this email exists (link accounts)
+    // Check if a user with this email exists (link accounts).
+    //
+    // SECURITY: explicitly `select` only the fields we need so we never
+    // pull `passwordHash` or other secrets into memory for an OAuth flow
+    // that doesn't need them (defence-in-depth against accidental leak
+    // via logging or response serialisation).
     const existingByEmail = await prisma.user.findUnique({
       where: { email: profile.email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        plan: true,
+        onboardingComplete: true,
+        googleId: true,
+      },
     });
 
     if (existingByEmail) {

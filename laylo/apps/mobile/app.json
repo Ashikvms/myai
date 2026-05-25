@@ -1,14 +1,17 @@
 {
   "expo": {
-    "name": "Life Admin AI",
+    "name": "BillBee",
     "slug": "life-admin-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "lifeadminai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#6366F1"
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
@@ -20,7 +23,8 @@
     "android": {
       "package": "com.lifeadminai.app",
       "adaptiveIcon": {
-        "backgroundColor": "#6366F1"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#000000"
       },
       "intentFilters": [
         {
@@ -40,11 +44,12 @@
       "expo-dev-client",
       "expo-router",
       "expo-secure-store",
+      "expo-font",
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#6366F1"
+          "color": "#F8E71C"
         }
       ]
     ],

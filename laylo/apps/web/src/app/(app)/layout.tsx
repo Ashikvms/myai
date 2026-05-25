@@ -6,34 +6,49 @@ import { usePathname } from 'next/navigation';
 import { useThemeTransition } from '@/lib/use-theme-transition';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
   LayoutDashboard,
   CheckSquare,
-  CreditCard,
-  Calendar,
-  Bell,
-  FileText,
-  MessageSquare,
+  Wallet,
+  Vault,
   Settings,
   Search,
   Sun,
   Moon,
   Menu,
   ChevronLeft,
+  Bell,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { PageTransition } from '@/components/motion/page-transition';
+import { RouteProgressBar } from '@/components/motion/route-progress-bar';
+import { TabVisibilityGate } from '@/components/motion/tab-visibility-gate';
+import { PulseDot } from '@/components/motion/pulse-dot';
+import { BeeLogoMark } from '@/components/illustrations/bee';
+import { HexFrame } from '@/components/layout/hex-frame';
 
+// 5-item nav per REDESIGN_BRIEF.md §3.1
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Money', href: '/money', icon: Wallet },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { label: 'Bills & Subs', href: '/bills', icon: CreditCard },
-  { label: 'Appointments', href: '/appointments', icon: Calendar },
-  { label: 'Reminders', href: '/reminders', icon: Bell },
-  { label: 'Documents', href: '/documents', icon: FileText },
-  { label: 'AI Assistant', href: '/assistant', icon: MessageSquare },
+  { label: 'Vault', href: '/vault', icon: Vault },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
+
+// Sub-routes that should highlight a hub item
+const HUB_MATCHERS: Record<string, RegExp> = {
+  '/money': /^\/(bills|transactions|settings\/banks)/,
+  '/vault': /^\/(documents|reminders|appointments)/,
+};
+
+function isNavActive(itemHref: string, pathname: string): boolean {
+  if (pathname === itemHref) return true;
+  if (pathname.startsWith(itemHref + '/')) return true;
+  const matcher = HUB_MATCHERS[itemHref];
+  if (matcher && matcher.test(pathname)) return true;
+  return false;
+}
 
 function ThemeToggle() {
   const { isDark, mounted, toggleTheme } = useThemeTransition();
@@ -41,10 +56,14 @@ function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      className="p-2 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
       aria-label="Toggle theme"
     >
-      {isDark ? <Sun className="w-5 h-5 text-gray-400" /> : <Moon className="w-5 h-5 text-gray-500" />}
+      {isDark ? (
+        <Sun className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
+      ) : (
+        <Moon className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
+      )}
     </button>
   );
 }
@@ -65,9 +84,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-surface-light dark:bg-surface-dark flex items-center justify-center">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center animate-pulse">
-          <Sparkles className="w-5 h-5 text-white" />
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <div className="animate-pulse">
+          <BeeLogoMark size={48} />
         </div>
       </div>
     );
@@ -78,39 +97,40 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-surface-light dark:bg-surface-dark flex">
+    <div className="min-h-screen bg-[var(--color-bg)] flex">
+      {/* Top route-change gold flash — global, single instance. */}
+      <RouteProgressBar />
       {/* Desktop Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: sidebarOpen ? 256 : 72 }}
+        animate={{ width: sidebarOpen ? 240 : 72 }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden lg:flex flex-col fixed top-0 left-0 h-screen z-40 glass border-r border-gray-200/50 dark:border-gray-700/30"
+        className="hidden lg:flex flex-col fixed top-0 left-0 h-screen z-40 bg-[var(--color-surface)] border-r border-[var(--color-border)]"
       >
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <BeeLogoMark size={36} className="flex-shrink-0" />
             <AnimatePresence>
               {sidebarOpen && (
                 <motion.span
                   initial={{ opacity: 0, width: 0 }}
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
-                  className="font-semibold text-gray-900 dark:text-white whitespace-nowrap overflow-hidden"
+                  className="font-semibold text-[var(--color-text)] whitespace-nowrap overflow-hidden text-[16px]"
                 >
-                  Life Admin AI
+                  BillBee
                 </motion.span>
               )}
             </AnimatePresence>
           </Link>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
+            aria-label="Toggle sidebar"
           >
             <motion.div animate={{ rotate: sidebarOpen ? 0 : 180 }} transition={{ duration: 0.3 }}>
-              <ChevronLeft className="w-4 h-4 text-gray-500" />
+              <ChevronLeft className="w-4 h-4 text-[var(--color-text-muted)]" strokeWidth={1.75} />
             </motion.div>
           </button>
         </div>
@@ -118,32 +138,32 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isNavActive(item.href, pathname);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group relative ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-all group relative text-[13px] font-medium ${
                   isActive
-                    ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                    ? 'text-[var(--color-text)] bg-[var(--color-surface-hover)]'
+                    : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]'
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary-500 rounded-r-full"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-[var(--color-accent)] rounded-r-full"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                <item.icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
                 <AnimatePresence>
                   {sidebarOpen && (
                     <motion.span
                       initial={{ opacity: 0, width: 0 }}
                       animate={{ opacity: 1, width: 'auto' }}
                       exit={{ opacity: 0, width: 0 }}
-                      className="text-sm font-medium whitespace-nowrap overflow-hidden"
+                      className="whitespace-nowrap overflow-hidden"
                     >
                       {item.label}
                     </motion.span>
@@ -155,10 +175,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User section */}
-        <div className="p-3 border-t border-gray-200/50 dark:border-gray-700/30">
+        <div className="p-3 border-t border-[var(--color-border)]">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-semibold text-white">{initials}</span>
+            <div className="w-8 h-8 rounded-full bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{initials}</span>
             </div>
             <AnimatePresence>
               {sidebarOpen && (
@@ -168,18 +188,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   exit={{ opacity: 0, width: 0 }}
                   className="flex-1 overflow-hidden"
                 >
-                  <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{user?.name}</p>
-                  <p className="text-xs text-gray-500 whitespace-nowrap">{user?.email}</p>
+                  <p className="text-[13px] font-medium text-[var(--color-text)] whitespace-nowrap truncate">{user?.name}</p>
+                  <p className="text-[11px] text-[var(--color-text-subtle)] whitespace-nowrap truncate">{user?.email}</p>
                 </motion.div>
               )}
             </AnimatePresence>
             {sidebarOpen && (
               <button
                 onClick={logout}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors"
+                className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors"
                 title="Sign out"
+                aria-label="Sign out"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" strokeWidth={1.75} />
               </button>
             )}
           </div>
@@ -189,38 +210,48 @@ function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main content area */}
       <div
         className="flex-1 flex flex-col min-h-screen transition-all duration-300"
-        style={{ marginLeft: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (sidebarOpen ? 256 : 72) : 0 }}
+        style={{ marginLeft: typeof window !== 'undefined' && window.innerWidth >= 1024 ? (sidebarOpen ? 240 : 72) : 0 }}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 glass border-b border-gray-200/50 dark:border-gray-700/30 flex items-center justify-between px-4 lg:px-6">
+        <header className="sticky top-0 z-30 h-16 bg-[var(--color-surface)] border-b border-[var(--color-border)] flex items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="lg:hidden p-2 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors"
+              aria-label="Open menu"
             >
-              <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Menu className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
             </button>
             <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
               <input
                 type="text"
-                placeholder="Search anything..."
-                className="w-64 pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 border-0 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                placeholder="What are you looking for?"
+                className="w-64 pl-10 pr-4 py-2 text-[13px] bg-[var(--color-surface-2)] border-0 rounded-[8px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
               />
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative">
-              <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            <button
+              className="p-2 rounded-[8px] hover:bg-[var(--color-surface-hover)] transition-colors relative"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-[var(--color-text-muted)]" strokeWidth={1.75} />
+              <span className="absolute top-1.5 right-1.5">
+                <PulseDot size={8} />
+              </span>
             </button>
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center ml-1"
+                className="ml-1 inline-flex focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] rounded-[8px]"
+                aria-label="User menu"
+                title="That's you 🐝"
               >
-                <span className="text-xs font-semibold text-white">{initials}</span>
+                <HexFrame size={32}>
+                  <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{initials}</span>
+                </HexFrame>
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
@@ -233,28 +264,29 @@ function AppShell({ children }: { children: React.ReactNode }) {
                       onClick={() => setUserMenuOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                      initial={{ opacity: 0, scale: 0.96, y: -5 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                      className="absolute right-0 top-12 w-56 z-50 bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-2"
+                      exit={{ opacity: 0, scale: 0.96, y: -5 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-12 w-56 z-50 bg-[var(--color-surface)] rounded-[16px] border border-[var(--color-border-strong)] shadow-md p-2"
                     >
-                      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 mb-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
-                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      <div className="px-3 py-2 border-b border-[var(--color-border)] mb-1">
+                        <p className="text-[13px] font-medium text-[var(--color-text)] truncate">{user?.name}</p>
+                        <p className="text-[11px] text-[var(--color-text-subtle)] truncate">{user?.email}</p>
                       </div>
                       <Link
                         href="/settings"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] rounded-[8px] transition-colors"
                       >
-                        <Settings className="w-4 h-4" />
+                        <Settings className="w-4 h-4" strokeWidth={1.75} />
                         Settings
                       </Link>
                       <button
                         onClick={() => { setUserMenuOpen(false); logout(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--color-danger)] hover:bg-[var(--color-surface-hover)] rounded-[8px] transition-colors"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-4 h-4" strokeWidth={1.75} />
                         Sign out
                       </button>
                     </motion.div>
@@ -266,28 +298,26 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
-          {children}
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
 
       {/* Mobile bottom tabs */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-gray-200/50 dark:border-gray-700/30 px-2 pb-[env(safe-area-inset-bottom)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] px-2 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around h-16">
-          {NAV_ITEMS.slice(0, 5).map((item) => {
-            const isActive = pathname === item.href;
+          {NAV_ITEMS.map((item) => {
+            const isActive = isNavActive(item.href, pathname);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'text-primary-500'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-[8px] transition-colors ${
+                  isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <item.icon className="w-5 h-5" strokeWidth={1.75} />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">{item.label}</span>
               </Link>
             );
           })}
@@ -302,7 +332,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              className="lg:hidden fixed inset-0 bg-[var(--color-overlay)] z-40"
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
@@ -310,30 +340,28 @@ function AppShell({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              className="lg:hidden fixed top-0 left-0 w-[280px] h-full z-50 bg-white dark:bg-card-dark border-r border-gray-200 dark:border-gray-800 p-4"
+              className="lg:hidden fixed top-0 left-0 w-[280px] h-full z-50 bg-[var(--color-surface)] border-r border-[var(--color-border)] p-4"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-semibold text-gray-900 dark:text-white">Life Admin AI</span>
+                <BeeLogoMark size={36} />
+                <span className="font-semibold text-[var(--color-text)]">BillBee</span>
               </div>
               <nav className="space-y-1">
                 {NAV_ITEMS.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = isNavActive(item.href, pathname);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors text-[13px] font-medium ${
                         isActive
-                          ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          ? 'bg-[var(--color-surface-hover)] text-[var(--color-text)]'
+                          : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]'
                       }`}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <item.icon className="w-5 h-5" strokeWidth={1.75} />
+                      <span>{item.label}</span>
                     </Link>
                   );
                 })}
@@ -347,5 +375,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <TabVisibilityGate>
+      <AppShell>{children}</AppShell>
+    </TabVisibilityGate>
+  );
 }

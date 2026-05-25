@@ -122,3 +122,73 @@ export interface TransactionsQuery {
   cursor?: string;
   limit?: number;
 }
+
+// ─── Item 28 Phase 3b — Detail sheet types ───────────────────────
+//
+// Mirrors apps/api/src/routes/transactions.ts GET /:id response shape.
+// Numbers come back as JS numbers (Decimal → toNumber server-side).
+
+export interface TransactionDetailBankAccount {
+  id: string;
+  name: string;
+  mask: string | null;
+  type: BankAccountType;
+  subtype: BankAccountSubtype | null;
+  institutionName: string | null;
+}
+
+export interface TransactionDetailLink {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string | null;
+}
+
+export interface TransactionDetail {
+  id: string;
+  plaidTransactionId: string;
+  amount: number;
+  isoCurrencyCode: string;
+  date: string;
+  authorizedDate: string | null;
+  name: string;
+  merchantName: string | null;
+  merchantLogoUrl: string | null;
+  category: string | null;
+  categoryDetailed: string | null;
+  paymentChannel: string | null;
+  pending: boolean;
+  isoLocationCity: string | null;
+  isoLocationRegion: string | null;
+  isoLocationCountry: string | null;
+  userNote: string | null;
+  receiptUrl: string | null;
+  userVerifiedMatch: boolean | null;
+  bankAccount: TransactionDetailBankAccount;
+  bill: TransactionDetailLink | null;
+  subscription: TransactionDetailLink | null;
+}
+
+export interface TransactionPattern {
+  merchantName: string | null;
+  txCount: number;
+  totalSpent: number;
+  avgAmount: number;
+  firstSeen: string | null;
+}
+
+export interface TransactionDetailResponse {
+  transaction: TransactionDetail;
+  pattern: TransactionPattern;
+}
+
+export interface TransactionNoteUpdateResponse {
+  id: string;
+  userNote: string | null;
+}
+
+export interface TransactionExplainResponse {
+  explanation: string;
+  generatedAt: string;
+  mock: boolean;
+}

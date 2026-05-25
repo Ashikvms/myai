@@ -1,3 +1,9 @@
+/**
+ * Settings tab — Phase 3b restyle.
+ *
+ * Black + gold tokens. Switches, plan card, and CTA all consume the
+ * shared token table. Sign-out keeps the danger semantic.
+ */
 import React, { useState } from 'react';
 import {
   View,
@@ -7,43 +13,85 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { tokens, radius, spacing } from '../../src/lib/tokens';
+import { AvatarBadge } from '../../src/components/icons/tab-icons';
+import { useAuth } from '../../src/context/auth';
 
-const COLORS = {
-  primary: '#6366F1',
-  bg: '#FAFAFA',
-  surface: '#FFFFFF',
-  text: '#111',
-  textSecondary: '#666',
-};
+function initialsFromName(name: string | null | undefined): string {
+  if (!name) return '··';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '··';
+  if (parts.length === 1) return (parts[0]?.slice(0, 2) ?? '··').toUpperCase();
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
 
 export default function SettingsScreen() {
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const [signingOut, setSigningOut] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [billReminders, setBillReminders] = useState(true);
   const [taskReminders, setTaskReminders] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign out of the hive?',
+      "You'll need to sign back in to see your stuff.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOut(true);
+            try {
+              await logout();
+              queryClient.clear();
+            } finally {
+              setSigningOut(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const planLabel = (user?.plan ?? 'FREE').toUpperCase();
+  const isPro = planLabel === 'PRO';
+
+  const switchProps = (value: boolean) => ({
+    trackColor: { false: tokens.border, true: tokens.accent },
+    thumbColor: value ? '#FFFFFF' : tokens.surface2,
+    ios_backgroundColor: tokens.border,
+  });
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
+        <Text style={styles.eyebrow}>YOUR ACCOUNT</Text>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
-      {/* Profile Section */}
+      {/* Profile */}
       <View style={styles.section}>
         <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>AJ</Text>
-          </View>
+          <AvatarBadge
+            initials={initialsFromName(user?.name)}
+            size={56}
+            bg={tokens.surface2}
+            textColor={tokens.text}
+          />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Alex Johnson</Text>
-            <Text style={styles.profileEmail}>alex.johnson@email.com</Text>
+            <Text style={styles.profileName}>{user?.name ?? 'Signed in'}</Text>
+            <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.editLink}>Edit</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -51,61 +99,37 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingDesc}>Receive push alerts on your device</Text>
-            </View>
-            <Switch
-              value={pushNotifications}
-              onValueChange={setPushNotifications}
-              trackColor={{ false: '#E5E7EB', true: COLORS.primary + '60' }}
-              thumbColor={pushNotifications ? COLORS.primary : '#F4F4F5'}
-              ios_backgroundColor="#E5E7EB"
-            />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Email Notifications</Text>
-              <Text style={styles.settingDesc}>Get updates via email</Text>
-            </View>
-            <Switch
-              value={emailNotifications}
-              onValueChange={setEmailNotifications}
-              trackColor={{ false: '#E5E7EB', true: COLORS.primary + '60' }}
-              thumbColor={emailNotifications ? COLORS.primary : '#F4F4F5'}
-              ios_backgroundColor="#E5E7EB"
-            />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Bill Reminders</Text>
-              <Text style={styles.settingDesc}>Get notified before bills are due</Text>
-            </View>
-            <Switch
-              value={billReminders}
-              onValueChange={setBillReminders}
-              trackColor={{ false: '#E5E7EB', true: COLORS.primary + '60' }}
-              thumbColor={billReminders ? COLORS.primary : '#F4F4F5'}
-              ios_backgroundColor="#E5E7EB"
-            />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Task Reminders</Text>
-              <Text style={styles.settingDesc}>Reminders for upcoming tasks</Text>
-            </View>
-            <Switch
-              value={taskReminders}
-              onValueChange={setTaskReminders}
-              trackColor={{ false: '#E5E7EB', true: COLORS.primary + '60' }}
-              thumbColor={taskReminders ? COLORS.primary : '#F4F4F5'}
-              ios_backgroundColor="#E5E7EB"
-            />
-          </View>
+          <Row
+            label="Push Notifications"
+            desc="Receive push alerts on your device"
+            value={pushNotifications}
+            onChange={setPushNotifications}
+            switchProps={switchProps}
+            divider
+          />
+          <Row
+            label="Email Notifications"
+            desc="Get updates via email"
+            value={emailNotifications}
+            onChange={setEmailNotifications}
+            switchProps={switchProps}
+            divider
+          />
+          <Row
+            label="Bill Reminders"
+            desc="Get notified before bills are due"
+            value={billReminders}
+            onChange={setBillReminders}
+            switchProps={switchProps}
+            divider
+          />
+          <Row
+            label="Task Reminders"
+            desc="Reminders for upcoming tasks"
+            value={taskReminders}
+            onChange={setTaskReminders}
+            switchProps={switchProps}
+          />
         </View>
       </View>
 
@@ -113,19 +137,13 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Dark Mode</Text>
-              <Text style={styles.settingDesc}>Switch to dark theme</Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#E5E7EB', true: COLORS.primary + '60' }}
-              thumbColor={darkMode ? COLORS.primary : '#F4F4F5'}
-              ios_backgroundColor="#E5E7EB"
-            />
-          </View>
+          <Row
+            label="Dark Mode"
+            desc="Switch to dark theme"
+            value={darkMode}
+            onChange={setDarkMode}
+            switchProps={switchProps}
+          />
         </View>
       </View>
 
@@ -138,17 +156,21 @@ export default function SettingsScreen() {
               <View style={styles.planLabelRow}>
                 <Text style={styles.settingLabel}>Current Plan</Text>
                 <View style={styles.freeBadge}>
-                  <Text style={styles.freeBadgeText}>FREE</Text>
+                  <Text style={styles.freeBadgeText}>{planLabel}</Text>
                 </View>
               </View>
               <Text style={styles.settingDesc}>
-                Basic features with limited AI usage
+                {isPro
+                  ? 'Full hive access — unlimited AI.'
+                  : 'Basic features with limited AI usage.'}
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.7}>
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-          </TouchableOpacity>
+          {!isPro && (
+            <TouchableOpacity style={styles.upgradeButton} activeOpacity={0.85}>
+              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -163,7 +185,7 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Build</Text>
-            <Text style={styles.aboutValue}>2026.03.15</Text>
+            <Text style={styles.aboutValue}>2026.04.28</Text>
           </View>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.aboutRow} activeOpacity={0.7}>
@@ -180,8 +202,17 @@ export default function SettingsScreen() {
 
       {/* Sign Out */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.signOutButton} activeOpacity={0.7}>
-          <Text style={styles.signOutText}>Sign Out</Text>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          activeOpacity={0.7}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? (
+            <ActivityIndicator color={tokens.danger} />
+          ) : (
+            <Text style={styles.signOutText}>Sign out of the hive</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -190,192 +221,199 @@ export default function SettingsScreen() {
   );
 }
 
+function Row({
+  label,
+  desc,
+  value,
+  onChange,
+  switchProps,
+  divider = false,
+}: {
+  label: string;
+  desc: string;
+  value: boolean;
+  onChange: (b: boolean) => void;
+  switchProps: (v: boolean) => Record<string, unknown>;
+  divider?: boolean;
+}) {
+  return (
+    <>
+      <View style={styles.settingRow}>
+        <View style={styles.settingInfo}>
+          <Text style={styles.settingLabel}>{label}</Text>
+          <Text style={styles.settingDesc}>{desc}</Text>
+        </View>
+        <Switch value={value} onValueChange={onChange} {...switchProps(value)} />
+      </View>
+      {divider && <View style={styles.divider} />}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: tokens.bg,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 16,
-    backgroundColor: COLORS.surface,
+    paddingBottom: spacing.lg,
+  },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: tokens.textSubtle,
+    letterSpacing: 1.4,
+    marginBottom: spacing.xs,
   },
   headerTitle: {
     fontSize: 32,
+    lineHeight: 40,
     fontWeight: '700',
-    color: COLORS.text,
+    color: tokens.text,
   },
   section: {
-    paddingHorizontal: 16,
-    marginTop: 24,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: tokens.textSubtle,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-    paddingLeft: 4,
+    letterSpacing: 1.4,
+    marginBottom: spacing.md - 2,
+    paddingLeft: spacing.xs,
   },
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: tokens.border,
   },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: tokens.border,
+    gap: spacing.md,
   },
-  profileAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  profileAvatarText: {
-    color: '#FFF',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  profileInfo: {
-    flex: 1,
-  },
+  profileInfo: { flex: 1 },
   profileName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text,
+    color: tokens.text,
   },
   profileEmail: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    color: tokens.textMuted,
     marginTop: 2,
   },
   editLink: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: tokens.text,
+    textDecorationLine: 'underline',
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: spacing.lg,
   },
   settingInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   settingLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    color: COLORS.text,
+    color: tokens.text,
   },
   settingDesc: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: tokens.textMuted,
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 16,
+    backgroundColor: tokens.border,
+    marginHorizontal: spacing.lg,
   },
   planRow: {
-    padding: 16,
-    paddingBottom: 12,
+    padding: spacing.lg,
+    paddingBottom: spacing.md,
   },
   planLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: spacing.md - 2,
+    marginBottom: spacing.xs,
   },
   freeBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 10,
+    backgroundColor: tokens.surface2,
+    paddingHorizontal: spacing.md - 2,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   freeBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#16A34A',
+    color: tokens.text,
+    letterSpacing: 0.6,
   },
   upgradeButton: {
-    backgroundColor: COLORS.primary,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: tokens.accent,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
   upgradeButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: tokens.textOnAccent,
+    fontSize: 15,
+    fontWeight: '700',
   },
   aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   aboutLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    color: COLORS.text,
+    color: tokens.text,
   },
   aboutValue: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    color: tokens.textMuted,
   },
   chevron: {
     fontSize: 22,
-    color: COLORS.textSecondary,
+    color: tokens.textSubtle,
     fontWeight: '300',
   },
   signOutButton: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: tokens.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: tokens.border,
   },
   signOutText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#DC2626',
+    color: tokens.danger,
   },
   bottomSpacer: {
     height: 120,

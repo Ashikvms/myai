@@ -4,6 +4,10 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Input — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.3. radius-sm (8 px). Focus ring is gold.
+ */
 const inputWrapperVariants = cva('flex flex-col gap-1.5 w-full', {
   variants: {},
   defaultVariants: {},
@@ -11,22 +15,19 @@ const inputWrapperVariants = cva('flex flex-col gap-1.5 w-full', {
 
 const inputVariants = cva(
   [
-    'w-full rounded-[10px] border bg-white px-3 py-2 text-[14px] text-gray-900',
+    'w-full rounded-[8px] border bg-[var(--color-surface)] px-3 py-2',
+    'text-[15px] leading-[22px] text-[var(--color-text)]',
     'outline-none transition-colors duration-150',
-    'placeholder:text-gray-400',
-    'focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20',
-    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50',
-    'dark:bg-[#1A1A1A] dark:text-gray-100 dark:border-[#333333]',
-    'dark:placeholder:text-gray-500',
-    'dark:focus:border-[#6366F1] dark:focus:ring-[#6366F1]/30',
-    'dark:disabled:bg-[#151515]',
+    'placeholder:text-[var(--color-text-subtle)]',
+    'focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25',
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[var(--color-surface-2)]',
   ].join(' '),
   {
     variants: {
       state: {
-        default: 'border-gray-200',
+        default: 'border-[var(--color-border)]',
         error:
-          'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20 dark:border-[#EF4444] dark:focus:border-[#EF4444]',
+          'border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]/25',
       },
     },
     defaultVariants: {
@@ -55,14 +56,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-[14px] font-medium text-gray-700 dark:text-gray-300"
+            className="text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)]"
           >
             {label}
           </label>
         )}
         <div className="relative">
           {iconLeft && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]">
               {iconLeft}
             </span>
           )}
@@ -80,13 +81,17 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {iconRight && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]">
               {iconRight}
             </span>
           )}
         </div>
         {error && (
-          <p id={errorId} className="text-[13px] text-[#EF4444]" role="alert">
+          <p
+            id={errorId}
+            className="text-[13px] leading-[18px] text-[var(--color-danger)]"
+            role="alert"
+          >
             {error}
           </p>
         )}

@@ -1,4 +1,4 @@
-# Life Admin AI
+# BillBee
 
 An AI-powered life administration assistant that helps you manage tasks, appointments, finances, and daily logistics through natural language conversations. Built as a full-stack monorepo with a Next.js web app, Express API, React Native mobile app, and shared AI/UI packages.
 

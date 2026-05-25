@@ -1,8 +1,13 @@
 'use client';
 
+/**
+ * Banks settings — REDESIGN_BRIEF.md §2.8.
+ * - Indigo replaced with semantic gold tokens.
+ * - Plaid behaviour preserved exactly.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2,
   Plus,
@@ -29,36 +34,25 @@ import {
 } from '@/lib/api/plaid';
 import type { PlaidItem, PlaidItemStatus } from '@/lib/api/types';
 import { ApiError } from '@/lib/api';
+import { BeeStanding } from '@/components/illustrations/bee';
+import { BeeSpeechBubble } from '@/components/motion/bee-speech-bubble';
 
 // ─── Status badge ────────────────────────────────────────────────────
 const STATUS_STYLES: Record<
   PlaidItemStatus,
-  { label: string; bg: string; text: string; icon: React.ElementType }
+  { label: string; tone: 'success' | 'warning' | 'danger' | 'muted'; icon: React.ElementType }
 > = {
-  ACTIVE: {
-    label: 'Active',
-    bg: 'bg-green-50 dark:bg-green-500/10',
-    text: 'text-green-700 dark:text-green-400',
-    icon: CheckCircle2,
-  },
-  LOGIN_REQUIRED: {
-    label: 'Re-authenticate',
-    bg: 'bg-amber-50 dark:bg-amber-500/10',
-    text: 'text-amber-700 dark:text-amber-400',
-    icon: AlertTriangle,
-  },
-  ERROR: {
-    label: 'Error',
-    bg: 'bg-rose-50 dark:bg-rose-500/10',
-    text: 'text-rose-700 dark:text-rose-400',
-    icon: AlertCircle,
-  },
-  DISCONNECTED: {
-    label: 'Disconnected',
-    bg: 'bg-gray-100 dark:bg-gray-700/40',
-    text: 'text-gray-600 dark:text-gray-300',
-    icon: AlertCircle,
-  },
+  ACTIVE: { label: 'Active', tone: 'success', icon: CheckCircle2 },
+  LOGIN_REQUIRED: { label: 'Re-authenticate', tone: 'warning', icon: AlertTriangle },
+  ERROR: { label: 'Error', tone: 'danger', icon: AlertCircle },
+  DISCONNECTED: { label: 'Disconnected', tone: 'muted', icon: AlertCircle },
+};
+
+const TONE_TEXT: Record<'success' | 'warning' | 'danger' | 'muted', string> = {
+  success: 'text-[var(--color-success)]',
+  warning: 'text-[var(--color-warning)]',
+  danger: 'text-[var(--color-danger)]',
+  muted: 'text-[var(--color-text-muted)]',
 };
 
 function StatusBadge({ status }: { status: PlaidItemStatus }) {
@@ -66,15 +60,14 @@ function StatusBadge({ status }: { status: PlaidItemStatus }) {
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[8px] text-[11px] leading-[14px] font-semibold uppercase tracking-wider bg-[var(--color-surface-2)] ${TONE_TEXT[cfg.tone]}`}
     >
-      <Icon className="w-3 h-3" />
+      <Icon className="w-3 h-3" strokeWidth={1.75} />
       {cfg.label}
     </span>
   );
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────
 function formatLastSync(iso: string | null): string {
   if (!iso) return 'Never synced';
   const d = new Date(iso);
@@ -90,7 +83,6 @@ function formatLastSync(iso: string | null): string {
   return d.toLocaleDateString();
 }
 
-// ─── Connect button ──────────────────────────────────────────────────
 function ConnectBankButton({
   onLinked,
   onError,
@@ -100,12 +92,17 @@ function ConnectBankButton({
 }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Bee wave: shown briefly before Plaid Link launches.
+  const [waving, setWaving] = useState(false);
+  useEffect(() => {
+    if (!waving) return;
+    const t = window.setTimeout(() => setWaving(false), 1800);
+    return () => window.clearTimeout(t);
+  }, [waving]);
 
   const onSuccess = useCallback<PlaidLinkOnSuccess>(
     async (publicToken: string, metadata: PlaidLinkOnSuccessMetadata) => {
       try {
-        // Hand the public_token straight to the server — never persist it.
-        // The institution may be null for sandbox quick-link cases.
         const institution = metadata.institution;
         if (!institution) {
           onError('Institution metadata missing from Plaid response');
@@ -123,12 +120,10 @@ function ConnectBankButton({
             subtype: a.subtype,
           })),
         });
-        // Drop the link token so it can't leak via re-render or refs.
         setLinkToken(null);
         onLinked();
       } catch (err) {
-        const msg =
-          err instanceof ApiError ? err.message : 'Failed to link account';
+        const msg = err instanceof ApiError ? err.message : 'Failed to link account';
         onError(msg);
       }
     },
@@ -139,12 +134,10 @@ function ConnectBankButton({
     token: linkToken,
     onSuccess,
     onExit: () => {
-      // user closed Plaid Link without finishing — drop token
       setLinkToken(null);
     },
   });
 
-  // Auto-open Plaid Link as soon as we have a fresh token.
   useEffect(() => {
     if (linkToken && ready) {
       open();
@@ -153,15 +146,13 @@ function ConnectBankButton({
 
   const handleClick = useCallback(async () => {
     if (creating) return;
+    setWaving(true);
     setCreating(true);
     try {
       const { linkToken: t } = await createLinkToken();
       setLinkToken(t);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : 'Could not start Plaid Link';
+      const msg = err instanceof ApiError ? err.message : "Couldn't open the connection — try once more?";
       onError(msg);
     } finally {
       setCreating(false);
@@ -169,24 +160,30 @@ function ConnectBankButton({
   }, [creating, onError]);
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={handleClick}
-      disabled={creating}
-      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#6366F1] to-purple-500 text-white text-sm font-medium shadow-lg shadow-indigo-500/25 disabled:opacity-50"
-    >
-      {creating ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Plus className="w-4 h-4" />
+    <div className="relative inline-flex items-center gap-3">
+      {waving && (
+        <div className="hidden sm:block">
+          <BeeSpeechBubble tail="right" ariaLabel="Bee says: warming up your bank link">
+            One sec — getting it ready 🐝
+          </BeeSpeechBubble>
+        </div>
       )}
-      Connect a bank
-    </motion.button>
+      <button
+        onClick={handleClick}
+        disabled={creating}
+        className="inline-flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-50"
+      >
+        {creating ? (
+          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
+        ) : (
+          <Plus className="w-4 h-4" strokeWidth={1.75} />
+        )}
+        Connect a bank
+      </button>
+    </div>
   );
 }
 
-// ─── Item row ────────────────────────────────────────────────────────
 function ItemRow({
   item,
   onSync,
@@ -203,7 +200,7 @@ function ItemRow({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200/60 dark:border-gray-700/30"
+      className="flex flex-col sm:flex-row sm:items-center gap-4 p-6 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)]"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {item.institutionLogo ? (
@@ -215,28 +212,25 @@ function ItemRow({
                 : `data:image/png;base64,${item.institutionLogo}`
             }
             alt=""
-            className="w-10 h-10 rounded-xl object-contain bg-white border border-gray-200 dark:border-gray-700"
+            className="w-10 h-10 rounded-[8px] object-contain bg-white border border-[var(--color-border)]"
           />
         ) : (
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6366F1] to-purple-500 flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
           </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            <p className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
               {item.institutionName}
             </p>
             <StatusBadge status={item.status} />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {accountsCount} {accountsCount === 1 ? 'account' : 'accounts'} ·{' '}
-            Last sync {formatLastSync(item.lastSyncAt)}
+          <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] mt-1">
+            {accountsCount} {accountsCount === 1 ? 'account' : 'accounts'} · Last sync {formatLastSync(item.lastSyncAt)}
           </p>
           {item.errorMessage && (
-            <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
-              {item.errorMessage}
-            </p>
+            <p className="text-[11px] leading-[14px] text-[var(--color-danger)] mt-1">{item.errorMessage}</p>
           )}
         </div>
       </div>
@@ -244,24 +238,24 @@ function ItemRow({
         <button
           onClick={() => onSync(item.id)}
           disabled={busy.sync || item.status === 'DISCONNECTED'}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[16px] text-[13px] font-medium text-[var(--color-text)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 transition-colors"
         >
           {busy.sync ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} />
           ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
           )}
           Sync
         </button>
         <button
           onClick={() => onDisconnect(item.id)}
           disabled={busy.disconnect || item.status === 'DISCONNECTED'}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-[16px] text-[13px] font-medium text-[var(--color-danger)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 transition-colors"
         >
           {busy.disconnect ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} />
           ) : (
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
           )}
           Disconnect
         </button>
@@ -270,27 +264,23 @@ function ItemRow({
   );
 }
 
-// ─── Skeleton row ────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 p-5 rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200/60 dark:border-gray-700/30">
-      <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+    <div className="flex items-center gap-4 p-6 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)]">
+      <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] animate-pulse" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 w-40 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
-        <div className="h-3 w-56 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
+        <div className="h-4 w-40 rounded-[8px] bg-[var(--color-surface-2)] animate-pulse" />
+        <div className="h-3 w-56 rounded-[8px] bg-[var(--color-surface-2)] animate-pulse" />
       </div>
     </div>
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────
 export default function BanksSettingsPage() {
   const [items, setItems] = useState<PlaidItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busyByItem, setBusyByItem] = useState<
-    Record<string, { sync?: boolean; disconnect?: boolean }>
-  >({});
+  const [busyByItem, setBusyByItem] = useState<Record<string, { sync?: boolean; disconnect?: boolean }>>({});
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -299,10 +289,7 @@ export default function BanksSettingsPage() {
       const data = await listItems();
       setItems(data);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : 'Could not load connected banks';
+      const msg = err instanceof ApiError ? err.message : 'Hmm, something stung. Try again?';
       setError(msg);
     } finally {
       setLoading(false);
@@ -315,10 +302,7 @@ export default function BanksSettingsPage() {
 
   const setBusy = useCallback(
     (id: string, key: 'sync' | 'disconnect', val: boolean) => {
-      setBusyByItem((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], [key]: val },
-      }));
+      setBusyByItem((prev) => ({ ...prev, [id]: { ...prev[id], [key]: val } }));
     },
     [],
   );
@@ -329,8 +313,7 @@ export default function BanksSettingsPage() {
       try {
         await triggerSync(id);
       } catch (err) {
-        const msg =
-          err instanceof ApiError ? err.message : 'Sync failed';
+        const msg = err instanceof ApiError ? err.message : "Hmm, sync stalled. Try again?";
         setError(msg);
       } finally {
         setBusy(id, 'sync', false);
@@ -343,9 +326,7 @@ export default function BanksSettingsPage() {
     async (id: string) => {
       const confirmed =
         typeof window !== 'undefined'
-          ? window.confirm(
-              'Disconnect this bank? Your historical transactions stay, but no new data will sync.',
-            )
+          ? window.confirm("Send this one out of the hive? Historical transactions stay — we just stop syncing new ones.")
           : true;
       if (!confirmed) return;
       setBusy(id, 'disconnect', true);
@@ -353,10 +334,7 @@ export default function BanksSettingsPage() {
         await disconnectItem(id);
         await loadItems();
       } catch (err) {
-        const msg =
-          err instanceof ApiError
-            ? err.message
-            : 'Disconnect failed';
+        const msg = err instanceof ApiError ? err.message : "Couldn't disconnect just now. Give it another go?";
         setError(msg);
       } finally {
         setBusy(id, 'disconnect', false);
@@ -365,34 +343,27 @@ export default function BanksSettingsPage() {
     [loadItems, setBusy],
   );
 
-  const isEmpty = useMemo(
-    () => !loading && (!items || items.length === 0),
-    [loading, items],
-  );
+  const isEmpty = useMemo(() => !loading && (!items || items.length === 0), [loading, items]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      {/* Breadcrumb */}
+    <div className="mx-auto max-w-[720px]">
       <Link
         href="/settings"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4"
+        className="inline-flex items-center gap-1 text-[13px] leading-[18px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] mb-4"
       >
-        <ChevronLeft className="w-4 h-4" />
+        <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
         Back to Settings
       </Link>
 
-      {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6366F1] to-purple-500 flex items-center justify-center">
-              <Banknote className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+              <Banknote className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                Connected banks
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Connected banks</h1>
+              <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1">
                 Read-only Plaid connections. We never store your bank login.
               </p>
             </div>
@@ -401,21 +372,16 @@ export default function BanksSettingsPage() {
         <ConnectBankButton onLinked={loadItems} onError={setError} />
       </div>
 
-      {/* Error banner */}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-400 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <div className="mb-4 p-3 rounded-[8px] bg-[var(--color-surface)] border-l-4 border-[var(--color-danger)] text-[13px] text-[var(--color-danger)] flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" strokeWidth={1.75} />
           <div className="flex-1">{error}</div>
-          <button
-            onClick={() => setError(null)}
-            className="text-xs font-medium hover:underline"
-          >
+          <button onClick={() => setError(null)} className="text-[11px] font-medium hover:underline">
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Body */}
       {loading ? (
         <div className="space-y-3">
           <SkeletonRow />
@@ -423,16 +389,13 @@ export default function BanksSettingsPage() {
           <SkeletonRow />
         </div>
       ) : isEmpty ? (
-        <div className="rounded-2xl bg-white dark:bg-[#1A1A1A] border border-gray-200/60 dark:border-gray-700/30 p-10 text-center">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-[#6366F1]/10 flex items-center justify-center mb-3">
-            <Building2 className="w-6 h-6 text-[#6366F1]" />
-          </div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            No banks connected yet
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
-            Connect a bank to automatically sync transactions and balances.
-            Your credentials never touch our servers.
+        <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
+          <BeeStanding size={96} />
+          <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+            Connect a bank — we&apos;ll handle the honey trail.
+          </h3>
+          <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
+            Sync transactions and balances automatically. Your credentials never touch our servers.
           </p>
         </div>
       ) : (

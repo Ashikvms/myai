@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * BillBee mobile design tokens — Phase 2.
+ * Mirror of apps/web/src/styles/globals.css. NativeWind 4 reads
+ * these via the colorScheme strategy. Theme switching driven by
+ * the Appearance API in the mobile app — engineers wire the
+ * `.dark` class on the root view.
+ *
+ * Source of truth: /DESIGN_SYSTEM.md §1.
+ */
+:root {
+  --color-bg: #FFFFFF;
+  --color-surface: #FAFAFA;
+  --color-surface-2: #F4F4F5;
+  --color-surface-hover: #EFEFEF;
+
+  --color-text: #0A0A0A;
+  --color-text-muted: #525252;
+  --color-text-subtle: #737373;
+  --color-text-on-accent: #0A0A0A;
+
+  --color-accent: #F8E71C;
+  --color-accent-hover: #FAED4A;
+  --color-accent-dim: #8A7400;
+  --color-accent-soft: #FFF4B8;
+
+  --color-border: #E5E5E5;
+  --color-border-strong: #D4D4D4;
+  --color-focus-ring: #F8E71C;
+
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+}
+
+.dark {
+  --color-bg: #000000;
+  --color-surface: #0A0A0A;
+  --color-surface-2: #141414;
+  --color-surface-hover: #1A1A1A;
+
+  --color-text: #FFFFFF;
+  --color-text-muted: #A3A3A3;
+  --color-text-subtle: #737373;
+  --color-text-on-accent: #0A0A0A;
+
+  --color-accent: #F8E71C;
+  --color-accent-hover: #FAED4A;
+  --color-accent-dim: #8A7400;
+  --color-accent-soft: #3D3300;
+
+  --color-border: #1F1F1F;
+  --color-border-strong: #2A2A2A;
+}

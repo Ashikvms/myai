@@ -15,6 +15,7 @@ import {
   loginWithGoogle,
   AuthError,
 } from '../services/auth';
+import { extractRequestMeta } from '../services/audit-log';
 
 const router = Router();
 
@@ -74,7 +75,10 @@ router.post(
   '/register',
   authLimiter,
   asyncHandler(async (req: Request, res: Response) => {
-    const { user, accessToken, refreshToken } = await register(req.body);
+    const { user, accessToken, refreshToken } = await register(
+      req.body,
+      extractRequestMeta(req),
+    );
     setRefreshTokenCookie(res, refreshToken);
     res.status(201).json({ success: true, data: { user, accessToken } });
   }),
@@ -85,7 +89,10 @@ router.post(
   '/login',
   authLimiter,
   asyncHandler(async (req: Request, res: Response) => {
-    const { user, accessToken, refreshToken } = await login(req.body);
+    const { user, accessToken, refreshToken } = await login(
+      req.body,
+      extractRequestMeta(req),
+    );
     setRefreshTokenCookie(res, refreshToken);
     res.json({ success: true, data: { user, accessToken } });
   }),
@@ -218,9 +225,17 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
       const { accessToken, refreshToken } = await loginWithGoogle(profile);
       setRefreshTokenCookie(res, refreshToken);
 
-      // Redirect to the app with the access token
+      // Redirect to the app with the access token in the URL **fragment**
+      // (after `#`) rather than a query string. Fragments are NEVER sent
+      // to servers, NEVER appear in access logs, and are NEVER attached
+      // to the Referer header — preventing token leak via reverse
+      // proxies, CDN logs, browser history sync, or third-party analytics
+      // loaded by the callback page.
+      //
+      // The frontend reads it via `window.location.hash` and immediately
+      // calls `history.replaceState` to scrub it.
       const redirectUrl = new URL('/auth/callback', env.APP_URL);
-      redirectUrl.searchParams.set('accessToken', accessToken);
+      redirectUrl.hash = `accessToken=${encodeURIComponent(accessToken)}`;
       res.redirect(redirectUrl.toString());
     }),
   );

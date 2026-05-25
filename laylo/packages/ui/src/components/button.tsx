@@ -4,32 +4,51 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Button — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.1. Tokens consumed via CSS variables so
+ * theme swap (light ↔ dark) is automatic via the `.dark` class on root.
+ */
 const buttonVariants = cva(
   [
-    'inline-flex items-center justify-center gap-2 font-medium transition-all duration-150',
-    'rounded-[10px] outline-none',
-    'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500',
+    'inline-flex items-center justify-center gap-2 font-medium',
+    'transition-all duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]',
+    'rounded-[16px] outline-none',
+    'focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2',
+    'focus-visible:ring-offset-[var(--color-bg)]',
     'disabled:pointer-events-none disabled:opacity-50',
-    'dark:focus-visible:ring-offset-[#0F0F0F]',
+    'active:scale-[0.98]',
   ].join(' '),
   {
     variants: {
       variant: {
-        default:
-          'bg-[#6366F1] text-white hover:bg-[#5558E6] active:bg-[#4F46E5] shadow-sm',
-        secondary:
-          'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 dark:bg-[#2A2A2A] dark:text-gray-100 dark:hover:bg-[#333333]',
-        outline:
-          'border border-gray-200 bg-transparent text-gray-900 hover:bg-gray-50 active:bg-gray-100 dark:border-[#333333] dark:text-gray-100 dark:hover:bg-[#1F1F1F]',
-        ghost:
-          'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-[#1F1F1F]',
-        danger:
-          'bg-[#EF4444] text-white hover:bg-[#DC2626] active:bg-[#B91C1C] shadow-sm',
+        default: [
+          'bg-[var(--color-accent)] text-[var(--color-text-on-accent)]',
+          'hover:bg-[var(--color-accent-hover)]',
+          'shadow-[var(--shadow-sm)]',
+        ].join(' '),
+        secondary: [
+          'bg-[var(--color-surface-2)] text-[var(--color-text)]',
+          'hover:bg-[var(--color-surface-hover)]',
+        ].join(' '),
+        outline: [
+          'border border-[var(--color-border-strong)] bg-transparent text-[var(--color-text)]',
+          'hover:bg-[var(--color-surface-hover)]',
+        ].join(' '),
+        ghost: [
+          'bg-transparent text-[var(--color-text-muted)]',
+          'hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]',
+        ].join(' '),
+        danger: [
+          'bg-[var(--color-danger)] text-white',
+          'hover:bg-[#DC2626] active:bg-[#B91C1C]',
+          'shadow-[var(--shadow-sm)]',
+        ].join(' '),
       },
       size: {
-        sm: 'h-8 px-3 text-[13px] rounded-[6px]',
-        md: 'h-10 px-4 text-[14px]',
-        lg: 'h-12 px-6 text-[16px]',
+        sm: 'h-8 px-3 text-[13px] leading-[18px]',
+        md: 'h-10 px-4 text-[15px] leading-[22px]',
+        lg: 'h-12 px-6 text-[16px] leading-[22px]',
       },
     },
     defaultVariants: {

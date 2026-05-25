@@ -2,6 +2,12 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * LoadingSpinner — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.11. Default colour now `accent` (gold) —
+ * engineers should still keep the `primary` alias working at the
+ * callsite (TS-level synonym below).
+ */
 const spinnerVariants = cva('animate-spin', {
   variants: {
     size: {
@@ -10,14 +16,16 @@ const spinnerVariants = cva('animate-spin', {
       lg: 'h-8 w-8',
     },
     color: {
-      primary: 'text-[#6366F1]',
+      accent: 'text-[var(--color-accent)]',
+      // `primary` is a backwards-compat alias kept stable for Phase 3a.
+      primary: 'text-[var(--color-accent)]',
       white: 'text-white',
-      gray: 'text-gray-400 dark:text-gray-500',
+      gray: 'text-[var(--color-text-subtle)]',
     },
   },
   defaultVariants: {
     size: 'md',
-    color: 'primary',
+    color: 'accent',
   },
 });
 

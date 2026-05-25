@@ -1,34 +1,44 @@
 'use client';
 
+/**
+ * Documents — Honeycomb Tile Grid (compact) with Category Hexes
+ * (LAYOUT_REDESIGN_BRIEF §2.7).
+ *
+ * - Top: 8 category hexes (one per category), each filling with
+ *   --color-accent-soft when active. Counts displayed inside.
+ * - Below: 3-col grid of "file folder" doc cards — 4px gold tab on top,
+ *   pulsing on expiring docs.
+ * - Grid/list toggle removed.
+ */
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   FileText,
-  Plus,
   X,
-  Grid3X3,
-  List,
-  AlertTriangle,
   Upload,
   Calendar,
   Clock,
-  Inbox,
   Trash2,
   Eye,
   Shield,
+  Home,
   Car,
-  Receipt,
-  Heart,
-  BadgeCheck,
-  Zap,
-  ChevronDown,
+  Calculator,
+  Stethoscope,
+  Wrench,
+  Contact as IdCard,
+  MoreHorizontal,
 } from 'lucide-react';
 import { format, addDays, addMonths, differenceInDays } from 'date-fns';
+import { AskAiChip } from '@/components/ai/ask-ai';
+import { BeeStanding, BeeMagnifying } from '@/components/illustrations/bee';
+import { MotionButton } from '@/components/motion/motion-button';
+import { AmbientBees } from '@/components/motion/ambient-bees';
+
+const HEX_CLIP = 'polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
 type DocCategory = 'Insurance' | 'Lease' | 'Car' | 'Tax' | 'Medical' | 'Warranty' | 'Identity' | 'Other';
-type ViewMode = 'grid' | 'list';
 
 interface Document {
   id: string;
@@ -40,152 +50,31 @@ interface Document {
   notes?: string;
 }
 
-// ─── Category Config ─────────────────────────────────────────────────────────
-
-const CATEGORY_CONFIG: Record<DocCategory, {
-  gradient: string;
-  bg: string;
-  darkBg: string;
-  text: string;
-  darkText: string;
-  icon: React.ElementType;
-}> = {
-  Insurance: {
-    gradient: 'from-purple-500 to-purple-600',
-    bg: 'bg-purple-50',
-    darkBg: 'bg-purple-900/30',
-    text: 'text-purple-700',
-    darkText: 'text-purple-400',
-    icon: Shield,
-  },
-  Lease: {
-    gradient: 'from-blue-500 to-blue-600',
-    bg: 'bg-blue-50',
-    darkBg: 'bg-blue-900/30',
-    text: 'text-blue-700',
-    darkText: 'text-blue-400',
-    icon: FileText,
-  },
-  Car: {
-    gradient: 'from-amber-500 to-amber-600',
-    bg: 'bg-amber-50',
-    darkBg: 'bg-amber-900/30',
-    text: 'text-amber-700',
-    darkText: 'text-amber-400',
-    icon: Car,
-  },
-  Tax: {
-    gradient: 'from-green-500 to-green-600',
-    bg: 'bg-green-50',
-    darkBg: 'bg-green-900/30',
-    text: 'text-green-700',
-    darkText: 'text-green-400',
-    icon: Receipt,
-  },
-  Medical: {
-    gradient: 'from-red-500 to-red-600',
-    bg: 'bg-red-50',
-    darkBg: 'bg-red-900/30',
-    text: 'text-red-700',
-    darkText: 'text-red-400',
-    icon: Heart,
-  },
-  Warranty: {
-    gradient: 'from-teal-500 to-teal-600',
-    bg: 'bg-teal-50',
-    darkBg: 'bg-teal-900/30',
-    text: 'text-teal-700',
-    darkText: 'text-teal-400',
-    icon: BadgeCheck,
-  },
-  Identity: {
-    gradient: 'from-indigo-500 to-indigo-600',
-    bg: 'bg-indigo-50',
-    darkBg: 'bg-indigo-900/30',
-    text: 'text-indigo-700',
-    darkText: 'text-indigo-400',
-    icon: BadgeCheck,
-  },
-  Other: {
-    gradient: 'from-gray-500 to-gray-600',
-    bg: 'bg-gray-50',
-    darkBg: 'bg-gray-900/30',
-    text: 'text-gray-700',
-    darkText: 'text-gray-400',
-    icon: FileText,
-  },
-};
-
 const ALL_CATEGORIES: DocCategory[] = ['Insurance', 'Lease', 'Car', 'Tax', 'Medical', 'Warranty', 'Identity', 'Other'];
 
-// ─── Demo Data ───────────────────────────────────────────────────────────────
+const CATEGORY_ICONS: Record<DocCategory, React.ElementType> = {
+  Insurance: Shield,
+  Lease: Home,
+  Car: Car,
+  Tax: Calculator,
+  Medical: Stethoscope,
+  Warranty: Wrench,
+  Identity: IdCard,
+  Other: MoreHorizontal,
+};
 
+// ─── Demo Data ───────────────────────────────────────────────────────────────
 const today = new Date();
 
 const INITIAL_DOCUMENTS: Document[] = [
-  {
-    id: 'd1',
-    title: 'Passport',
-    category: 'Identity',
-    fileType: 'PDF',
-    issueDate: format(addMonths(today, -54), 'yyyy-MM-dd'),
-    expirationDate: format(addMonths(today, 6), 'yyyy-MM-dd'),
-    notes: 'US Passport — keep in fireproof safe',
-  },
-  {
-    id: 'd2',
-    title: 'Car Insurance Policy',
-    category: 'Insurance',
-    fileType: 'PDF',
-    issueDate: format(addMonths(today, -10), 'yyyy-MM-dd'),
-    expirationDate: format(addMonths(today, 2), 'yyyy-MM-dd'),
-    notes: 'Progressive — Honda Civic 2021',
-  },
-  {
-    id: 'd3',
-    title: 'Apartment Lease Agreement',
-    category: 'Lease',
-    fileType: 'PDF',
-    issueDate: format(addMonths(today, -4), 'yyyy-MM-dd'),
-    expirationDate: format(addMonths(today, 8), 'yyyy-MM-dd'),
-    notes: 'Apartment 4B — 12 month lease',
-  },
-  {
-    id: 'd4',
-    title: 'W-2 Form 2025',
-    category: 'Tax',
-    fileType: 'PDF',
-    issueDate: format(addMonths(today, -2), 'yyyy-MM-dd'),
-    notes: 'From employer — filed with accountant',
-  },
-  {
-    id: 'd5',
-    title: 'Health Insurance Card',
-    category: 'Medical',
-    fileType: 'Image',
-    issueDate: format(addMonths(today, -6), 'yyyy-MM-dd'),
-    expirationDate: format(addMonths(today, 6), 'yyyy-MM-dd'),
-    notes: 'Blue Cross Blue Shield — PPO plan',
-  },
-  {
-    id: 'd6',
-    title: 'Lab Results — Annual Checkup',
-    category: 'Medical',
-    fileType: 'PDF',
-    issueDate: format(addDays(today, -14), 'yyyy-MM-dd'),
-    notes: 'Complete blood panel — all normal',
-  },
-  {
-    id: 'd7',
-    title: 'Electricity Bill — March',
-    category: 'Other',
-    fileType: 'PDF',
-    issueDate: format(addDays(today, -3), 'yyyy-MM-dd'),
-    notes: '$142.50 — due in 30 days',
-  },
+  { id: 'd1', title: 'Passport', category: 'Identity', fileType: 'PDF', issueDate: format(addMonths(today, -54), 'yyyy-MM-dd'), expirationDate: format(addMonths(today, 6), 'yyyy-MM-dd'), notes: 'US Passport — keep in fireproof safe' },
+  { id: 'd2', title: 'Car Insurance Policy', category: 'Insurance', fileType: 'PDF', issueDate: format(addMonths(today, -10), 'yyyy-MM-dd'), expirationDate: format(addMonths(today, 2), 'yyyy-MM-dd'), notes: 'Progressive — Honda Civic 2021' },
+  { id: 'd3', title: 'Apartment Lease Agreement', category: 'Lease', fileType: 'PDF', issueDate: format(addMonths(today, -4), 'yyyy-MM-dd'), expirationDate: format(addMonths(today, 8), 'yyyy-MM-dd'), notes: 'Apartment 4B — 12 month lease' },
+  { id: 'd4', title: 'W-2 Form 2025', category: 'Tax', fileType: 'PDF', issueDate: format(addMonths(today, -2), 'yyyy-MM-dd'), notes: 'From employer — filed with accountant' },
+  { id: 'd5', title: 'Health Insurance Card', category: 'Medical', fileType: 'Image', issueDate: format(addMonths(today, -6), 'yyyy-MM-dd'), expirationDate: format(addMonths(today, 6), 'yyyy-MM-dd'), notes: 'Blue Cross Blue Shield — PPO plan' },
+  { id: 'd6', title: 'Lab Results — Annual Checkup', category: 'Medical', fileType: 'PDF', issueDate: format(addDays(today, -14), 'yyyy-MM-dd'), notes: 'Complete blood panel — all normal' },
+  { id: 'd7', title: 'Electricity Bill — March', category: 'Other', fileType: 'PDF', issueDate: format(addDays(today, -3), 'yyyy-MM-dd'), notes: '$142.50 — due in 30 days' },
 ];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getExpiryStatus(doc: Document): 'expired' | 'expiring' | 'safe' | 'none' {
   if (!doc.expirationDate) return 'none';
@@ -200,16 +89,16 @@ function getDaysUntilExpiry(doc: Document): number | null {
   return differenceInDays(new Date(doc.expirationDate), today);
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const inputClass =
+  'w-full px-3 py-2.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[15px] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25';
 
 export default function DocumentsPage() {
+  const reduce = useReducedMotion();
+
   const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCUMENTS);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [activeCategory, setActiveCategory] = useState<DocCategory | 'All'>('All');
   const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  // New document form state
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState<DocCategory>('Other');
   const [newFileType, setNewFileType] = useState('PDF');
@@ -217,43 +106,23 @@ export default function DocumentsPage() {
   const [newIssueDate, setNewIssueDate] = useState(format(today, 'yyyy-MM-dd'));
   const [newExpirationDate, setNewExpirationDate] = useState('');
 
-  // Dark mode detection
-  const [dark, setDark] = useState(false);
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      const isDark = document.documentElement.classList.contains('dark') ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setDark(isDark);
-      const observer = new MutationObserver(() => {
-        setDark(document.documentElement.classList.contains('dark'));
-      });
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    }
-  });
-
-  // Filtered documents
   const filteredDocs = useMemo(() => {
     if (activeCategory === 'All') return documents;
     return documents.filter((d) => d.category === activeCategory);
   }, [documents, activeCategory]);
 
-  // Expiring soon docs
-  const expiringDocs = useMemo(() => {
-    return documents.filter((d) => getExpiryStatus(d) === 'expiring');
+  // Per-category count for the hex bar.
+  const categoryCounts: Record<DocCategory, number> = useMemo(() => {
+    const counts = ALL_CATEGORIES.reduce(
+      (acc, c) => ({ ...acc, [c]: 0 }),
+      {} as Record<DocCategory, number>,
+    );
+    documents.forEach((d) => {
+      counts[d.category] = (counts[d.category] ?? 0) + 1;
+    });
+    return counts;
   }, [documents]);
 
-  // Styles
-  const pageBg = dark ? 'bg-[#0F0F0F]' : 'bg-[#FAFAFA]';
-  const cardBg = dark ? 'bg-[#1A1A1A]' : 'bg-white';
-  const cardBorder = dark ? 'border-white/5' : 'border-gray-100';
-  const textPrimary = dark ? 'text-white' : 'text-gray-900';
-  const textSecondary = dark ? 'text-gray-400' : 'text-gray-500';
-  const textMuted = dark ? 'text-gray-500' : 'text-gray-400';
-  const inputStyle = dark
-    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-indigo-500'
-    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-indigo-500';
-
-  // Handlers
   const addDocument = () => {
     if (!newTitle.trim()) return;
     const doc: Document = {
@@ -283,284 +152,171 @@ export default function DocumentsPage() {
     setNewExpirationDate('');
   };
 
-  // ─── Render ──────────────────────────────────────────────────────────────
-
   return (
-    <div className={`min-h-screen ${pageBg} transition-colors duration-300`}>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 pb-12">
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
+    <div className="max-w-[1024px] mx-auto">
+      {/* Header */}
+      <header className="relative mb-6 flex items-start justify-between gap-4 flex-wrap overflow-hidden">
+        {/* Single ambient bee in the header band only */}
+        <AmbientBees count={1} speed="slow" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+              <FileText className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+            </div>
+            <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Documents</h1>
+          </div>
+          <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] ml-[52px]">
+            {documents.length} document{documents.length !== 1 ? 's' : ''} in your hive
+          </p>
+        </div>
+        <MotionButton
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
         >
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/25">
-                  <FileText className="w-6 h-6 text-white" />
-                </div>
-                <h1 className={`text-3xl font-bold ${textPrimary}`}>Documents</h1>
-              </div>
-              <p className={`text-sm ${textSecondary} ml-[52px]`}>
-                {documents.length} document{documents.length !== 1 ? 's' : ''} stored
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* View Toggle */}
-              <div className={`flex items-center rounded-xl border ${cardBorder} ${cardBg} p-1`}>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                      : dark
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-400 hover:text-gray-900'
-                  }`}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'list'
-                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                      : dark
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-400 hover:text-gray-900'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-              {/* Upload Button */}
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-shadow"
-              >
-                <Upload className="w-4 h-4" />
-                Upload Document
-              </motion.button>
-            </div>
-          </div>
-        </motion.div>
+          <Upload className="w-4 h-4" strokeWidth={1.75} />
+          Upload
+        </MotionButton>
+      </header>
 
-        {/* ── Category Filter Chips ───────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="mb-6 overflow-x-auto scrollbar-hide"
-        >
-          <div className="flex items-center gap-2 min-w-max">
-            {(['All', ...ALL_CATEGORIES] as (DocCategory | 'All')[]).map((cat) => {
-              const isActive = activeCategory === cat;
-              return (
-                <motion.button
-                  key={cat}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                      : dark
-                      ? 'text-gray-400 hover:text-white hover:bg-white/5'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  {cat}
-                </motion.button>
-              );
-            })}
-          </div>
-        </motion.div>
+      {/* Category hex bar */}
+      <div className="mb-8 overflow-x-auto">
+        <div className="flex items-end gap-2 sm:gap-3 min-w-max pb-2">
+          <CategoryHex
+            label="All"
+            count={documents.length}
+            active={activeCategory === 'All'}
+            onClick={() => setActiveCategory('All')}
+            icon={FileText}
+          />
+          {ALL_CATEGORIES.map((cat) => (
+            <CategoryHex
+              key={cat}
+              label={cat}
+              count={categoryCounts[cat]}
+              active={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
+              icon={CATEGORY_ICONS[cat]}
+            />
+          ))}
+        </div>
+      </div>
 
-        {/* ── Expiring Soon Alert ─────────────────────────────────────── */}
-        {expiringDocs.length > 0 && activeCategory === 'All' && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            className="mb-8"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <h2 className={`text-sm font-semibold ${dark ? 'text-amber-400' : 'text-amber-600'}`}>
-                Expiring Soon
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {expiringDocs.map((doc, index) => {
-                const config = CATEGORY_CONFIG[doc.category];
-                const daysLeft = getDaysUntilExpiry(doc);
-                return (
-                  <motion.div
-                    key={doc.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: index * 0.06 }}
-                    className={`rounded-2xl border-2 ${
-                      dark ? 'border-amber-500/30 bg-amber-900/10' : 'border-amber-300 bg-amber-50/50'
-                    } p-4`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl bg-gradient-to-br ${config.gradient}`}>
-                        <config.icon className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`text-sm font-semibold truncate ${textPrimary}`}>{doc.title}</h3>
-                        <p className={`text-xs ${dark ? 'text-amber-400' : 'text-amber-600'}`}>
-                          {daysLeft !== null && daysLeft >= 0
-                            ? `Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
-                            : 'Expired'}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Loading State ───────────────────────────────────────────── */}
-        {loading && (
-          <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className={`rounded-2xl border ${cardBorder} ${cardBg} p-5 animate-pulse`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${dark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                  <div className="flex-1 space-y-2">
-                    <div className={`h-4 rounded-lg w-2/3 ${dark ? 'bg-white/10' : 'bg-gray-200'}`} />
-                    <div className={`h-3 rounded-lg w-1/2 ${dark ? 'bg-white/5' : 'bg-gray-100'}`} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Empty State ─────────────────────────────────────────────── */}
-        {!loading && filteredDocs.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className={`rounded-2xl border ${cardBorder} ${cardBg} p-12 text-center`}
-          >
-            <div className={`inline-flex p-4 rounded-2xl mb-4 ${dark ? 'bg-white/5' : 'bg-gray-50'}`}>
-              <Inbox className={`w-10 h-10 ${textMuted}`} />
-            </div>
-            <h3 className={`text-lg font-semibold mb-2 ${textPrimary}`}>
-              {activeCategory === 'All' ? 'No documents yet' : `No ${activeCategory} documents`}
-            </h3>
-            <p className={`text-sm mb-6 ${textSecondary}`}>
-              {activeCategory === 'All'
-                ? 'Upload your first document to get started.'
-                : `You don\u2019t have any ${activeCategory.toLowerCase()} documents.`}
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+      {/* Empty */}
+      {filteredDocs.length === 0 && (
+        <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
+          {activeCategory === 'All' ? <BeeStanding size={96} /> : <BeeMagnifying size={96} />}
+          <h3 className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+            {activeCategory === 'All' ? "Vault's empty — drop something in" : `Nothing buzzing under ${activeCategory} yet`}
+          </h3>
+          <p className="mt-2 max-w-md text-[15px] leading-[22px] text-[var(--color-text-muted)]">
+            {activeCategory === 'All'
+              ? "Upload your important papers and I'll keep them tidy."
+              : "Different category? Or drop your first one — I'll file it."}
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+            <MotionButton
               onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25"
+              className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-4 h-4" strokeWidth={1.75} />
               Upload Document
-            </motion.button>
-          </motion.div>
-        )}
+            </MotionButton>
+            <AskAiChip prompt="Help me organise my documents" label="Ask BillBee to add something" />
+          </div>
+        </div>
+      )}
 
-        {/* ── Grid View ───────────────────────────────────────────────── */}
-        {!loading && filteredDocs.length > 0 && viewMode === 'grid' && (
-          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence mode="popLayout">
-              {filteredDocs.map((doc, index) => {
-                const config = CATEGORY_CONFIG[doc.category];
-                const expiryStatus = getExpiryStatus(doc);
-                const daysLeft = getDaysUntilExpiry(doc);
-                return (
+      {/* File-folder grid */}
+      {filteredDocs.length > 0 && (
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredDocs.map((doc, index) => {
+              const expiryStatus = getExpiryStatus(doc);
+              const daysLeft = getDaysUntilExpiry(doc);
+              const Icon = CATEGORY_ICONS[doc.category];
+              const isExpiring = expiryStatus === 'expiring';
+              return (
+                <motion.div
+                  key={doc.id}
+                  layout
+                  initial={reduce ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.2, delay: index * 0.04 }}
+                  whileHover={reduce ? undefined : { y: -2, rotate: 1.5, scale: 1.01 }}
+                  className="group relative pt-1.5"
+                >
+                  {/* 4px gold "filing tab" on top */}
                   <motion.div
-                    key={doc.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                    transition={{ duration: 0.35, delay: index * 0.06 }}
-                    className={`group rounded-2xl border ${cardBorder} ${cardBg} p-5 transition-all hover:shadow-lg ${
-                      dark ? 'hover:border-white/10' : 'hover:border-gray-200 hover:shadow-gray-200/50'
-                    }`}
-                  >
-                    {/* File Icon */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-xl bg-gradient-to-br ${config.gradient} shadow-lg`}>
-                        <config.icon className="w-6 h-6 text-white" />
+                    aria-hidden="true"
+                    animate={
+                      isExpiring && !reduce
+                        ? { opacity: [0.6, 1, 0.6] }
+                        : { opacity: 1 }
+                    }
+                    transition={
+                      isExpiring
+                        ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+                        : undefined
+                    }
+                    className="absolute left-4 right-4 top-0 h-1 rounded-t-[4px]"
+                    style={{
+                      background: isExpiring
+                        ? 'var(--color-warning)'
+                        : 'var(--color-accent)',
+                    }}
+                  />
+                  <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover:shadow-pop transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            dark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-400'
-                          }`}
+                          aria-label="View"
+                          className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-text)] transition-colors"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4" strokeWidth={1.75} />
                         </button>
                         <button
                           onClick={() => deleteDocument(doc.id)}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            dark ? 'hover:bg-red-900/30 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'
-                          }`}
+                          aria-label="Delete"
+                          className="p-1.5 rounded-[8px] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-subtle)] hover:text-[var(--color-danger)] transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" strokeWidth={1.75} />
                         </button>
                       </div>
                     </div>
-
-                    {/* Title */}
-                    <h3 className={`text-base font-semibold mb-2 ${textPrimary}`}>{doc.title}</h3>
-
-                    {/* Category Badge */}
-                    <div className="flex items-center gap-2 mb-3 flex-wrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          dark ? `${config.darkBg} ${config.darkText}` : `${config.bg} ${config.text}`
-                        }`}
-                      >
+                    <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+                      {doc.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2 mb-3 flex-wrap">
+                      <span className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
                         {doc.category}
                       </span>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
-                          dark ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
+                      <span className="text-[11px] leading-[14px] font-medium text-[var(--color-text-subtle)]">
                         {doc.fileType}
                       </span>
                     </div>
-
-                    {/* Dates */}
-                    <div className="space-y-1">
-                      <p className={`text-xs flex items-center gap-1.5 ${textSecondary}`}>
-                        <Calendar className="w-3 h-3" />
+                    <div className="space-y-1 mb-3">
+                      <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)] flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" strokeWidth={1.75} />
                         Issued {format(new Date(doc.issueDate), 'MMM d, yyyy')}
                       </p>
                       {doc.expirationDate && (
                         <p
-                          className={`text-xs flex items-center gap-1.5 ${
+                          className={`text-[13px] leading-[18px] flex items-center gap-1.5 ${
                             expiryStatus === 'expired'
-                              ? dark ? 'text-red-400' : 'text-red-500'
-                              : expiryStatus === 'expiring'
-                              ? dark ? 'text-amber-400' : 'text-amber-600'
-                              : textSecondary
+                              ? 'text-[var(--color-danger)]'
+                              : isExpiring
+                              ? 'text-[var(--color-warning)]'
+                              : 'text-[var(--color-text-muted)]'
                           }`}
                         >
-                          <Clock className="w-3 h-3" />
+                          <Clock className="w-3.5 h-3.5" strokeWidth={1.75} />
                           {expiryStatus === 'expired'
                             ? 'Expired'
                             : `Expires ${format(new Date(doc.expirationDate), 'MMM d, yyyy')}`}
@@ -570,89 +326,22 @@ export default function DocumentsPage() {
                         </p>
                       )}
                     </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {/* ── List View ───────────────────────────────────────────────── */}
-        {!loading && filteredDocs.length > 0 && viewMode === 'list' && (
-          <motion.div layout className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {filteredDocs.map((doc, index) => {
-                const config = CATEGORY_CONFIG[doc.category];
-                const expiryStatus = getExpiryStatus(doc);
-                const daysLeft = getDaysUntilExpiry(doc);
-                return (
-                  <motion.div
-                    key={doc.id}
-                    layout
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -40, transition: { duration: 0.2 } }}
-                    transition={{ duration: 0.35, delay: index * 0.05 }}
-                    className={`group rounded-2xl border ${cardBorder} ${cardBg} p-4 transition-all hover:shadow-lg ${
-                      dark ? 'hover:border-white/10' : 'hover:border-gray-200 hover:shadow-gray-200/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${config.gradient} flex-shrink-0`}>
-                        <config.icon className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`text-sm font-semibold truncate ${textPrimary}`}>{doc.title}</h3>
-                        {doc.notes && (
-                          <p className={`text-xs truncate mt-0.5 ${textMuted}`}>{doc.notes}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        <span
-                          className={`hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
-                            dark ? `${config.darkBg} ${config.darkText}` : `${config.bg} ${config.text}`
-                          }`}
-                        >
-                          {doc.category}
-                        </span>
-                        <span className={`hidden md:inline-flex text-xs ${textSecondary}`}>
-                          {format(new Date(doc.issueDate), 'MMM d, yyyy')}
-                        </span>
-                        {doc.expirationDate && (
-                          <span
-                            className={`hidden lg:inline-flex text-xs ${
-                              expiryStatus === 'expiring'
-                                ? dark ? 'text-amber-400' : 'text-amber-600'
-                                : expiryStatus === 'expired'
-                                ? dark ? 'text-red-400' : 'text-red-500'
-                                : textMuted
-                            }`}
-                          >
-                            {expiryStatus === 'expired' ? 'Expired' : `Exp: ${format(new Date(doc.expirationDate), 'MMM yyyy')}`}
-                            {daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && ` (${daysLeft}d)`}
-                          </span>
-                        )}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => deleteDocument(doc.id)}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              dark ? 'hover:bg-red-900/30 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-400 hover:text-red-500'
-                            }`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                    <div className="pt-3 border-t border-[var(--color-border)]">
+                      <AskAiChip
+                        prompt={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
+                        context={`Document: ${doc.title}`}
+                        label={doc.expirationDate ? 'When does this expire?' : 'Summarise'}
+                      />
                     </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
-      {/* ── Upload Document Modal ──────────────────────────────────────── */}
+      {/* Upload Document Modal */}
       <AnimatePresence>
         {modalOpen && (
           <>
@@ -660,55 +349,50 @@ export default function DocumentsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: reduce ? 0 : 0.15 }}
               onClick={() => setModalOpen(false)}
-              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-[var(--color-overlay)] backdrop-blur-sm"
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className="fixed z-50 inset-x-4 top-[5%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg"
-            >
-              <div className={`rounded-2xl ${cardBg} border ${cardBorder} shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}>
-                {/* Modal Header */}
-                <div className={`flex items-center justify-between px-6 py-4 border-b ${cardBorder}`}>
-                  <h2 className={`text-lg font-semibold ${textPrimary}`}>Upload Document</h2>
+            <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+                transition={{ duration: reduce ? 0 : 0.22, ease: [0.4, 0, 0.2, 1] }}
+                className="relative mt-[8vh] w-full max-w-[640px] max-h-[85vh] overflow-y-auto bg-[var(--color-surface)] rounded-[16px] border border-[var(--color-border-strong)] shadow-lg pointer-events-auto"
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
+                  <h2 className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)]">Upload Document</h2>
                   <button
                     onClick={() => setModalOpen(false)}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      dark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
-                    }`}
+                    className="p-1 rounded-[8px] text-[var(--color-text-subtle)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors"
+                    aria-label="Close"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 </div>
-
-                {/* Modal Body */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                  {/* Title */}
+                <div className="p-6 space-y-4">
                   <div>
-                    <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>
-                      Title <span className="text-red-500">*</span>
+                    <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">
+                      Title <span className="text-[var(--color-danger)]">*</span>
                     </label>
                     <input
                       type="text"
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       placeholder="Document title"
-                      className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none ${inputStyle}`}
+                      className={inputClass}
                     />
                   </div>
-
-                  {/* Category + File Type */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>Category</label>
+                      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">Category</label>
                       <select
                         value={newCategory}
                         onChange={(e) => setNewCategory(e.target.value as DocCategory)}
-                        className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none appearance-none cursor-pointer ${inputStyle}`}
+                        className={inputClass}
                       >
                         {ALL_CATEGORIES.map((c) => (
                           <option key={c} value={c}>{c}</option>
@@ -716,11 +400,11 @@ export default function DocumentsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>File Type</label>
+                      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">File Type</label>
                       <select
                         value={newFileType}
                         onChange={(e) => setNewFileType(e.target.value)}
-                        className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none appearance-none cursor-pointer ${inputStyle}`}
+                        className={inputClass}
                       >
                         {['PDF', 'Image', 'Word', 'Spreadsheet', 'Other'].map((t) => (
                           <option key={t} value={t}>{t}</option>
@@ -728,70 +412,141 @@ export default function DocumentsPage() {
                       </select>
                     </div>
                   </div>
-
-                  {/* Issue Date + Expiration Date */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>Issue Date</label>
+                      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">Issue Date</label>
                       <input
                         type="date"
                         value={newIssueDate}
                         onChange={(e) => setNewIssueDate(e.target.value)}
-                        className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none ${inputStyle}`}
+                        className={inputClass}
                       />
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>Expiration Date</label>
+                      <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">Expiration Date</label>
                       <input
                         type="date"
                         value={newExpirationDate}
                         onChange={(e) => setNewExpirationDate(e.target.value)}
-                        className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none ${inputStyle}`}
+                        className={inputClass}
                       />
                     </div>
                   </div>
-
-                  {/* Notes */}
                   <div>
-                    <label className={`block text-sm font-medium mb-1.5 ${textPrimary}`}>Notes</label>
+                    <label className="block text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)] mb-1.5">Notes</label>
                     <textarea
                       value={newNotes}
                       onChange={(e) => setNewNotes(e.target.value)}
-                      placeholder="Additional notes..."
+                      placeholder="Additional notes…"
                       rows={3}
-                      className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors outline-none resize-none ${inputStyle}`}
+                      className={`${inputClass} resize-none`}
                     />
                   </div>
                 </div>
-
-                {/* Modal Footer */}
-                <div className={`flex items-center justify-end gap-3 px-6 py-4 border-t ${cardBorder}`}>
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)]">
                   <button
                     onClick={() => { resetForm(); setModalOpen(false); }}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                      dark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    className="px-4 h-10 rounded-[16px] text-[15px] font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] transition-colors"
                   >
                     Cancel
                   </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
+                  <MotionButton
                     onClick={addDocument}
                     disabled={!newTitle.trim()}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 h-10 rounded-[16px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[15px] font-medium text-[var(--color-text-on-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <span className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </span>
-                  </motion.button>
+                    <Upload className="w-4 h-4" strokeWidth={1.75} />
+                    Tuck it in
+                  </MotionButton>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── Category Hex ────────────────────────────────────────────────────
+function CategoryHex({
+  label,
+  count,
+  active,
+  onClick,
+  icon: Icon,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="relative flex flex-col items-center group focus:outline-none"
+    >
+      <motion.div
+        animate={
+          reduce
+            ? undefined
+            : active
+            ? { scale: 1.08 }
+            : { scale: 0.92, opacity: 0.7 }
+        }
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        className="relative w-[72px] h-[72px]"
+      >
+        {/* outer hex */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 transition-colors"
+          style={{
+            clipPath: HEX_CLIP,
+            WebkitClipPath: HEX_CLIP,
+            background: active
+              ? 'var(--color-accent)'
+              : 'var(--color-border)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-[1.5px]"
+          style={{
+            clipPath: HEX_CLIP,
+            WebkitClipPath: HEX_CLIP,
+            background: active
+              ? 'var(--color-accent-soft)'
+              : 'var(--color-surface)',
+          }}
+        />
+        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+          <Icon
+            className={`w-5 h-5 ${
+              active ? 'text-[var(--color-accent-dim)]' : 'text-[var(--color-text-muted)]'
+            }`}
+            strokeWidth={1.75}
+          />
+          <span
+            className={`text-[11px] leading-[14px] font-semibold tabular-nums mt-0.5 ${
+              active ? 'text-[var(--color-accent-dim)]' : 'text-[var(--color-text-muted)]'
+            }`}
+          >
+            {count}
+          </span>
+        </div>
+      </motion.div>
+      <span
+        className={`mt-1 text-[11px] leading-[14px] font-medium uppercase tracking-wider ${
+          active ? 'text-[var(--color-text)]' : 'text-[var(--color-text-subtle)]'
+        }`}
+      >
+        {label}
+      </span>
+    </button>
   );
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
+const baseSchema = z.object({
   // Required
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_PRIVATE_KEY: z.string().min(1, 'JWT_PRIVATE_KEY is required (base64-encoded PEM)'),
@@ -53,6 +53,62 @@ const envSchema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes)'),
   ENCRYPTION_KEY_VERSION: z.coerce.number().int().min(1).default(1),
+});
+
+/**
+ * Production-only requirements.
+ *
+ * In dev/test we want to be able to spin up with the bare minimum, but
+ * production deploys MUST have observability, queueing, mail, storage,
+ * a non-localhost CORS allow-list, and TLS-enforced Postgres.
+ */
+const envSchema = baseSchema.superRefine((data, ctx) => {
+  if (data.NODE_ENV !== 'production') return;
+
+  const requiredInProd: Array<[keyof typeof data, string]> = [
+    ['REDIS_URL', 'REDIS_URL is required in production (BullMQ + rate-limit store)'],
+    ['SENTRY_DSN', 'SENTRY_DSN is required in production (error tracking)'],
+    ['RESEND_API_KEY', 'RESEND_API_KEY is required in production (transactional email)'],
+    ['R2_ACCESS_KEY_ID', 'R2_ACCESS_KEY_ID is required in production (file uploads)'],
+    ['R2_SECRET_ACCESS_KEY', 'R2_SECRET_ACCESS_KEY is required in production (file uploads)'],
+    ['R2_BUCKET_NAME', 'R2_BUCKET_NAME is required in production (file uploads)'],
+  ];
+
+  for (const [key, message] of requiredInProd) {
+    if (!data[key]) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message });
+    }
+  }
+
+  // CORS must not include localhost in production — would let any local
+  // dev server steal cookies via a tricked user.
+  const origins = data.ALLOWED_ORIGINS.split(',').map((o) => o.trim().toLowerCase());
+  if (origins.some((o) => o.includes('localhost') || o.includes('127.0.0.1'))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['ALLOWED_ORIGINS'],
+      message:
+        'ALLOWED_ORIGINS must not contain localhost / 127.0.0.1 in production',
+    });
+  }
+
+  // Database connection must enforce TLS in production. Both
+  // `?sslmode=require` (libpq style) and `?ssl=true` (Prisma alias)
+  // are accepted.
+  const dbUrl = data.DATABASE_URL.toLowerCase();
+  const hasSslFlag =
+    dbUrl.includes('sslmode=require') ||
+    dbUrl.includes('sslmode=verify-ca') ||
+    dbUrl.includes('sslmode=verify-full') ||
+    dbUrl.includes('ssl=true');
+  if (!hasSslFlag) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['DATABASE_URL'],
+      message:
+        'DATABASE_URL must include `?sslmode=require` (or `?ssl=true`) in production',
+    });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;

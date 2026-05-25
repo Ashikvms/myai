@@ -4,24 +4,26 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Textarea — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.4. Same surface/border rules as Input.
+ * radius-sm. min-height enforced via `min-h-[80px]`.
+ */
 const textareaVariants = cva(
   [
-    'w-full rounded-[10px] border bg-white px-3 py-2 text-[14px] text-gray-900',
+    'w-full rounded-[8px] border bg-[var(--color-surface)] px-3 py-2',
+    'text-[15px] leading-[22px] text-[var(--color-text)] min-h-[80px]',
     'outline-none transition-colors duration-150 resize-vertical',
-    'placeholder:text-gray-400',
-    'focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20',
-    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50',
-    'dark:bg-[#1A1A1A] dark:text-gray-100 dark:border-[#333333]',
-    'dark:placeholder:text-gray-500',
-    'dark:focus:border-[#6366F1] dark:focus:ring-[#6366F1]/30',
-    'dark:disabled:bg-[#151515]',
+    'placeholder:text-[var(--color-text-subtle)]',
+    'focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25',
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[var(--color-surface-2)]',
   ].join(' '),
   {
     variants: {
       state: {
-        default: 'border-gray-200',
+        default: 'border-[var(--color-border)]',
         error:
-          'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20 dark:border-[#EF4444]',
+          'border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]/25',
       },
     },
     defaultVariants: {
@@ -99,7 +101,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={textareaId}
-            className="text-[14px] font-medium text-gray-700 dark:text-gray-300"
+            className="text-[13px] leading-[18px] font-medium text-[var(--color-text-muted)]"
           >
             {label}
           </label>
@@ -123,14 +125,14 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
         <div className="flex items-center justify-between">
           {error ? (
-            <p id={errorId} className="text-[13px] text-[#EF4444]" role="alert">
+            <p id={errorId} className="text-[13px] leading-[18px] text-[var(--color-danger)]" role="alert">
               {error}
             </p>
           ) : (
             <span />
           )}
           {showCount && (
-            <span className="text-[12px] text-gray-400 dark:text-gray-500 tabular-nums">
+            <span className="text-[11px] leading-[14px] text-[var(--color-text-subtle)] tabular-nums">
               {charCount}
               {maxLength != null && `/${maxLength}`}
             </span>

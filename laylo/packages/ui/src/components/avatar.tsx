@@ -4,8 +4,13 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 
+/**
+ * Avatar — Phase 2 spec.
+ * See /DESIGN_SYSTEM.md §7.8. rounded-full retained (one of two
+ * sanctioned uses; the other is the Toggle thumb).
+ */
 const avatarVariants = cva(
-  'relative inline-flex shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-[#2A2A2A] overflow-hidden',
+  'relative inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-2)] overflow-hidden',
   {
     variants: {
       size: {
@@ -55,7 +60,7 @@ function Avatar({ className, size, src, alt, name, ...props }: AvatarProps) {
           onError={() => setImgError(true)}
         />
       ) : (
-        <span className="font-medium text-gray-600 dark:text-gray-300 select-none">
+        <span className="font-medium text-[var(--color-text-muted)] select-none">
           {initials}
         </span>
       )}

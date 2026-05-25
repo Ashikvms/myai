@@ -125,7 +125,7 @@ export async function createLinkToken(
   return safeCall('link/token/create', async () => {
     const res = await client().linkTokenCreate({
       user: { client_user_id: userId },
-      client_name: 'Laylo',
+      client_name: 'BillBee',
       products: parseProducts(),
       country_codes: parseCountryCodes(),
       language: 'en',

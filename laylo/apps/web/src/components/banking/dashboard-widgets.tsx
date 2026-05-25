@@ -1,8 +1,13 @@
 'use client';
 
+/**
+ * Dashboard banking widgets — REDESIGN_BRIEF.md §2.1.
+ * - Indigo replaced with semantic gold tokens.
+ * - Plaid behaviour preserved exactly.
+ */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Banknote,
   Building2,
@@ -43,6 +48,7 @@ function formatDate(iso: string): string {
 
 // ─── Connected Accounts Card ─────────────────────────────────────────
 export function ConnectedAccountsCard() {
+  const reduce = useReducedMotion();
   const [accounts, setAccounts] = useState<BankAccount[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,8 +69,6 @@ export function ConnectedAccountsCard() {
     };
   }, []);
 
-  // Sum balance across DEPOSITORY accounts (cash on hand). Credit cards
-  // and loans show negative-style numbers and would distort the headline.
   const totalBalance =
     accounts?.reduce((sum, a) => {
       if (a.type !== 'DEPOSITORY') return sum;
@@ -76,56 +80,54 @@ export function ConnectedAccountsCard() {
 
   return (
     <motion.div
-      whileHover={{ y: -2 }}
+      whileHover={reduce ? undefined : { y: -2 }}
       transition={{ duration: 0.2 }}
-      className="relative overflow-hidden bg-white dark:bg-card-dark rounded-xl border border-gray-200/60 dark:border-gray-700/30 p-5"
+      className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 hover:shadow-pop transition-shadow"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
-      <div className="relative">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
-            <Banknote className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              Connected Accounts
-            </p>
-            {loading ? (
-              <div className="h-7 w-32 rounded bg-gray-200 dark:bg-gray-700 animate-pulse mt-1" />
-            ) : isEmpty ? (
-              <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mt-0.5">
-                No banks linked
-              </p>
-            ) : (
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5 tabular-nums">
-                {formatCurrency(totalBalance)}
-              </p>
-            )}
-          </div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
+          <Banknote className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
         </div>
-        {!loading && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {isEmpty
-                ? 'Sync your spending automatically'
-                : `${accountCount} ${accountCount === 1 ? 'account' : 'accounts'} connected`}
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] leading-[14px] font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
+            Connected Accounts
+          </p>
+          {loading ? (
+            <div className="h-7 w-32 rounded-[8px] bg-[var(--color-surface-2)] animate-pulse mt-1" />
+          ) : isEmpty ? (
+            <p className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)] mt-0.5">
+              No banks linked
             </p>
-            <Link
-              href="/settings/banks"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#6366F1] hover:text-[#4F46E5] transition-colors"
-            >
-              {isEmpty ? 'Connect a bank' : 'Manage'}
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        )}
+          ) : (
+            <p className="text-[22px] leading-[28px] font-semibold text-[var(--color-text)] mt-0.5 tabular-nums">
+              {formatCurrency(totalBalance)}
+            </p>
+          )}
+        </div>
       </div>
+      {!loading && (
+        <div className="flex items-center justify-between">
+          <p className="text-[13px] leading-[18px] text-[var(--color-text-muted)]">
+            {isEmpty
+              ? 'Connect a bank — we\'ll handle the honey trail.'
+              : `${accountCount} ${accountCount === 1 ? 'account' : 'accounts'} connected`}
+          </p>
+          <Link
+            href="/settings/banks"
+            className="inline-flex items-center gap-1 text-[13px] leading-[18px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+          >
+            {isEmpty ? 'Connect a bank' : 'Manage'}
+            <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </Link>
+        </div>
+      )}
     </motion.div>
   );
 }
 
 // ─── Recent Transactions Card ────────────────────────────────────────
 export function RecentTransactionsCard() {
+  const reduce = useReducedMotion();
   const [items, setItems] = useState<Transaction[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -148,85 +150,80 @@ export function RecentTransactionsCard() {
 
   return (
     <motion.div
-      whileHover={{ y: -1 }}
+      whileHover={reduce ? undefined : { y: -1 }}
       transition={{ duration: 0.2 }}
-      className="bg-white dark:bg-card-dark rounded-xl border border-gray-200/60 dark:border-gray-700/30 overflow-hidden"
+      className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-[#6366F1]" />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+          <Receipt className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+          <h3 className="text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
             Recent transactions
           </h3>
         </div>
         <Link
           href="/transactions"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#6366F1] hover:text-[#4F46E5] transition-colors"
+          className="inline-flex items-center gap-1 text-[13px] leading-[18px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
         >
           View all
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
         </Link>
       </div>
 
       {loading ? (
         <div className="p-5 space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-10 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
-            />
+            <div key={i} className="h-10 rounded-[8px] bg-[var(--color-surface-2)] animate-pulse" />
           ))}
         </div>
       ) : !items || items.length === 0 ? (
         <div className="p-8 text-center">
-          <div className="mx-auto w-10 h-10 rounded-xl bg-[#6366F1]/10 flex items-center justify-center mb-2">
-            <Building2 className="w-5 h-5 text-[#6366F1]" />
+          <div className="mx-auto w-10 h-10 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center mb-2">
+            <Building2 className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
           </div>
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            No transactions yet
+          <p className="text-[13px] leading-[18px] font-medium text-[var(--color-text)]">
+            Connect a bank to see what&apos;s been flowing
           </p>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[11px] leading-[14px] text-[var(--color-text-subtle)] mt-1">
             Connect a bank to see activity here
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+        <ul className="divide-y divide-[var(--color-border)]">
           {items.map((t) => {
             const amt = toNumber(t.amount);
             const isInflow = amt < 0;
             return (
               <li
                 key={t.id}
-                className={`flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors ${
+                className={`flex items-center gap-3 px-6 py-3 hover:bg-[var(--color-surface-hover)] transition-colors ${
                   t.pending ? 'opacity-60' : ''
                 }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-[8px] bg-[var(--color-surface-2)] flex items-center justify-center flex-shrink-0">
                   {isInflow ? (
-                    <ArrowDownCircle className="w-4 h-4 text-green-500" />
+                    <ArrowDownCircle className="w-4 h-4 text-[var(--color-success)]" strokeWidth={1.75} />
                   ) : (
-                    <ArrowUpCircle className="w-4 h-4 text-gray-400" />
+                    <ArrowUpCircle className="w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-[13px] leading-[18px] font-medium text-[var(--color-text)] truncate">
                     {t.merchantName || t.name}
                     {t.pending && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                      <span className="ml-2 text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-warning)]">
                         Pending
                       </span>
                     )}
                   </p>
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-[11px] leading-[14px] text-[var(--color-text-subtle)]">
                     {formatDate(t.date)}
                     {t.category ? ` · ${t.category}` : ''}
                   </p>
                 </div>
                 <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    isInflow
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-gray-900 dark:text-white'
+                  className={`text-[13px] leading-[18px] font-semibold tabular-nums ${
+                    isInflow ? 'text-[var(--color-success)]' : 'text-[var(--color-text)]'
                   }`}
                 >
                   {isInflow ? '+' : '−'}
@@ -245,7 +242,7 @@ export function RecentTransactionsCard() {
 export function WidgetsSkeleton() {
   return (
     <div className="flex items-center justify-center py-8">
-      <Loader2 className="w-5 h-5 animate-spin text-[#6366F1]" />
+      <Loader2 className="w-5 h-5 animate-spin text-[var(--color-accent)]" strokeWidth={1.75} />
     </div>
   );
 }

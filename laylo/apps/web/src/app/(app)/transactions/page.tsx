@@ -1,17 +1,23 @@
 'use client';
 
+/**
+ * Transactions — Day-Grouped Conversational Stack
+ * (LAYOUT_REDESIGN_BRIEF §2.6).
+ *
+ * Kills the table feel. Sticky day header pill ("Today · Tue 28 Apr · $124.50
+ * spent · $0 in") in h2; each row has a colored left-bar (gold-dim outflow,
+ * green inflow) and a recurring-ring badge if matched to a sub/bill.
+ * Single sticky filter bar at top; "Load more" → gold pill.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
   Building2,
   AlertCircle,
   Loader2,
   Receipt,
   Search,
-  Filter,
-  X,
+  Repeat,
 } from 'lucide-react';
 import {
   listAccounts,
@@ -23,6 +29,13 @@ import type {
   TransactionsQuery,
 } from '@/lib/api/types';
 import { ApiError } from '@/lib/api';
+import { AskAiChip } from '@/components/ai/ask-ai';
+import { BeeMagnifying, BeeStanding } from '@/components/illustrations/bee';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { TransactionDetailDrawer } from '@/components/transactions/transaction-detail-drawer';
+import { AmbientBees } from '@/components/motion/ambient-bees';
+import { HoneycombPattern } from '@/components/illustrations/honeycomb-pattern';
+import { HexFrame } from '@/components/layout/hex-frame';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function toNumber(amount: string | number): number {
@@ -45,40 +58,45 @@ function formatAmount(amount: string | number, currency: string): string {
   }
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function formatDayHeader(date: Date): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  if (isSameDay(date, today)) return `Today · ${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  if (isSameDay(date, yesterday)) return `Yesterday · ${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const PAGE_SIZE = 50;
 
-// ─── Page ────────────────────────────────────────────────────────────
+const FILTER_TABS = ['All', 'This month', 'Income', 'Expenses', 'Recurring'] as const;
+type FilterTab = (typeof FILTER_TABS)[number];
+
 export default function TransactionsPage() {
-  // Filters
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [accountId, setAccountId] = useState('');
   const [category, setCategory] = useState('');
   const [q, setQ] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
 
-  // Data
   const [items, setItems] = useState<Transaction[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  // Item 28 Phase 3a — selected row opens the detail drawer.
+  const [selectedTransactionId, setSelectedTransactionId] = useState<
+    string | null
+  >(null);
 
-  // UI state
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Build query — memoised so effects don't churn.
   const baseQuery: TransactionsQuery = useMemo(
     () => ({
       from: from || undefined,
@@ -91,22 +109,18 @@ export default function TransactionsPage() {
     [from, to, accountId, category, q],
   );
 
-  // Load accounts once for the dropdown.
   useEffect(() => {
     let cancelled = false;
     listAccounts()
       .then((data) => {
         if (!cancelled) setAccounts(data);
       })
-      .catch(() => {
-        // Non-fatal — filter UI just won't have account options.
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Reload first page whenever filters change.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -119,10 +133,7 @@ export default function TransactionsPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        const msg =
-          err instanceof ApiError
-            ? err.message
-            : 'Could not load transactions';
+        const msg = err instanceof ApiError ? err.message : 'Hmm, something stung. Try again?';
         setError(msg);
         setItems([]);
         setNextCursor(null);
@@ -139,17 +150,11 @@ export default function TransactionsPage() {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = await listTransactions({
-        ...baseQuery,
-        cursor: nextCursor,
-      });
+      const res = await listTransactions({ ...baseQuery, cursor: nextCursor });
       setItems((prev) => [...prev, ...res.items]);
       setNextCursor(res.nextCursor);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : 'Could not load more transactions';
+      const msg = err instanceof ApiError ? err.message : "Couldn't pull more — try once more?";
       setError(msg);
     } finally {
       setLoadingMore(false);
@@ -161,281 +166,325 @@ export default function TransactionsPage() {
     setQ(searchInput.trim());
   }, [searchInput]);
 
-  // Distinct categories from the loaded set, for the dropdown.
-  const categoryOptions = useMemo(() => {
-    const set = new Set<string>();
-    items.forEach((t) => {
-      if (t.category) set.add(t.category);
-    });
-    return Array.from(set).sort();
-  }, [items]);
-
   const accountById = useMemo(() => {
     const map = new Map<string, BankAccount>();
     accounts.forEach((a) => map.set(a.id, a));
     return map;
   }, [accounts]);
 
-  const hasActiveFilters = !!(
-    from ||
-    to ||
-    accountId ||
-    category ||
-    q
-  );
+  // Filter client-side for the segmented filter bar (server filters via baseQuery).
+  const filteredItems = useMemo(() => {
+    switch (activeFilter) {
+      case 'Income':
+        return items.filter((t) => toNumber(t.amount) < 0);
+      case 'Expenses':
+        return items.filter((t) => toNumber(t.amount) > 0);
+      case 'Recurring':
+        // Heuristic: subscription-like merchants. Without server-side flag, show all
+        // items that have a category indicating a recurring payment.
+        return items.filter((t) =>
+          /netflix|spotify|gym|hulu|adobe|cloud|dropbox|prime/i.test(
+            t.merchantName ?? t.name ?? '',
+          ),
+        );
+      case 'This month':
+        return items.filter((t) => {
+          const d = new Date(t.date);
+          const now = new Date();
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        });
+      default:
+        return items;
+    }
+  }, [items, activeFilter]);
 
-  const clearFilters = () => {
-    setFrom('');
-    setTo('');
-    setAccountId('');
-    setCategory('');
-    setQ('');
-    setSearchInput('');
-  };
+  // Group by day
+  const groups = useMemo(() => {
+    const m = new Map<
+      string,
+      { date: Date; items: Transaction[]; spent: number; income: number }
+    >();
+    filteredItems.forEach((t) => {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      let g = m.get(key);
+      if (!g) {
+        g = {
+          date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+          items: [],
+          spent: 0,
+          income: 0,
+        };
+        m.set(key, g);
+      }
+      g.items.push(t);
+      const amt = toNumber(t.amount);
+      if (amt < 0) g.income += -amt;
+      else g.spent += amt;
+    });
+    return Array.from(m.values()).sort(
+      (a, b) => b.date.getTime() - a.date.getTime(),
+    );
+  }, [filteredItems]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div className="max-w-[840px] mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6366F1] to-purple-500 flex items-center justify-center">
-            <Receipt className="w-5 h-5 text-white" />
-          </div>
+      <header className="relative mb-6 overflow-hidden">
+        {/* Hive theme — honeycomb confined to the header band so the table stays scannable */}
+        <HoneycombPattern opacity={0.04} />
+        {/* Single bee in the header band only — never over the table itself
+            (dense data → particles compete with scanning per plan §2). */}
+        <AmbientBees count={1} speed="medium" />
+        <div className="relative flex items-center gap-3">
+          <HexFrame size={40}>
+            <Receipt className="w-5 h-5 text-[var(--color-accent)]" strokeWidth={1.75} />
+          </HexFrame>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-              Transactions
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            <h1 className="text-[32px] leading-[40px] font-bold text-[var(--color-text)]">Transactions</h1>
+            <p className="text-[15px] leading-[22px] text-[var(--color-text-muted)] mt-1">
               All synced bank transactions
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <Filter className="w-4 h-4" />
-          Filters
-          {hasActiveFilters && (
-            <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-[#6366F1] text-white">
-              {[from, to, accountId, category, q].filter(Boolean).length}
-            </span>
-          )}
-        </button>
-      </div>
+      </header>
 
-      {/* Search + Filters */}
-      <div className="mb-5 space-y-3">
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search merchant or description..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30 focus:border-[#6366F1]"
-          />
-        </form>
-
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700"
-          >
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                From
-              </label>
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                To
-              </label>
-              <input
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                Account
-              </label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
-              >
-                <option value="">All accounts</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                    {a.mask ? ` ····${a.mask}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
-              >
-                <option value="">All categories</option>
-                {categoryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {hasActiveFilters && (
+      {/* Sticky filter pill bar */}
+      <div className="sticky top-16 z-20 bg-[var(--color-bg)]/95 backdrop-blur-sm py-3 -mx-4 px-4 mb-4 border-b border-[var(--color-border)]">
+        <div className="flex items-center gap-2 flex-wrap">
+          {FILTER_TABS.map((tab) => {
+            const active = activeFilter === tab;
+            return (
               <button
-                onClick={clearFilters}
-                className="sm:col-span-2 lg:col-span-4 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                key={tab}
+                onClick={() => setActiveFilter(tab)}
+                className={`relative px-3 py-1.5 rounded-[8px] text-[13px] leading-[18px] font-medium transition-colors ${
+                  active
+                    ? 'text-[var(--color-text-on-accent)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]'
+                }`}
               >
-                <X className="w-3.5 h-3.5" />
-                Clear all filters
+                {active && (
+                  <motion.div
+                    layoutId="txn-active-tab"
+                    className="absolute inset-0 bg-[var(--color-accent)] rounded-[8px]"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{tab}</span>
               </button>
-            )}
-          </motion.div>
-        )}
+            );
+          })}
+          <form onSubmit={handleSearchSubmit} className="relative ml-auto flex-1 min-w-[200px] max-w-[320px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-subtle)]" strokeWidth={1.75} />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="What are you looking for?"
+              className="w-full pl-9 pr-3 py-1.5 rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+            />
+            {/* Gold underline grows from left as you type — friend micro-interaction */}
+            <motion.div
+              aria-hidden="true"
+              className="absolute bottom-0 left-2 right-2 h-[1.5px] rounded-full bg-[var(--color-accent)]"
+              initial={false}
+              animate={{ scaleX: Math.min(1, searchInput.length / 24), opacity: searchInput.length > 0 ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ transformOrigin: 'left center' }}
+            />
+          </form>
+        </div>
+        {/* Date filter row */}
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From" className="px-2 py-1 text-[12px] rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)]" />
+          <span className="text-[12px] text-[var(--color-text-subtle)]">→</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} placeholder="To" className="px-2 py-1 text-[12px] rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)]" />
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            className="px-2 py-1 text-[12px] rounded-[8px] bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)]"
+          >
+            <option value="">All accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {a.mask ? ` ····${a.mask}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-400 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <div className="mb-4 p-3 rounded-[8px] bg-[var(--color-surface)] border-l-4 border-[var(--color-danger)] text-[13px] text-[var(--color-danger)] flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" strokeWidth={1.75} />
           <div className="flex-1">{error}</div>
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-xl bg-white dark:bg-[#1A1A1A] border border-gray-200/60 dark:border-gray-700/30 overflow-hidden">
-        <div className="hidden md:grid grid-cols-[110px_1fr_140px_140px_120px] gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-800 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          <div>Date</div>
-          <div>Merchant</div>
-          <div>Category</div>
-          <div>Account</div>
-          <div className="text-right">Amount</div>
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-14 rounded-[16px] bg-[var(--color-surface-2)] animate-pulse" />
+          ))}
         </div>
+      )}
 
-        {loading ? (
-          <div className="p-5 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-12 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-[#6366F1]/10 flex items-center justify-center mb-3">
-              <Receipt className="w-6 h-6 text-[#6366F1]" />
-            </div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              No transactions found
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {hasActiveFilters
-                ? 'Try adjusting your filters or date range.'
-                : 'Connect a bank in Settings → Banks to start syncing.'}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {items.map((t) => {
-              // Plaid convention: positive amount = outflow.
-              const amt = toNumber(t.amount);
-              const isInflow = amt < 0;
-              const acct =
-                accountById.get(t.bankAccountId) ?? t.bankAccount;
-              return (
-                <div
-                  key={t.id}
-                  className={`grid grid-cols-[1fr_auto] md:grid-cols-[110px_1fr_140px_140px_120px] gap-2 md:gap-4 px-5 py-3.5 items-center text-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40 ${
-                    t.pending ? 'opacity-60' : ''
-                  }`}
-                >
-                  <div className="text-xs text-gray-500 dark:text-gray-400 md:text-sm md:text-gray-700 md:dark:text-gray-300 order-1">
-                    {formatDate(t.date)}
-                  </div>
-                  <div className="min-w-0 order-3 md:order-2 col-span-2 md:col-span-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {t.merchantName || t.name}
-                      {t.pending && (
-                        <span className="ml-2 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
-                          Pending
-                        </span>
-                      )}
-                    </p>
-                    {t.merchantName && t.name !== t.merchantName && (
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {t.name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="hidden md:block order-3 text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {t.category || '—'}
-                  </div>
-                  <div className="hidden md:flex items-center gap-1.5 order-4 text-xs text-gray-500 dark:text-gray-400 min-w-0">
-                    <Building2 className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">
-                      {acct?.name ?? '—'}
-                      {acct && 'mask' in acct && acct.mask
-                        ? ` ····${acct.mask}`
-                        : ''}
+      {/* Empty */}
+      {!loading && filteredItems.length === 0 && (
+        <div className="rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-12 flex flex-col items-center text-center">
+          {q || activeFilter !== 'All' ? <BeeMagnifying size={96} /> : <BeeStanding size={96} />}
+          <p className="mt-4 text-[16px] leading-[22px] font-semibold text-[var(--color-text)]">
+            {q || activeFilter !== 'All'
+              ? "Couldn't find anything"
+              : 'Connect a bank to see what’s been flowing'}
+          </p>
+          <p className="mt-2 text-[13px] leading-[18px] text-[var(--color-text-muted)]">
+            {q || activeFilter !== 'All'
+              ? 'Try adjusting your filters or date range.'
+              : 'Connect a bank in Settings → Banks to start syncing.'}
+          </p>
+        </div>
+      )}
+
+      {/* Day-grouped stack */}
+      {!loading && filteredItems.length > 0 && (
+        <div className="space-y-6">
+          {groups.map((g) => (
+            <section key={g.date.toISOString()}>
+              <div className="sticky top-[140px] z-10 mb-2 bg-[var(--color-bg)]/95 backdrop-blur-sm py-2">
+                <div className="inline-flex items-center gap-3 px-3 py-1.5 rounded-[16px] bg-[var(--color-surface-2)]">
+                  <h2 className="text-[15px] leading-[22px] font-semibold text-[var(--color-text)]">
+                    {formatDayHeader(g.date)}
+                  </h2>
+                  {g.spent > 0 && (
+                    <span className="text-[13px] leading-[18px] font-medium tabular-nums text-[var(--color-text-muted)]">
+                      <AnimatedNumber value={g.spent} prefix="$" decimals={2} /> spent
                     </span>
-                  </div>
-                  <div className="flex items-center justify-end gap-1.5 order-2 md:order-5">
-                    {isInflow ? (
-                      <ArrowDownCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <ArrowUpCircle className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-                    )}
-                    <span
-                      className={`font-semibold tabular-nums ${
-                        isInflow
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-gray-900 dark:text-white'
+                  )}
+                  {g.income > 0 && (
+                    <span className="text-[13px] leading-[18px] font-medium tabular-nums text-[var(--color-success)]">
+                      +<AnimatedNumber value={g.income} prefix="$" decimals={2} /> in
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ul className="space-y-2">
+                {g.items.map((t) => {
+                  const amt = toNumber(t.amount);
+                  const isInflow = amt < 0;
+                  const isRecurring = /netflix|spotify|gym|hulu|adobe|cloud|dropbox|prime/i.test(
+                    t.merchantName ?? t.name ?? '',
+                  );
+                  const acct = accountById.get(t.bankAccountId) ?? t.bankAccount;
+                  return (
+                    <li
+                      key={t.id}
+                      onClick={() => setSelectedTransactionId(t.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedTransactionId(t.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View details for ${t.merchantName || t.name}`}
+                      className={`group relative flex items-center gap-3 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] pl-4 pr-4 py-3 transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
+                        t.pending ? 'opacity-60' : ''
                       }`}
                     >
-                      {isInflow ? '+' : '−'}
-                      {formatAmount(t.amount, t.isoCurrencyCode)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                      {/* Colored left-bar */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-r-full"
+                        style={{
+                          background: isInflow
+                            ? 'var(--color-success)'
+                            : 'var(--color-accent-dim)',
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] leading-[22px] font-semibold text-[var(--color-text)] truncate">
+                          {t.merchantName || t.name}
+                          {t.pending && (
+                            <span className="ml-2 text-[11px] leading-[14px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[8px] bg-[var(--color-surface-2)] text-[var(--color-warning)]">
+                              Pending
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] leading-[14px] text-[var(--color-text-subtle)] flex items-center gap-1.5 mt-0.5">
+                          {t.category && <span>{t.category}</span>}
+                          {acct && (
+                            <>
+                              <span>·</span>
+                              <Building2 className="w-3 h-3" strokeWidth={1.75} />
+                              <span className="truncate">
+                                {acct.name}
+                                {'mask' in acct && acct.mask ? ` ····${acct.mask}` : ''}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      {isRecurring && (
+                        <span
+                          className="hidden sm:flex items-center gap-1 text-[11px] leading-[14px] font-medium px-2 py-1 rounded-[8px] bg-[var(--color-accent-soft)] text-[var(--color-accent-dim)]"
+                          title="Matched to a recurring sub or bill"
+                        >
+                          <Repeat className="w-3 h-3" strokeWidth={1.75} />
+                          Recurring
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <AskAiChip
+                            prompt="Why did this repeat?"
+                            context={`Transaction: ${t.merchantName || t.name}, ${formatAmount(t.amount, t.isoCurrencyCode)}`}
+                            iconOnly
+                            label="Ask"
+                          />
+                        </span>
+                        <span
+                          className={`text-[16px] leading-[22px] font-semibold tabular-nums ${
+                            isInflow ? 'text-[var(--color-success)]' : 'text-[var(--color-text)]'
+                          }`}
+                        >
+                          {isInflow ? '+' : '−'}
+                          {formatAmount(t.amount, t.isoCurrencyCode)}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
 
-        {/* Load more */}
-        {!loading && nextCursor && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-            <button
-              onClick={loadMore}
-              disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
-              {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
-              Load more
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Load more — gold pill */}
+      {!loading && nextCursor && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-2 px-5 h-10 rounded-[16px] text-[13px] font-semibold text-[var(--color-text-on-accent)] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
+          >
+            {loadingMore && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />}
+            {loadingMore ? "Buzzing through more…" : "Show me more"}
+          </button>
+        </div>
+      )}
+
+      {/* Item 28 Phase 3a — Transaction detail drawer */}
+      <TransactionDetailDrawer
+        transactionId={selectedTransactionId}
+        onClose={() => setSelectedTransactionId(null)}
+      />
     </div>
   );
 }

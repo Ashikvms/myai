@@ -2,18 +2,166 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * BillBee design tokens — Phase 2.
+ * Light mode lives at :root. Dark mode overrides come in via .dark
+ * (Tailwind darkMode: 'class'). Components consume via Tailwind
+ * arbitrary values, e.g. bg-[var(--color-accent)].
+ *
+ * Source of truth: /DESIGN_SYSTEM.md §1.
+ */
+/*
+ * Light mode = "black over yellow". Yellow IS the canvas; black is the
+ * stand-out (CTAs, focus, mascot). This is the symmetric inverse of dark
+ * mode (yellow over black). Both modes use the same semantic token names
+ * — only the actual hex flips. Components that consume tokens via
+ * var(--color-*) Just Work in either mode.
+ */
+:root {
+  --color-bg: #F8E71C;            /* highlight yellow canvas */
+  --color-surface: #FAEC4A;       /* slightly lighter — cards stand out */
+  --color-surface-2: #FCF180;     /* even lighter — nested cards, inputs */
+  --color-surface-hover: #F4E211; /* hover state on cards/rows */
+
+  --color-text: #0A0A0A;          /* pure black body text */
+  --color-text-muted: #2A2A2A;    /* dark gray — still high contrast on yellow */
+  --color-text-subtle: #4A4A0A;   /* warm dark for tertiary metadata */
+  --color-text-on-accent: #F8E71C; /* highlight yellow text sits on black CTAs */
+
+  --color-accent: #0A0A0A;        /* BLACK is the accent here — the stand-out */
+  --color-accent-hover: #1F1F1F;  /* slight lift on hover */
+  --color-accent-dim: #4A4A4A;    /* subdued accent for borders/glow base */
+  --color-accent-soft: #2A2A2A;   /* tinted-black wash for chips on yellow */
+
+  --color-border: #B8A800;        /* dark amber hairlines — visible on yellow */
+  --color-border-strong: #8A7E00; /* stronger amber for hover borders */
+  --color-focus-ring: #0A0A0A;    /* black ring — pops on yellow */
+
+  --color-success: #166534;       /* darker greens read better on yellow */
+  --color-warning: #9A3412;       /* darker oranges */
+  --color-danger: #991B1B;        /* darker reds */
+
+  --color-overlay: rgba(0, 0, 0, 0.55);
+
+  /* Shadows in light mode are darker (yellow bg shows shadow well) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.18);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-glow: 0 0 0 3px rgba(10, 10, 10, 0.35); /* black glow */
+
+  /* Bee mascot — body inverts (black on yellow in light, yellow on black in dark) */
+  --bee-body: #0A0A0A;
+  --bee-detail: #F8E71C;
+}
+
+.dark {
+  --color-bg: #000000;
+  --color-surface: #0A0A0A;
+  --color-surface-2: #141414;
+  --color-surface-hover: #1A1A1A;
+
+  --color-text: #FFFFFF;
+  --color-text-muted: #A3A3A3;
+  --color-text-subtle: #737373;
+  --color-text-on-accent: #0A0A0A;
+
+  --color-accent: #F8E71C;
+  --color-accent-hover: #FAED4A;
+  --color-accent-dim: #8A7E00;
+  --color-accent-soft: #3D3700;
+
+  --color-border: #1F1F1F;
+  --color-border-strong: #2A2A2A;
+
+  --color-overlay: rgba(0, 0, 0, 0.65);
+
+  --shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-glow: 0 0 0 3px rgba(248, 231, 28, 0.35);
+
+  /* Bee mascot — highlight-yellow body on black bg in dark mode */
+  --bee-body: #F8E71C;
+  --bee-detail: #0A0A0A;
+}
+
 @layer base {
+  /*
+   * Typography — single typeface design language.
+   * Bricolage Grotesque variable. Body uses opsz=14 / wdth=100 for
+   * readability; display sizes auto-tune opsz upward for personality.
+   * OpenType: cv11 (circular zero) + cv05 (straight l) globally;
+   * ss01 (single-storey a) on display ≥ 22 px; tnum on .tabular-nums.
+   * (See /LAYOUT_REDESIGN_BRIEF.md §1 for the full type scale.)
+   */
   body {
-    @apply bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-gray-100;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-variation-settings: "opsz" 14, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
   }
 
-  /* Smooth theme transition — fade with gradient wash */
+  h1, h2, h3, h4, h5, h6,
+  .heading-display {
+    font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .heading-display {
+    /* Marketing display — 64/68, opsz 96, full personality */
+    font-variation-settings: "opsz" 96, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    /* Page title — 32/38, opsz 64 */
+    font-variation-settings: "opsz" 64, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
+    letter-spacing: -0.015em;
+  }
+
+  h2 {
+    /* Section heading — 22/28, opsz 32, ss01 (≥22 px) */
+    font-variation-settings: "opsz" 32, "wdth" 100;
+    font-feature-settings: "cv11", "cv05", "ss01";
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    /* Card / modal title, subsections — 16/22, opsz 20.
+       Brief §1 collapses h4–h6 into h3 — anything outside the 8-token
+       scale is a bug. */
+    font-variation-settings: "opsz" 20, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
+  }
+
+  h4, h5, h6 {
+    /* Aliased to h3 per brief §1 (h4–h6 range collapses into h3). */
+    font-variation-settings: "opsz" 20, "wdth" 100;
+    font-feature-settings: "cv11", "cv05";
+  }
+
+  /* Numerals — tabular for stats so they don't jitter on count-up.
+     Retained on .tabular-nums (still useful for stat count-ups). */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "cv11", "cv05", "tnum";
+  }
+
+  /* Theme transition overlay — highlight-yellow/black wash. */
   .theme-fade-overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
     pointer-events: none;
     opacity: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(248, 231, 28, 0.18) 0%,
+      rgba(0, 0, 0, 0.85) 70%
+    );
     animation: theme-fade 0.7s ease-in-out forwards;
   }
 
@@ -32,26 +180,64 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .theme-fade-overlay {
+      animation: none;
+      display: none;
+    }
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+    background: var(--color-border-strong);
+    border-radius: 9999px;
+  }
+
+  /* Focus ring — keyboard nav only. Always gold. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/70 dark:bg-card-dark/70 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/30;
+    background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in oklab, var(--color-border) 60%, transparent);
   }
 }
 
 @layer utilities {
+  /*
+   * .gradient-text retained as a flat-gold utility for backward compatibility
+   * with any callsite that still references it. Brief §4.1 forbids gradients,
+   * so this is now a solid colour. Engineers in Phase 3a may migrate callsites
+   * to plain `text-[var(--color-accent)]` and delete this rule.
+   */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-500 to-purple-500 bg-clip-text text-transparent;
+    color: var(--color-accent);
+  }
+
+  .text-on-accent {
+    color: var(--color-text-on-accent);
+  }
+
+  /*
+   * .on-accent — when the bee mascot sits *inside* a gold-accent surface
+   * (e.g. the brand-mark logo square), its body needs to flip so it
+   * contrasts with the accent colour, not with the page canvas.
+   * Light mode: accent is BLACK → bee body becomes GOLD inside.
+   * Dark mode: accent is GOLD → bee body becomes BLACK inside.
+   */
+  .on-accent {
+    --bee-body: var(--color-text-on-accent);
+    --bee-detail: var(--color-accent);
   }
 }
