@@ -65,15 +65,15 @@ cd apps/mobile && PATH="/opt/homebrew/bin:$PATH" npx expo run:ios
 | Hive theme (HoneycombPattern + HexFrame) | Shipped commit df1ff6b |
 | Liveliness + personality (CursorBee, BeeSpeechBubble, easter egg, conversational copy) | Shipped commit df1ff6b |
 | Motion polish (gentler springs, FallIntoPlace, first-login welcome bee) | Shipped commit 6f93b48 |
-| Comprehensive security audit (6 specialists + coordinator) | Shipped commit a69c4d2 — `COMPREHENSIVE_SECURITY_AUDIT.md` |
+| Comprehensive security audit (6 specialists + coordinator) | Shipped commit a69c4d2 — `docs/security/COMPREHENSIVE_SECURITY_AUDIT.md` |
 | Sprint 1 security quick-wins (12 fixes) | Shipped commit e188820 |
-| `BACKLOG.md` (forward-looking work queue) | Shipped commit 6d8d384 |
-| `DEPLOYMENT_RUNBOOK.md` (prod launch instructions, NO AWS) | Shipped commit b60e090 |
+| `docs/operations/BACKLOG.md` (forward-looking work queue) | Shipped commit 6d8d384 |
+| `docs/operations/DEPLOYMENT_RUNBOOK.md` (prod launch instructions, NO AWS) | Shipped commit b60e090 |
 
 ### Last user request (2026-05-12 before pause)
 "Make tab transitions less jittery + dashboard elements fall into place when logged in" — ✅ shipped in commit `6f93b48`. User can verify on refresh.
 
-### Verdict matrix (per `COMPREHENSIVE_SECURITY_AUDIT.md`)
+### Verdict matrix (per `docs/security/COMPREHENSIVE_SECURITY_AUDIT.md`)
 - Local dev / personal use: **GO** ✅
 - Closed beta (≤10 invited users): **GO** after Sprint 1 (already done) ✅
 - Public open signup: **NO-GO** until Sprint 2+3 (~2 weeks of work)
@@ -202,7 +202,7 @@ User chose options B (more motion) + D (bigger illustrations + color moments) af
    ```bash
    cd /Users/ashiks/Documents/myai/laylo && git status --short | wc -l
    ```
-   If the count is roughly 26 files (just packages/ui + design tokens + 2 stub components), Phase 3a/3b never finished. Re-spawn them — prompt scaffolding is in `SESSION_MEMORY.md` Session History entries below, OR just re-read `REDESIGN_BRIEF.md` §8 (Phase handoff matrix) and `DESIGN_SYSTEM.md` and write fresh prompts that note what's already done (see "Already done — do NOT redo" below).
+   If the count is roughly 26 files (just packages/ui + design tokens + 2 stub components), Phase 3a/3b never finished. Re-spawn them — prompt scaffolding is in `SESSION_MEMORY.md` Session History entries below, OR just re-read `docs/design/REDESIGN_BRIEF.md` §8 (Phase handoff matrix) and `docs/design/DESIGN_SYSTEM.md` and write fresh prompts that note what's already done (see "Already done — do NOT redo" below).
 
 ### If Phase 3a/3b ARE done and you're picking up at Phase 4:
 1. Run all three typechecks:
@@ -214,14 +214,14 @@ User chose options B (more motion) + D (bigger illustrations + color moments) af
 2. Spawn the QA agent (Phase 4) — prompt template:
    - Read REDESIGN_BRIEF.md, DESIGN_SYSTEM.md
    - Verify: zero `viewState` matches in production pages; zero `/assistant` references; theme toggle works on every route in light AND dark; bee mascot used in empty states; AskAi/ai-bottom-sheet wired to cards; copy bank applied; nav has 5 items only
-   - Produce `REDESIGN_QA_REPORT.md`
+   - Produce `docs/design/REDESIGN_QA_REPORT.md`
 3. After QA, commit + open PR with title `feat(redesign): black-yellow theme + minimal IA + AI affordances`. Body should reference REDESIGN_BRIEF.md, DESIGN_SYSTEM.md, REDESIGN_QA_REPORT.md.
 
 ### Already done — do NOT redo
 | Done | File / area |
 |---|---|
-| ✅ | `REDESIGN_BRIEF.md` — full Strategist audit |
-| ✅ | `DESIGN_SYSTEM.md` — full design system spec |
+| ✅ | `docs/design/REDESIGN_BRIEF.md` — full Strategist audit |
+| ✅ | `docs/design/DESIGN_SYSTEM.md` — full design system spec |
 | ✅ | `packages/ui/src/components/*` (14 components) — migrated to CSS variable tokens |
 | ✅ | `apps/web/tailwind.config.ts` — gold + black tokens, legacy aliases preserved |
 | ✅ | `apps/web/src/styles/globals.css` — CSS variables for `:root` + `.dark`, gold theme-fade overlay |
@@ -382,12 +382,14 @@ Claude reads this file first (per CLAUDE.md Step 0), then orients.
 |---|---|---|
 | `CLAUDE.md` | Project rules, infra locks, protocol, design tokens | Rare — only when rules change |
 | `SESSION_MEMORY.md` (this) | Session-by-session progress, in-flight phases, resume runbook | After every meaningful state change |
-| `PROMPT.md` | Reusable prompt templates for the multi-agent workflow | Rare |
+| `BRAND_GUIDE.md` | Canonical brand + style doc (web ↔ mobile parity contract) | When tokens, copy, motion vocab change |
 | `README.md` | Public-facing overview | Rare |
-| `PLAID_INTEGRATION_SPEC.md` | Item 26 architectural spec (post-merge — historical reference) | Frozen |
-| `SECURITY_REVIEW_REPORT.md` | Item 26 security audit (post-merge — historical reference) | Frozen |
-| `REDESIGN_BRIEF.md` | Item 27 Phase 0 output — Strategist's brief | Frozen during Item 27 |
-| `DESIGN_SYSTEM.md` | Item 27 Phase 1 output — UI Designer's tokens + component spec | Frozen during Item 27 |
+| `docs/` | All other docs — see `docs/README.md` for the full index | — |
+| `docs/design/*` | Design briefs (DESIGN_SYSTEM, REDESIGN_BRIEF, LAYOUT_REDESIGN_BRIEF, etc.) — conceptual references; BRAND_GUIDE.md wins on current values | Frozen post-rebrand |
+| `docs/security/*` | Audits + threat model (start with COMPREHENSIVE_SECURITY_AUDIT.md) | Frozen unless reaudit |
+| `docs/architecture/*` | Per-integration specs (e.g., PLAID_INTEGRATION_SPEC.md) | Frozen post-merge |
+| `docs/operations/*` | DEPLOYMENT_RUNBOOK.md, BACKLOG.md | BACKLOG updates monthly |
+| `docs/internal/*` | PROMPT.md and other agent-workflow scaffolding | Rare |
 | `apps/api/.env` | Local-only secrets (gitignored) — DATABASE_URL, JWT keys, Plaid creds, ENCRYPTION_KEY | Edit when secrets rotate |
 | `~/.claude/projects/-Users-ashiks-Desktop-myai/memory/` | Auto-memory: user prefs + project context for cross-session Claude continuity | Update when learning new prefs |
 

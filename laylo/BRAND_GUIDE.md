@@ -2,7 +2,7 @@
 
 **Version:** 1.0 (BillBee rebrand) · **Status:** Canonical for web + mobile · **Owners:** Design Lead (doc), Web Tech Lead (`tailwind.config.ts` + `globals.css`), Mobile Tech Lead (`apps/mobile/src/lib/tokens.ts`).
 
-Read this before designing a screen, adding a token, writing a copy string, or wiring a microinteraction. The contract that makes web↔mobile feel seamless. **Supersedes** the colour table in `DESIGN_SYSTEM.md §1` and the "Laylo" titling in the two redesign briefs — those remain useful conceptual references for per-page audits, but this file wins on hexes, tokens, and copy.
+Read this before designing a screen, adding a token, writing a copy string, or wiring a microinteraction. The contract that makes web↔mobile feel seamless. **Supersedes** the colour table in `docs/design/DESIGN_SYSTEM.md §1` and the "Laylo" titling in the two redesign briefs — those remain useful conceptual references for per-page audits, but this file wins on hexes, tokens, and copy.
 
 ---
 
@@ -103,7 +103,7 @@ These are the **production strings**. Mobile lives at `apps/mobile/src/lib/copy.
 
 ### Copy bank — empty states & errors
 
-(From `REDESIGN_BRIEF.md §6`. These ship at the page callsite — **not** inside the generic `<EmptyState>` component, which keeps a neutral prop API.)
+(From `docs/design/REDESIGN_BRIEF.md §6`. These ship at the page callsite — **not** inside the generic `<EmptyState>` component, which keeps a neutral prop API.)
 
 | Surface                  | String                                                          |
 | ------------------------ | --------------------------------------------------------------- |
@@ -368,7 +368,7 @@ States (across all interactive components):
 - `disabled` — `opacity: 0.5`, `pointer-events: none`
 - `loading` — spinner replaces leading icon; preserves width via `min-width`
 
-For variant tables, padding tables, and the per-component state matrices, see `DESIGN_SYSTEM.md §7`.
+For variant tables, padding tables, and the per-component state matrices, see `docs/design/DESIGN_SYSTEM.md §7`.
 
 ---
 
@@ -389,7 +389,7 @@ The bee paints **fixed colours** (`GOLD #F8E71C` · `BLACK #0A0A0A` · `WHITE #F
 
 Source: `apps/web/src/components/illustrations/bee.tsx`. Five poses ship today: `BeeStanding`, `BeeLookingAround`, `BeeMagnifying`, `BeeSleeping`, `BeeEnvelope`, plus `BeeLogoMark` (the brand-mark square at 64 viewBox / 40 px default).
 
-> **Gap:** brief docs (`DESIGN_SYSTEM.md §8.2`) mention `BeeYawning`, `BeeWorking`, and `BeeCelebrating` poses that **are not implemented**. If a screen needs them, add to the same file with matching anatomy.
+> **Gap:** brief docs (`docs/design/DESIGN_SYSTEM.md §8.2`) mention `BeeYawning`, `BeeWorking`, and `BeeCelebrating` poses that **are not implemented**. If a screen needs them, add to the same file with matching anatomy.
 
 ### 8.2 When to use which pose
 
@@ -435,7 +435,7 @@ Locations: `apps/web/src/components/illustrations/honeycomb-pattern.tsx` + `apps
 
 **Summary:** Seven named layout patterns — recipes, not React components yet. Each screen reaches for one.
 
-> **Gap:** these patterns are **conventions, not components**. There is no `<BentoGrid>` or `<ConversationalStack>` export. Engineers implement the recipe per-page following the prose below + the lengthier per-page audits in `LAYOUT_REDESIGN_BRIEF.md §2`. Future cleanup: extract shared CSS-grid / flex primitives.
+> **Gap:** these patterns are **conventions, not components**. There is no `<BentoGrid>` or `<ConversationalStack>` export. Engineers implement the recipe per-page following the prose below + the lengthier per-page audits in `docs/design/LAYOUT_REDESIGN_BRIEF.md §2`. Future cleanup: extract shared CSS-grid / flex primitives.
 
 | Pattern                      | Used by                                | One-line recipe                                                                                              |
 | ---------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -447,7 +447,7 @@ Locations: `apps/web/src/components/illustrations/honeycomb-pattern.tsx` + `apps
 | **Story Strip**              | Subscriptions                          | Horizontally-scrollable 240 × 160 tiles. Brand big, price small, renewal countdown as a thin gold ring.      |
 | **Settings Hub Grid**        | Settings                               | 2 × 2 hub of 240 × 180 cards on first view; chosen section opens a full-width detail panel below. iPad-Settings pattern. |
 
-For per-page audits + delight moments (Hive Header pulse, Origami fold, Threaded gold line on Reminders, Today-haloed Appointments column, etc.), see `LAYOUT_REDESIGN_BRIEF.md §2`.
+For per-page audits + delight moments (Hive Header pulse, Origami fold, Threaded gold line on Reminders, Today-haloed Appointments column, etc.), see `docs/design/LAYOUT_REDESIGN_BRIEF.md §2`.
 
 ---
 
@@ -479,7 +479,7 @@ Tailwind exposes `transitionDuration` (`micro`, `standard`, `expansive`, `modal`
 
 ### 10.3 The 14 microinteractions
 
-Each is a one-liner. Full property-by-property spec in `DESIGN_SYSTEM.md §6.2`.
+Each is a one-liner. Full property-by-property spec in `docs/design/DESIGN_SYSTEM.md §6.2`.
 
 1. **Bill card hover** — `translateY(0 → -2px)` + `shadow-sm → shadow-pop`, 200 ms `ease-entry`.
 2. **Task checkbox check** — box paints accent in 180 ms; check stroke draws via `pathLength: 0→1` in 200 ms; row text crossfades to 60 % + line-through in 150 ms.
@@ -770,7 +770,7 @@ Every screen must:
 - Mobile shadow token map (`apps/mobile/src/lib/shadows.ts`).
 - Mobile shared bee components (port `bee.tsx` to `react-native-svg` once, not per-screen).
 - Variable-axis Bricolage TTF on mobile (currently four discrete weights only).
-- `BeeYawning` / `BeeWorking` / `BeeCelebrating` poses referenced in `DESIGN_SYSTEM.md §8.2` but not implemented.
+- `BeeYawning` / `BeeWorking` / `BeeCelebrating` poses referenced in `docs/design/DESIGN_SYSTEM.md §8.2` but not implemented.
 - Layout patterns are conventions — extract `<BentoGrid>` / `<ConversationalStack>` primitives if reuse warrants it.
 - Dark-mode semantic colours (`success` / `warning` / `danger`) on **web** still inherit the light hex (`#166534` / `#9A3412` / `#991B1B`) under `.dark` in `globals.css` — they should swap to the brighter `#22C55E` / `#F59E0B` / `#EF4444` already in `tokensDark`. (Mobile is correct; web is a follow-up.)
 
@@ -778,4 +778,4 @@ Every screen must:
 
 ## End of brand guide
 
-This file is the contract. When it conflicts with `DESIGN_SYSTEM.md`, `REDESIGN_BRIEF.md`, or `LAYOUT_REDESIGN_BRIEF.md`, **this file wins**. Those documents are kept as conceptual references and per-page audits. For tokens, copy, and motion vocabulary: read this.
+This file is the contract. When it conflicts with `docs/design/DESIGN_SYSTEM.md`, `docs/design/REDESIGN_BRIEF.md`, or `docs/design/LAYOUT_REDESIGN_BRIEF.md`, **this file wins**. Those documents are kept as conceptual references and per-page audits. For tokens, copy, and motion vocabulary: read this.

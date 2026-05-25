@@ -4,7 +4,7 @@
  * Black + gold tokens. Bee mascot fronts the logo, copy uses
  * "Welcome back" / "Join the hive" per the personality bank.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/auth';
-import { tokens, radius, spacing } from '../src/lib/tokens';
+import { useTokens, radius, spacing, type Tokens } from '../src/lib/tokens';
 import { BreathingBee } from '../src/components/motion/breathing-bee';
 import { BeeEntrance } from '../src/components/motion/bee-entrance';
 import { FloatingBee } from '../src/components/motion/floating-bee';
@@ -33,6 +33,8 @@ export default function AuthScreen() {
   const router = useRouter();
   const { login, signup, isLoading } = useAuth();
   const insets = useSafeAreaInsets();
+  const t = useTokens();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   const [activeTab, setActiveTab] = useState<Tab>('signin');
   const [name, setName] = useState('');
@@ -205,7 +207,7 @@ export default function AuthScreen() {
                 <TextInput
                   style={[styles.input, errors.name ? styles.inputError : null]}
                   placeholder="John Doe"
-                  placeholderTextColor={tokens.textSubtle}
+                  placeholderTextColor={t.textSubtle}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -220,7 +222,7 @@ export default function AuthScreen() {
               <TextInput
                 style={[styles.input, errors.email ? styles.inputError : null]}
                 placeholder="you@example.com"
-                placeholderTextColor={tokens.textSubtle}
+                placeholderTextColor={t.textSubtle}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -240,7 +242,7 @@ export default function AuthScreen() {
                     errors.password ? styles.inputError : null,
                   ]}
                   placeholder="••••••••"
-                  placeholderTextColor={tokens.textSubtle}
+                  placeholderTextColor={t.textSubtle}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -272,7 +274,7 @@ export default function AuthScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color={tokens.textOnAccent} size="small" />
+                <ActivityIndicator color={t.textOnAccent} size="small" />
               ) : (
                 <Text style={styles.submitButtonText}>
                   {activeTab === 'signin' ? 'Welcome back' : 'Join the hive'}
@@ -307,174 +309,176 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: tokens.bg,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl + spacing.sm,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.xxl,
-    gap: spacing.md,
-  },
-  logoTitle: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '700',
-    color: tokens.text,
-    letterSpacing: -0.5,
-  },
-  logoSubtitle: {
-    fontSize: 15,
-    color: tokens.textMuted,
-    fontWeight: '500',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: tokens.surface2,
-    borderRadius: radius.sm,
-    padding: 4,
-    marginBottom: spacing.xl,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    borderRadius: radius.sm - 2,
-    // The active gradient is an absolutely-positioned underlay, so the
-    // touch target itself stays flat.
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  // Active background = gradient pill that fills the tab. Sits behind
-  // the label via `position: absolute` so the gradient + text don't
-  // fight for layout.
-  tabActiveFill: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: tokens.textMuted,
-  },
-  tabTextActive: {
-    // Reads on the black sheen gradient — yellow text on black accent.
-    color: tokens.textOnAccent,
-  },
-  formError: {
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    borderLeftWidth: 4,
-    borderLeftColor: tokens.danger,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  formErrorText: {
-    color: tokens.danger,
-    fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  form: { gap: spacing.xs },
-  fieldGroup: { marginBottom: spacing.lg },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: tokens.textMuted,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: tokens.surface,
-    borderWidth: 1,
-    borderColor: tokens.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md + 2,
-    fontSize: 15,
-    color: tokens.text,
-  },
-  inputError: {
-    borderColor: tokens.danger,
-  },
-  passwordContainer: { position: 'relative' },
-  passwordInput: { paddingRight: 52 },
-  eyeButton: {
-    position: 'absolute',
-    right: spacing.lg,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  eyeIcon: { fontSize: 18, color: tokens.textMuted },
-  errorText: {
-    color: tokens.danger,
-    fontSize: 12,
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
-  },
-  forgotButton: {
-    alignSelf: 'flex-end',
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  forgotText: {
-    color: tokens.text,
-    fontSize: 13,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  submitButton: {
-    backgroundColor: tokens.accent,
-    borderRadius: radius.md,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: {
-    color: tokens.textOnAccent,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.xl - 4,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: tokens.border },
-  dividerText: {
-    color: tokens.textSubtle,
-    fontSize: 13,
-    marginHorizontal: spacing.lg,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: tokens.surface,
-    borderWidth: 1,
-    borderColor: tokens.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md + 2,
-    gap: spacing.md - 2,
-  },
-  googleIcon: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: tokens.text,
-  },
-  googleButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: tokens.text,
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: t.bg,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.xxl + spacing.sm,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: spacing.xxl,
+      gap: spacing.md,
+    },
+    logoTitle: {
+      fontSize: 32,
+      lineHeight: 40,
+      fontWeight: '700',
+      color: t.text,
+      letterSpacing: -0.5,
+    },
+    logoSubtitle: {
+      fontSize: 15,
+      color: t.textMuted,
+      fontWeight: '500',
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      backgroundColor: t.surface2,
+      borderRadius: radius.sm,
+      padding: 4,
+      marginBottom: spacing.xl,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      borderRadius: radius.sm - 2,
+      // The active gradient is an absolutely-positioned underlay, so the
+      // touch target itself stays flat.
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    // Active background = gradient pill that fills the tab. Sits behind
+    // the label via `position: absolute` so the gradient + text don't
+    // fight for layout.
+    tabActiveFill: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    tabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: t.textMuted,
+    },
+    tabTextActive: {
+      // Reads on the black sheen gradient — yellow text on black accent.
+      color: t.textOnAccent,
+    },
+    formError: {
+      backgroundColor: 'rgba(239,68,68,0.10)',
+      borderLeftWidth: 4,
+      borderLeftColor: t.danger,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    formErrorText: {
+      color: t.danger,
+      fontSize: 13,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    form: { gap: spacing.xs },
+    fieldGroup: { marginBottom: spacing.lg },
+    label: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: t.textMuted,
+      marginBottom: spacing.sm,
+    },
+    input: {
+      backgroundColor: t.surface,
+      borderWidth: 1,
+      borderColor: t.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md + 2,
+      fontSize: 15,
+      color: t.text,
+    },
+    inputError: {
+      borderColor: t.danger,
+    },
+    passwordContainer: { position: 'relative' },
+    passwordInput: { paddingRight: 52 },
+    eyeButton: {
+      position: 'absolute',
+      right: spacing.lg,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    eyeIcon: { fontSize: 18, color: t.textMuted },
+    errorText: {
+      color: t.danger,
+      fontSize: 12,
+      marginTop: spacing.xs,
+      marginLeft: spacing.xs,
+    },
+    forgotButton: {
+      alignSelf: 'flex-end',
+      marginBottom: spacing.sm,
+      marginTop: spacing.xs,
+    },
+    forgotText: {
+      color: t.text,
+      fontSize: 13,
+      fontWeight: '500',
+      textDecorationLine: 'underline',
+    },
+    submitButton: {
+      backgroundColor: t.accent,
+      borderRadius: radius.md,
+      paddingVertical: spacing.lg,
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    submitButtonDisabled: { opacity: 0.6 },
+    submitButtonText: {
+      color: t.textOnAccent,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: spacing.xl - 4,
+    },
+    dividerLine: { flex: 1, height: 1, backgroundColor: t.border },
+    dividerText: {
+      color: t.textSubtle,
+      fontSize: 13,
+      marginHorizontal: spacing.lg,
+    },
+    googleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.surface,
+      borderWidth: 1,
+      borderColor: t.border,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md + 2,
+      gap: spacing.md - 2,
+    },
+    googleIcon: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: t.text,
+    },
+    googleButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: t.text,
+    },
+  });
+}
