@@ -6,6 +6,47 @@ Prioritized queue of features + improvements deferred from active work. Each ent
 
 ## 🔥 Pre-launch (must do before specific milestones)
 
+### Apple App Store compliance
+**Trigger:** before TestFlight / public submission
+**Added:** 2026-05-25 (user request)
+**Estimated:** 1-2 weeks of focused work
+- Privacy manifest (`PrivacyInfo.xcprivacy`) — Required Reasons API usage declarations
+- App Review Guidelines audit (App Store Connect)
+- App icon: all required sizes (currently regenerated via sips; verify Apple's full matrix)
+- Privacy nutrition labels (App Store Connect form)
+- Age rating questionnaire
+- Push notification permissions copy
+- Apple Sign In if requesting Google sign-in (App Store requires both)
+- Re-audit `apps/mobile/ios/LifeAdminAI/Info.plist` for prod (currently has `NSAllowsLocalNetworking` for dev)
+- EAS Build profile for TestFlight + signing certs (requires Apple Developer Program $99/yr)
+- Set up internal TestFlight group
+
+### Smoother breathing animation on mobile auth bee
+**Trigger:** UX polish round
+**Added:** 2026-05-25 (user feedback — still not smooth enough after current pass)
+**Current state:** `apps/mobile/src/components/motion/breathing-bee.tsx` uses Easing.inOut(Easing.sin), 6s cycle, ±2.5% scale
+**Possible directions:** longer cycle (8-10s), tighter scale delta (±1.5%), pair with subtle opacity shift, OR remove breathing entirely on auth and only use it on dashboard hero. Spike candidate.
+
+### Gradient from screen corners (not diagonal)
+**Trigger:** UI polish round
+**Added:** 2026-05-25 (user request — "I want the gradient to be from the corners of the screen")
+**Current state:** `apps/mobile/src/components/layout/gradient-bg.tsx` uses top-left diagonal anchor
+**Direction:** instead of single corner, use multi-corner radial OR conic gradient — light source emanates from each of the 4 corners at different opacities. May need `react-native-svg` `RadialGradient` instead of `expo-linear-gradient` (linear can't do multi-anchor radial).
+
+### Mobile scroll behavior — manual test pass
+**Trigger:** after Tasks/Dashboard scroll fix
+**Added:** 2026-05-25 (user request — verify on real device + every tab)
+- Confirm scroll works on every tab (Home, Money, Tasks, Vault, Settings) in both populated and empty states
+- Confirm pull-to-refresh works on every tab
+- Confirm scroll works when keyboard is open (KeyboardAvoidingView interaction)
+- Test on real device (not just simulator) — touch behavior can differ
+
+### User logout button visibility on app
+**Trigger:** UX polish round
+**Added:** 2026-05-25 (user request — couldn't find logout)
+**Current state:** Sign out button is rendered in `apps/mobile/app/(tabs)/settings.tsx` (with "Sign out of the hive?" confirm alert)
+**Likely fix:** promote it higher in Settings, or surface a logout chip in the header next to the avatar. Coordinate with the theme switcher layout.
+
 ### Google integrations — config + Cloud Console setup
 **Trigger:** before testing Calendar/Gmail features end-to-end (in dev or prod)
 **Added:** 2026-05-25

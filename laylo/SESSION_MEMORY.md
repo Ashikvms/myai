@@ -26,6 +26,24 @@
 - **Theme switcher** — `ThemeProvider` + 3-segment Light/Dark/System toggle in Settings, persists via expo-secure-store, ThemedStatusBar flips with theme.
 - **Docs reorg** — root keeps `README.md`, `CLAUDE.md`, `SESSION_MEMORY.md`, `BRAND_GUIDE.md`. Everything else under `docs/{design,security,architecture,operations,internal}` + `docs/README.md` index.
 
+### Phase 3 polish round (2026-05-25, latest commits on `feat/google-integrations`)
+- Tab bar theme reactivity (`useTokens()` migration)
+- Vault hive theme (HexFrame tiles + HoneycombPattern backdrop)
+- Settings gear icon (replaces crosshair), theme switcher promoted above Google card
+- BeeSleeping peaceful redesign (closed-eye arcs + soft smile, no angry brows)
+- Tasks empty-state scroll fix (FlatList flex:1 + alwaysBounceVertical)
+- Tab-screen scroll fix (`sceneContainerStyle` on Tabs)
+- Classy corner gradient (full-hex light wash, gold-alpha ember dark)
+- Tab containers transparent so gradient shows through
+
+### Active open items (deferred to BACKLOG 2026-05-25 at 90% token limit)
+All moved to `docs/operations/BACKLOG.md` "Pre-launch" section:
+1. Apple App Store compliance (privacy manifest, EAS Build, signing, TestFlight)
+2. Smoother breathing animation on mobile auth bee (current still not smooth per user)
+3. Gradient from MULTIPLE corners (currently top-left only — user wants from all corners; may need react-native-svg RadialGradient)
+4. Mobile scroll manual test pass across every tab + empty/populated/keyboard states + real device
+5. Logout button visibility — exists in Settings but user couldn't find it; promote to header chip
+
 ### Phase 2 COMPLETE + polish landed (commit `87d5fd0` on `feat/google-integrations`)
 
 All 4 Phase 2 agents shipped + 2 polish agents shipped + flying-bee design fix:
